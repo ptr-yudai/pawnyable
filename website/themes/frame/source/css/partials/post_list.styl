@@ -1,0 +1,40 @@
+.post-list
+
+    a 
+        underline-motion(link)
+
+.year-title
+    margin-top $margin-primary
+    margin-bottom $margin-m-1
+    text-style(year-title)
+
+.post-list-item
+    display flex
+    flex-wrap nowrap
+    margin-top $margin-m-1
+    align-items top
+
+    .post-title
+        flex-grow 1
+        text-style(body-default)
+        font-variation-settings 'wght' $font-weight-medium
+
+    .post-date
+        margin-left $margin-l-0
+        min-width 8rem
+        text-align right
+        text-style(post-date)
+        line-height $line-height-body
+        color $color-text-secondary
+
+@media (max-width: 480px)
+    .post-list-item
+        flex-wrap wrap
+        .post-title
+            width 100%
+
+        .post-date
+            margin-left 0
+            width 100%
+            text-align left
+

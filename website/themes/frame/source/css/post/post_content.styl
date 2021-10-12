@@ -1,0 +1,104 @@
+.post-content 
+    margin-top $margin-l-1
+
+h1, h2, h3, h4, h5, h6
+    margin-top $margin-l-0
+    margin-bottom $margin-m-1
+
+h1
+    text-style(heading-h1)
+
+h2
+    text-style(heading-h2)
+
+h3
+    text-style(heading-h3)
+
+h4
+    text-style(heading-h4)
+
+h5
+    text-style(heading-h5)
+
+h6
+    text-style(heading-h6)
+    
+p
+    text-style(body-default)
+
+strong
+    text-style(body-bold)
+
+em
+    text-style(body-italic)
+
+del 
+    text-style(body-delete)
+
+.post-content
+    a 
+        underline-motion(underline-link)
+
+blockquote
+    margin-left 0
+    margin-right 0
+    margin-top $margin-m-2
+    border-left $margin-s-2 solid $color-text-secondary
+
+    p
+        margin-left $margin-m-2
+        margin-top 0
+        margin-bottom 0
+        margin-right $margin-m-2
+        padding-top $margin-m-0
+        padding-bottom $margin-m-0
+
+    blockquote
+        margin-left $margin-m-2
+        margin-top 0
+        margin-bottom 0
+
+.post-content
+    li
+        text-style(body-default)
+        margin-top $margin-m-0
+
+    ol 
+        padding-left $margin-l-0
+        margin-left $margin-m-1
+        margin-right $margin-m-1
+        margin-top $margin-m-2
+
+        ol
+            margin-top $margin-m-0
+
+    ul 
+        padding-left $margin-l-0
+        margin-left $margin-m-1
+        margin-right $margin-m-1
+        margin-top $margin-m-2
+
+        ul 
+            margin-top $margin-m-0
+
+        li 
+            list-style-type disc
+            
+
+    .task-list
+        padding-left 0
+        .task-list-item 
+            list-style none
+    
+dl 
+    dt 
+        padding $margin-m-0 0
+        text-style(body-bold)
+
+    dt::after
+        content " :"
+
+    dd 
+        margin 0
+
+            

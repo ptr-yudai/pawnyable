@@ -1,0 +1,66 @@
+# html lang
+language: ja
+
+# toc
+toc:
+  maxdepth: 3
+  class: toc
+  slugify: transliteration
+  anchor:
+    position: after
+    symbol: '#'
+    style: header-anchor
+
+# header
+site_brand_name: PAWNYABLE
+
+menu:
+  Practice: /practice/
+  About: /about/
+
+# stylesheets loaded in the <head>
+stylesheets:
+- /css/style.css
+
+# scripts loaded in the end of the body
+scripts:
+- /js/frame.js
+
+# favicon
+favicon: /favicon.ico
+
+date_format: MMM D, YYYY
+
+# profile
+profile:
+  body: 愉快な森の仲間たちと楽しくpwnしましょう。
+  description: Pawnyableはpwn(Binary Exploitation)を勉強するための資料です。森の仲間たちはみんな自然界を生き抜いてきた強者なので、ある程度の前提知識がある人間を対象としています。
+  image: /profile_cover.png
+
+  links:
+    "🐑 Linux Userland": /linux-user/
+    "🐮 Linux Kernel": /linux-kernel/
+    "🐥 Windows Userland": /windows-user/
+    "🐻 Windows Kernel": /windows-kernel/
+    "🐺 Browser Exploit": /browser/
+    "🐰 VM Escape": /vm-escape/
+
+# footer
+footer:
+  copyright_info:
+    enable: false
+    author:
+
+  powered_by: # Powered by Hexo & Frame
+    enable: false
+
+  other_info:
+    enable: true
+    content: © 2021 ptr-yudai 🐈
+
+# color mode: default / classic / dark
+color_mode: default
+
+# mathjax setting
+# note: need to install the hexo plugin for math: https://github.com/hexojs/hexo-math
+mathjax_enable: false

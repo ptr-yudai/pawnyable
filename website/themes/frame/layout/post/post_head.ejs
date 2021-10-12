@@ -1,0 +1,34 @@
+<div class="post-head">
+    <div class="post-info">
+        <div class="tag-list">
+            <% if (page.tags && page.tags.data && page.tags.data.length > 0) {%>
+                <% page.tags.data.forEach(function(tag) { %>
+                    <span class="post-tag">
+                        <a href="<%-url_for(tag.path)%>">
+                            <%=tag.name%>
+                        </a>
+                    </span>    
+                <% }) %>           
+            <% } %>
+        </div>
+        <div class="post-title">
+            
+            <% if (page.title) {%>
+                <%= page.title %>
+            <% } else {%>
+                *Untitled
+            <% } %>
+            
+        </div>
+        <span class="post-date">
+            <%- date(page.date, theme.date_format) %>
+        </span>
+    </div>
+    <div class="post-img">
+        <% if (page.featured_image) {%>
+            <img src="<%= page.featured_image%>" alt="featured_image">
+        <% } else { %>
+            <div class="h-line-primary"></div>
+        <% } %>      
+    </div>
+</div>

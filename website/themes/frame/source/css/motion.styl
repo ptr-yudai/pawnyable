@@ -1,0 +1,35 @@
+underline-motion(n)
+    if n == 'link'
+        background-image linear-gradient($color-background, $color-background), linear-gradient($color-text-primary, $color-text-primary)
+        background-size 100% $margin-s-0, 100% $margin-s-0
+        background-position 100% 100%, 0 100%
+        background-repeat no-repeat, no-repeat
+        transition background-size .6s linear
+
+        &:hover 
+            background-size 0 $margin-s-0, 100% $margin-s-0
+
+    else if n == 'underline-link'
+        padding-bottom $margin-s-1
+        background-image linear-gradient($color-text-primary, $color-text-primary), linear-gradient($color-text-primary, $color-text-primary)
+        background-size 100% $margin-s-0, 0 $margin-s-1
+        background-position 100% 100%, 0 100%
+        background-repeat no-repeat, no-repeat
+        transition background-size .6s linear
+
+        &:hover 
+            background-size 100% $margin-s-0, 100% $margin-s-1
+
+    else if n == 'header'
+        &:after
+            content ""
+            -webkit-transition width .4s ease-in-out
+            transition width .4s ease-in-out
+            position absolute
+            left 0
+            bottom 0
+            width 0
+            border-bottom solid $line-third $color-text-primary
+
+        &:hover:after
+            width 100%

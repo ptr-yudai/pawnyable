@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="<%=config.language%>">
+  <head>
+    <%- partial('partials/head') %>
+  </head>
+  <body>
+    <div class="mask-border">
+    </div>
+
+    <div class="wrapper">
+
+      <%- partial('partials/header') %>
+
+      <div class="main">
+        <div class="flex-container">
+          <%- body %>
+        </div>
+      </div>
+      
+      <%- partial('partials/footer') %>
+
+    </div>
+
+  </body>
+</html>

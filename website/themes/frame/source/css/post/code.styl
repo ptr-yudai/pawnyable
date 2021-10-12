@@ -1,0 +1,30 @@
+code
+    text-style(code-highlight)
+    
+.code 
+    pre
+        span
+            text-style(code-default)
+
+.highlight
+    margin 0 0 $margin-m-2 0
+
+    .line
+        width $margin-l-2
+
+td.gutter
+    width $margin-m-2
+    position -webkit-sticky
+    position sticky
+    left 0
+    span
+        text-style(code-marker)
+
+td
+    span
+        line-height $margin-s-2
+
+pre
+    margin 0
+    overflow-x auto
+

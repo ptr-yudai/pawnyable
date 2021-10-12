@@ -1,0 +1,27 @@
+<div class="profile">
+    <div class="profile-image">
+        <% if (theme.profile.image) {%>
+            <img src="<%= theme.profile.image%>" alt="featured_image">
+        <% } %>  
+    </div>
+    <div class="post-content profile-content">
+        <div class="profile-body">
+            <%=theme.profile.body%>
+        </div>
+        <div class="profile-title">
+             🐾What's Pawnyable?🐾
+        </div>
+        <div class="profile-body">
+             <%=theme.profile.description%>
+        </div>
+        <div class="profile-title">
+             🐾Contents🐾
+        </div>
+        <% Object.keys(theme.profile.links).forEach(key => { %>
+            <div class="profile-link">
+                <a href="<%=theme.profile.links[key]%>"><%=key%></a> 
+            </div>           
+        <% }); %>
+    </div>
+    
+</div>

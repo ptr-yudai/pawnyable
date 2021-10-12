@@ -1,0 +1,114 @@
+/* 吹き出し */
+.balloon {
+    margin-bottom: 2em;
+    position: relative;
+}
+.balloon:before,.balloon:after {
+    clear: both;
+    content: "";
+    display: block;
+}
+.balloon-image-left,.balloon-image-right {
+    width: 100px;
+    height: 100px;
+}
+.balloon-image-left {
+    float: left;
+    margin-right: 20px;
+}
+.balloon-image-right {
+    float: right;
+    margin-left: 20px;
+}
+.balloon-img {
+    width: 100%;
+    height: 100%;
+    border: 1px solid #aaa;
+    border-radius: 50%;
+    margin: 0;
+    background-color: red;
+}
+.balloon-image-description {
+    padding: 5px 0 0;
+    font-size: 10px;
+    text-align: center;
+}
+.balloon-text-right,.balloon-text-left {
+    position: relative;
+    padding: 10px;
+    border: 1px solid #aaa;
+    border-radius: 10px;
+    max-width: -webkit-calc(100% - 120px);
+    max-width: calc(100% - 120px);
+    display: inline-block;
+}
+.balloon-text-right {
+    float: left;
+}
+.balloon-text-left {
+    float: right;
+}
+.balloon p {
+    margin: 0 0 20px;
+}
+.balloon p:last-child {
+    margin-bottom: 0;
+}
+.balloon-text-right:before {
+    position: absolute;
+    content: '';
+    border: 10px solid transparent;
+    border-right: 10px solid #aaa;
+    top: 15px;
+    left: -20px;
+}
+.balloon-text-right:after {
+    position: absolute;
+    content: '';
+    border: 10px solid transparent;
+    border-right: 10px solid #ffffff;
+    top: 15px;
+    left: -19px;
+}
+.balloon-text-left:before {
+    position: absolute;
+    content: '';
+    border: 10px solid transparent;
+    border-left: 10px solid #aaa;
+    top: 15px;
+    right: -20px;
+}
+.balloon-text-left:after {
+    position: absolute;
+    content: '';
+    border: 10px solid transparent;
+    border-left: 10px solid #ffffff;
+    top: 15px;
+    right: -19px;
+}
+
+/* コラム */
+.column {
+  position      : relative;
+  box-sizing    : border-box;
+  margin        : 48px 0 0 0;
+  max-width     : 800px;
+  background    : #fff;
+  padding       : 10px 10px 10px 10px;
+  border        : 1px solid #010101;
+}
+.column::before {
+  position      : absolute;
+  display       : inline-block;
+  box-sizing    : border-box;
+  line-height   : 1;
+  background    : #010101;
+  color         : #ffffff;
+  content       : attr(title);
+  font-weight   : bold;
+  padding       : 7px 12px;
+  top           : -30px;
+  left          : -1px;
+  border-radius : 15px 15px 0 0;
+  font-size     : 16px;
+}

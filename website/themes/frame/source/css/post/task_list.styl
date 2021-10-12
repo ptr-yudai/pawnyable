@@ -1,0 +1,43 @@
+ul 
+    li.task-list-item
+        position relative
+
+    li.task-list-item>input[type=checkbox]
+        list-style none
+        background none
+        appearance none
+        -webkit-appearance none
+        -moz-appearance none;
+        width $margin-l-0
+        display inline-block
+        border none
+        opacity 1
+
+    li.task-list-item>input[type=checkbox][checked]:before 
+        background $color-text-primary
+        -webkit-mask-image url('../icon/checkbox-checked.svg')
+        -webkit-mask-position center center
+        mask-image url('../icon/checkbox-checked.svg')
+        -webkit-mask-repeat no-repeat
+
+    li.task-list-item>input[type=checkbox]:before 
+        background $color-text-primary
+        -webkit-mask-image url('../icon/checkbox-default.svg')
+        -webkit-mask-position center center
+        mask-image url('../icon/checkbox-default.svg')
+        -webkit-mask-repeat no-repeat
+        
+    li.task-list-item>input[type=checkbox]:after, li.task-list-item>input[type=checkbox]:before
+        display block
+        position absolute
+        content "X"
+        color transparent
+        left 0
+        top 0
+        width $icon-size
+        height $line-height-body
+        background-size contain
+        background-repeat no-repeat
+        background-position-x 0
+        background-position-y center
+        --webkit-touch-callout none

@@ -1,0 +1,42 @@
+<div class="post-gallery">
+    <div class="post-gallery-list">
+        <% page.posts.each(function (post) { %>
+            <div class="post-gallery-item">
+                <div class="post-info">
+                    <div class="tag-list">
+                        <% if (post.tags && post.tags.data && post.tags.data.length > 0) {%>
+                            <% post.tags.data.forEach(function(tag) { %>
+                                <span class="post-tag">
+                                    <a href="<%-url_for(tag.path)%>">
+                                        <%=tag.name%>
+                                    </a>
+                                </span>   
+                            <% }) %>           
+                        <% } %>
+                    </div>
+                    <div class="post-title">
+                        <a href="<%=url_for(post.path)%>"</a>
+                            <% if (post.title) {%>
+                                <%= post.title %>
+                            <% } else {%>
+                                *Untitled
+                            <% } %>
+                        </a>
+                    </div>
+                    <span class="post-date">
+                        <%- date(post.date, theme.date_format) %>
+                    </span>
+                </div>
+                <div class="post-img">
+                <% if (post.featured_image) {%>
+                    <img src="<%= post.featured_image%>" alt="featured_image">
+                <% } %>  
+                </div>
+            </div>
+            <div class="h-line-secondary"></div>
+        <% }) %>
+    </div>
+    <div id="paginator">
+        <%- partial('partials/paginator') %>
+    </div>
+</div>

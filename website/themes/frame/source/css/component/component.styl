@@ -1,0 +1,42 @@
+.h-line-primary
+  background-color $color-text-primary
+  height $line-third
+
+.h-line-secondary
+  background-color $color-text-secondary
+  height $line-third
+
+hr 
+  background-color $color-text-third
+  height $line-third
+  border 0
+
+.tag-list
+  display flex
+  flex-wrap wrap
+  margin-bottom $margin-m-0
+
+.tag-title
+  margin $margin-m-1 0 
+  color $color-text-secondary
+  font-size $font-size-header
+
+  a 
+      color @color
+
+.post-tag
+  text-style(post-tag)
+  border $line-third solid $color-text-primary
+  margin-right $margin-s-2
+  margin-bottom $margin-s-2
+  padding $margin-s-2 $margin-m-0 $margin-s-2 $margin-m-0
+  border-radius $margin-m-2
+
+  a 
+    background-image none!important
+
+  &:hover
+    background-color $color-text-primary
+
+    a 
+      color $color-background

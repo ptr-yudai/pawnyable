@@ -1,0 +1,10 @@
+$color_path = 'color_mode/default.styl'
+
+if hexo-config("color_mode") == 'default'
+    $color_path = 'color_mode/default.styl'
+else if hexo-config("color_mode") == 'dark'
+    $color_path = 'color_mode/dark.styl'
+else if hexo-config("color_mode") == 'classic'
+    $color_path = 'color_mode/classic.styl'
+
+@import $color_path

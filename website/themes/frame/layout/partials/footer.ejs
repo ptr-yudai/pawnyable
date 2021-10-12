@@ -1,0 +1,16 @@
+<div class="footer">
+    <div class="flex-container">
+        <div class="footer-text">
+            <% if (theme.footer.other_info.enable) {%>
+                <%= theme.footer.other_info.content %>
+                <br>
+            <% }%>
+            <% if (theme.footer.copyright_info.enable) {%>
+                <%= theme.footer.copyright_info.author %> | 
+            <% }%>
+            <% if (theme.footer.powered_by.enable) {%>
+                Powered by <a href="https://hexo.io/">Hexo</a> & <a href="https://hexo.io/">Frame</a>
+            <% }%>    
+        </div>
+    </div>
+</div>

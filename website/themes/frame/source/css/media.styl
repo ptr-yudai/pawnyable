@@ -1,0 +1,27 @@
+.flex-container
+    width 960px
+    margin 0 auto
+
+html
+    font-size 20px
+
+@media (max-width: 1600px)
+    html
+        font-size 18px
+    .flex-container
+        width 800px
+
+@media (max-width: 1200px)
+    html
+        font-size 16px
+    .flex-container
+        width 640px
+
+@media (max-width: 688px)
+    .flex-container
+        display block
+        width calc(100% - 48px)
+        padding-left 24px
+        padding-right 24px
+
+    

@@ -1,0 +1,70 @@
+<meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+<% if(config.author){ %>
+    <meta name="author" content="<%- config.author %>">
+<% } %>
+<% if(config.subtitle){ %>
+    <meta name="subtitle" content="<%- config.subtitle %>">
+<% } %>
+<% if(config.description){ %>
+    <meta name="description" content="<%- config.description %>">
+<% } %>
+<% if(config.keywords){ %>
+    <meta name="keywords" content="<%- config.keywords %>">
+<% } %>
+
+<%
+var title = page.title;
+
+if (is_archive()){
+    title = __('Archive');
+
+    if (is_month()){
+        title += ': ' + page.year + '/' + page.month;
+    } else if (is_year()){
+        title += ': ' + page.year;
+    }
+} else if (is_category()){
+    title = __('Category') + ': ' + page.category;
+} else if (is_tag()){
+    title = __('Tag') + ': ' + page.tag;
+}
+%>
+
+<title><% if (title){ %><%= title %> | <% } %><%= config.title %></title>
+
+<%# favicon %>
+<% if (theme.favicon){ %>
+    <link rel="icon" href="<%- url_for(theme.favicon) %>">
+<% } %>
+
+<%# font %>
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=Roboto+Mono&display=swap');
+</style>
+
+<%# css list %>
+<% if (theme.stylesheets !== undefined && theme.stylesheets.length > 0) { %>
+    <!-- stylesheets list from _config.yml -->
+    <% theme.stylesheets.forEach(url => { %>
+    <link rel="stylesheet" href="<%- url_for(url) %>">
+    <% }); %>
+<% } %>
+
+<%# javascript list %>
+<% if (theme.scripts !== undefined && theme.scripts.length > 0) { %>
+    <!-- scripts list from _config.yml -->
+    <% theme.scripts.forEach(url => { %>
+    <script src="<%- url_for(url) %>"></script>
+    <% }); %>
+<% } %>
+
+<%# mathjax support %>
+<% if(theme.mathjax_enable){ %>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<% } %>
+
+

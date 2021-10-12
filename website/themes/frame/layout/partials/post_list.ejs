@@ -1,0 +1,28 @@
+<div class="post-list">
+    <% var last_year = ''; %>
+    <% page.posts.each(function (post) { %>
+        <% var cur_year = post.date.year(); %>
+
+        <% if(last_year !== cur_year){ %>
+            <div class="year-title"><%- cur_year %></div>
+        <% last_year = cur_year; } %>
+
+        <div class="post-list-item">
+            <div class="post-title">
+               <a href="<%- url_for(post.path) %>">
+                <% if (post.title) {%>
+                    <%= post.title %>
+                <% } else {%>
+                    *Untitled
+                <% } %>
+                </a> 
+            </div>
+            
+            <span class="post-date"><%- date(post.date, theme.date_format) %></span>
+        </div>
+        
+    <% }) %>
+    <div id="paginator">
+        <%- partial('partials/paginator') %>
+    </div>
+</div>

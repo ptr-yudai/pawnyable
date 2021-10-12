@@ -1,0 +1,111 @@
+// Text Style
+text-style(n)
+  if n == 'body-default'
+    font-family 'Inter', 'Noto Sans SC', helvetica, arial
+    font-size $font-size-body
+    font-weight $font-weight-regular
+    line-height $line-height-body
+    color $color-text-primary
+
+  else if n == 'body-bold'
+    font-size $font-size-body
+    font-weight $font-weight-bold
+    line-height $line-height-body
+    color $color-text-primary
+
+  else if n == 'body-italic'
+    font-size $font-size-body
+    font-weight $font-weight-regular
+    font-style italic
+    line-height $line-height-body
+    color $color-text-primary
+  
+  else if n == 'body-delete'
+    font-size $font-size-body
+    font-weight $font-weight-regular
+    line-height $line-height-body
+    text-decoration line-through
+    color $color-text-primary
+
+  else if n == 'code-default'
+    font-family 'Roboto Mono', menlo, monospace;
+    font-size $font-size-code
+    line-height $line-height-code
+    color $color-code-default
+
+  else if n == 'code-highlight'
+    font-family 'Roboto Mono', menlo, monospace;
+    font-size $font-size-code
+    line-height $line-height-code
+    color $color-code-highlight
+
+  else if n == 'code-marker'
+    font-family 'Roboto Mono', menlo, monospace;
+    font-size $font-size-code
+    line-height $line-height-code
+    color $color-code-marker
+
+  else if n == 'heading-h1'
+    font-size $font-size-heading-h1
+    font-weight $font-weight-bold
+    line-height $line-height-heading-h1
+    color $color-text-primary
+
+  else if n == 'heading-h2'
+    font-size $font-size-heading-h2
+    font-weight $font-weight-bold
+    line-height $line-height-heading-h2
+    color $color-text-primary
+
+  else if n == 'heading-h3'
+    font-size $font-size-heading-h3
+    font-weight $font-weight-bold
+    line-height $line-height-heading-h3
+    color $color-text-primary
+
+  else if n == 'heading-h4'
+    font-size $font-size-heading-h4
+    font-weight $font-weight-bold
+    line-height $line-height-heading-h4
+    color $color-text-primary
+
+  else if n == 'heading-h5'
+    font-size $font-size-heading-h5
+    font-weight $font-weight-semibold
+    line-height $line-height-heading-h5
+    color $color-text-primary
+
+  else if n == 'heading-h6'
+    font-size $font-size-heading-h6
+    font-weight $font-weight-medium
+    line-height $line-height-heading-h6
+    color $color-text-primary
+
+  else if n == 'footer'
+    font-size $font-size-footer
+    font-weight $font-weight-regular
+    line-height $line-height-footer
+    color $color-text-primary
+
+  else if n == 'header'
+    font-size $font-size-header
+    font-weight $font-weight-medium
+    line-height $line-height-header
+    color $color-text-primary
+
+  else if n == 'post-date'
+    font-size $font-size-post-date
+    font-weight $font-weight-regular
+    line-height $line-height-post-date
+    color $color-text-primary
+
+  else if n == 'year-title'
+    font-size $font-size-year-title
+    font-weight $font-weight-bold
+    line-height $line-height-year-title
+    color $color-text-third
+
+  else if n == 'post-tag'
+    font-size $font-size-post-tag
+    font-weight $font-weight-medium
+    line-height $line-height-post-tag
