@@ -161,7 +161,7 @@ Mitigation: PTI
 ```
 無効な場合は「Vulnerable」となります。
 
-KPTIはページテーブルの切り替えなので、CR3レジスタの操作でユーザー・カーネル空間を切り替えられます。LinuxにおいてはCR3に0x2000をORする（すなわちPDBRを変更する）ことでカーネル空間からユーザー空間に切り替わります。この操作は[`swapgs_restore_regs_and_return_to_usermode`](https://github.com/torvalds/linux/blob/master/arch/x86/entry/entry_64.S)で定義されていますが、詳細は実際にexploitを書く章で説明します。
+KPTIはページテーブルの切り替えなので、CR3レジスタの操作でユーザー・カーネル空間を切り替えられます。LinuxにおいてはCR3に0x1000をORする（すなわちPDBRを変更する）ことでカーネル空間からユーザー空間に切り替わります。この操作は[`swapgs_restore_regs_and_return_to_usermode`](https://github.com/torvalds/linux/blob/master/arch/x86/entry/entry_64.S)で定義されていますが、詳細は実際にexploitを書く章で説明します。
 
 ## KADR (Kernel Address Display Restriction)
 Linuxカーネルでは、関数の名前とアドレスの情報を`/proc/kallsyms`から読むことができます。また、デバイスドライバによっては`printk`関数などを使い、さまざまなデバッグ情報をログに出力するものもあり、このログは`dmesg`コマンドなどでユーザーから見ることができます。

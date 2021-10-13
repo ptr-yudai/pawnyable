@@ -333,9 +333,112 @@ ROP chainがなぜか動かないけどデバッグするのが面倒な場合�
 *chain++ = 0xdeadbeefcafebabe;
 ...
 ```
-この際**必ずカーネルやユーザーランドでマップされていないアドレスを使う**ようにしましょう。0xffffffff77777777にしたけどカーネルコードがマップされていたり、0xdeadbeefにしたけどmmapで既に確保済みだったりということがあり、デバッグをより困難にしてしまいます。おすすめはユーザー空間からもカーネル空間からも通常使われない0xdeadbeefcafebabeです。
+この際**必ずカーネルやユーザーランドでマップされていないアドレスを使う**ようにしましょう。
+
+<div class="balloon">
+  <div class="balloon-image-left">
+    牛さん
+  </div>
+  <div class="balloon-text-right">
+    おすすめはユーザー空間からもカーネル空間からも通常使われない0xdeadbeefcafebabeだよ。
+  </div>
+</div>
+
 
 ROPが正しく動けばSMEPを回避してroot権限が取れるはずです。
+
+今回のROP chainはカーネル空間のスタックで動いているので、実はSMAPを有効にしてもexploitはそのまま動きます。試してみてください。
+
+## KPTIの扱い
+次にSMAP, SMEP, KPTIを有効にした状態でexploitしてみましょう。
+KPTI自体はこのような一般的な脆弱性に対する緩和策ではなく、Meltdownという特定のサイドチャネル攻撃に対応するための緩和策です。そのため、これまで使ってきたexploit手法に影響はありませんが、KPTIを有効にした状態でexploitを実行すると次のようにユーザー空間でクラッシュしてしまいます。
+
+<center>
+  <img src="img/kpti_crash.png" alt="KPTI有効化時の失敗例" style="width:640px;">
+</center>
+
+ユーザー空間で死んでいるので、`swapgs`からの`iretq`でユーザー空間には戻れているのですが、KPTIの影響でページディレクトリがカーネル空間のままなので、ユーザー空間のページが読めない状態になっています。
+[セキュリティ機構](../introduction/security)の節でも書いたように、ユーザーランドに戻る前にCR3レジスタに0x1000をORしておく必要があります。「そんなgadgetあるのか？」と思うかもしれませんが、この処理はカーネルからユーザー空間に戻る正規の処理に必ず存在しているはずなので、100%見つかります。
+具体的には、[`swapgs_restore_regs_and_return_to_usermode`](https://elixir.bootlin.com/linux/v5.10.7/source/arch/x86/entry/entry_64.S#L570)マクロで実装されています。重要なのは以下の部分です。
+```nasm
+	movq	%rsp, %rdi
+	movq	PER_CPU_VAR(cpu_tss_rw + TSS_sp0), %rsp
+	UNWIND_HINT_EMPTY
+	
+    /* Copy the IRET frame to the trampoline stack. */
+	pushq	6*8(%rdi)	/* SS */
+	pushq	5*8(%rdi)	/* RSP */
+	pushq	4*8(%rdi)	/* EFLAGS */
+	pushq	3*8(%rdi)	/* CS */
+	pushq	2*8(%rdi)	/* RIP */
+
+	/* Push user RDI on the trampoline stack. */
+	pushq	(%rdi)
+
+    /*
+	 * We are on the trampoline stack.  All regs except RDI are live.
+	 * We can do future final exit work right here.
+	 */
+	STACKLEAK_ERASE_NOCLOBBER
+
+	SWITCH_TO_USER_CR3_STACK scratch_reg=%rdi
+
+	/* Restore RDI. */
+	popq	%rdi
+	SWAPGS
+	INTERRUPT_RETURN
+```
+最初にpushしているのは後述しますが、`iretq`に向けてスタックを整備しているものです。その後`SWITCH_TO_USER_CR3_STACK`を使ってCR3を更新しています。このマクロのアドレスを調べましょう。
+```
+/ # cat /proc/kallsyms | grep swapgs_restore_regs_and_return_to_usermode
+ffffffff81800e10 T swapgs_restore_regs_and_return_to_usermode
+```
+なお、シンボルが消えている場合はobjdumpなどでCR3に対する操作（rdiを使って操作している箇所）を探せば良いです。
+さて、ROP chainの中でこの`swapgs_restore_regs_and_return_to_usermode`のどこにジャンプするかですが、目的はCR3の更新なのでひと目見ると次の箇所に飛べばページディレクトリをユーザー空間に戻してくれそうです。
+
+<center>
+  <img src="img/switch_to_usermode.png" alt="swapgs_restore_regs_and_return_to_usermodeのgadget" style="width:480px;">
+</center>
+
+しかし、CR3をユーザー空間のものに更新したらカーネル空間のスタックにあるデータはもはや参照できないので、最後のpopやiretqでデータを読み込むことはできません。
+実は（当たり前と言えば当たり前ですが）このコンテキストスイッチを実現するためにユーザー空間からもカーネル空間からもアクセスが許可されている場所がいくつかあります。先程の
+```nasm
+	movq	%rsp, %rdi
+	movq	PER_CPU_VAR(cpu_tss_rw + TSS_sp0), %rsp
+	UNWIND_HINT_EMPTY
+```
+の部分は事前にスタックをその場所に調整していたものです。
+そして、続くpushは本来`iretq`に渡るはずだったカーネルのスタックにあったデータを、CR3更新後にもアクセス可能な領域にコピーしているコードです。したがって、ROP中では次の箇所にジャンプする必要があります。
+
+<center>
+  <img src="img/kpti_trampoline.png" alt="swapgs_restore_regs_and_return_to_usermodeのtrampoline" style="width:480px;">
+</center>
+
+最後のpopに気をつけて、KPTIのもとでも動くkROPを自分の手で完成させてみてください。
+
+## KASLRの回避
+ここまでKASLRを無効化してきましたが、KASLR有効だとexploit可能でしょうか。
+今回扱ったStack Overflow以外にも脆弱性は複数存在するのでアドレスリークは可能ですが、いずれもヒープに関する知識が必要になります。ヒープの話は次章以降で登場するので、KASLRを回避してkROPするのは次回以降の演習で登場させることにします。
+
+ところで、KASLRのエントロピーはどの程度なのでしょうか。
+カーネルのアドレスランダム化はページテーブルレベルで行われ、`kaslr.c`の[`kernel_randomize_memory`](https://elixir.bootlin.com/linux/v5.10.7/source/arch/x86/mm/kaslr.c#L64)関数で実装されています。
+カーネルは0xffffffff80000000から0xffffffffc0000000までの1GBのアドレス空間を確保しています。したがって、KASLRが有効でも0x810から0xc00までの、たかだか0x3f0通り程度のベースアドレスしか錬成されません。<!-- TODO:要出展 -->
+
+<center>
+  <img src="img/kaslr_entropy.png" alt="KASLRの範囲" style="width:300px;">
+</center>
+
+<div class="balloon">
+  <div class="balloon-image-left">
+    牛さん
+  </div>
+  <div class="balloon-text-right">
+    もしKASLRが有効なのにアドレスリークが不可能な問題が問題が出たら、総当りで解けるということだね。まったく実用的ではないけど、CTFでは出題されたことがあるよ。(0CTF Finals 2021)
+  </div>
+</div>
+
+さて、ヒープが関わるのでKASLRの演習は次回以降と説明しましたが、SMAP,SMEP,KPTIを無効にしてKASLRだけ有効にした場合、ここまでの知識でもexploitを書けます。
+
 
 ----
 
