@@ -6,9 +6,13 @@ tags:
     - [Stack Overflow]
 lang: ja
 ---
-LK01(Holstein)の章ではKernel Exploitの基礎的な攻撃手法について学びます。導入の章でLK01をダウンロードしていない方は、まず[練習問題LK01](#)のファイルをダウンロードしてください。
+LK01(Holstein)の章ではKernel Exploitの基礎的な攻撃手法について学びます。導入の章でLK01をダウンロードしていない方は、まず[練習問題LK01](distfiles/LK01.tar.gz)のファイルをダウンロードしてください。
 
 `qemu/rootfs.cpio`がファイルシステムになります。ここでは`mount`ディレクトリを作って、そこにcpioを展開しておきます。（root権限で作成してください。）
+
+<div class="column" title="目次">
+<!-- toc --><br>
+</div>
 
 ## 初期化処理の確認
 まず`/init`というファイルがありますが、これはカーネルロード後、最初にユーザー空間で実行される処理になります。CTFなどではここにカーネルモジュールのロード等の処理が書かれている場合もあるので、必ずチェックしましょう。
@@ -38,7 +42,7 @@ mknod -m 666 /dev/holstein c `grep holstein /proc/devices | awk '{print $1;}'` 0
 ## User shell
 ##
 echo -e "\nBoot took $(cut -d' ' -f1 /proc/uptime) seconds\n"
-echo "[ Holstein v1 (KL01) - Pawnyable ]"
+echo "[ Holstein v1 (LK01) - Pawnyable ]"
 setsid cttyhack setuidgid 1337 sh
 
 ##
@@ -73,6 +77,9 @@ setsid cttyhack setuidgid 1337 sh
 ですが、これはユーザーIDを1337にして`sh`を実行しています。ログインプロンプトなしでシェルが起動するのは、このコマンドのおかげです。
 
 デバッグの際は、このユーザーIDを0にしておけばrootのシェルが取れるので、まだ例題を済ませていない方は変更しておいてください。
+
+また、`/etc/init.d`には他にも`S01syslogd`や`S41dhcpcd`などの初期化スクリプトがあります。これらはネットワークの設定などをしますが、今回のexploitではデバッグの際は必要無いので別のディレクトリに移動するなどして、呼び出されないようにすることをおすすめします。これにより起動時間が数秒速くなります。
+ディレクトリには`rcK`, `rcS`, `S99pawnyable`が残る状態になっていればOKです。
 
 ## Holsteinモジュールの解析
 この章ではHolsteinと名付けられた脆弱なカーネルモジュールを題材にKernel Exploitを学びます。`src/vuln.c`にカーネルモジュールのソースコードがあるので、まずはこれを読んでいきましょう。

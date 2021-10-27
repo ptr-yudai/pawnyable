@@ -36,13 +36,11 @@ control_rip(shellcode); // RIP = shellcode
 ```
 しかしSMEPが有効の場合、上のようにユーザー空間に用意したシェルコードを実行しようとするとカーネルパニックを引き起こします。これにより、攻撃者はRIPを奪っても権限昇格に繋げられなくなる可能性が上がります。
 
-<div class="balloon">
-  <div class="balloon-image-left">
-    牛さん
-  </div>
-  <div class="balloon-text-right">
+<div class="balloon_l">
+  <div class="faceicon"><img src="../img/cow.jpg" alt="牛さん" ></div>
+  <p class="says">
     カーネル空間のシェルコードで何を実行するかはまた別の章で勉強するよ。
-  </div>
+  </p>
 </div>
 
 SMEPはqemu実行時の引数で有効化できます。次のように`-cpu`オプションに`+smep`と付いていればSMEPが有効化されます。
@@ -176,8 +174,8 @@ KADRが無効な場合はアドレスリークの必要がなくなるため、�
 ----
 
 <div class="column" title="例題">
-  <a href="#">練習問題LK01</a>のカーネルに対して以下の操作を実行しましょう。（前の例題で既にroot権限のシェルを持っている状態から始めてください。）<br>
+  <a href="../LK01/distfiles/LK01.tar.gz">練習問題LK01</a>のカーネルに対して以下の操作を実行しましょう。（前の例題で既にroot権限のシェルを持っている状態から始めてください。）<br>
   (1) <code>run.sh</code>を読んで、KASLR, KPTI, SMAP, SMEPが有効かどうかを確認してください。<br>
   (2) SMAP, SMEP両方を有効にするオプションを付けて起動し、<code>/proc/cpuinfo</code>を見てSMAP, SMEPが有効になっていることを確認してください。（確認後にSMAP, SMEPは再度無効化してください。）<br>
-  (3) 「<code>head /proc/kallsyms</code>」で最初に現れるアドレスはカーネルのベースアドレスです。KASLRが無効の場合、ベースアドレスがいくつになるか確認してください。
+  (3) 「<code>head /proc/kallsyms</code>」で最初に現れるアドレスはカーネルのベースアドレスです。KASLRが無効の場合、ベースアドレスがいくつになるか確認してください。（ヒント：KADRに注意）
 </div>
