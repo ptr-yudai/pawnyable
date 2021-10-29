@@ -46,12 +46,12 @@ setsid cttyhack setuidgid 1337 sh
 ```bash
 setsid cttyhack setuidgid 0 sh
 ```
-また、詳細は[次章](security)で説明しますが、一部のセキュリティ機構を無効化するために、次の行もコメントアウトして消しておいてください。
+また、詳細は[次章](security.html)で説明しますが、一部のセキュリティ機構を無効化するために、次の行もコメントアウトして消しておいてください。
 ```bash
 echo 2 > /proc/sys/kernel/kptr_restrict     # 変更前
 #echo 2 > /proc/sys/kernel/kptr_restrict    # 変更後
 ```
-変更したらcpioに再びパックして、`run.sh`を実行すれば下のスクリーンショットのようにroot権限でシェルが使えるようになっているはずです。（パックの方法は[前章](introduction#%E3%83%87%E3%82%A3%E3%82%B9%E3%82%AF%E3%82%A4%E3%83%A1%E3%83%BC%E3%82%B8)を参照）
+変更したらcpioに再びパックして、`run.sh`を実行すれば下のスクリーンショットのようにroot権限でシェルが使えるようになっているはずです。（パックの方法は[前章](introduction.html#%E3%83%87%E3%82%A3%E3%82%B9%E3%82%AF%E3%82%A4%E3%83%A1%E3%83%BC%E3%82%B8)を参照）
 
 <center>
   <img src="img/rooted.png" alt="root権限のシェルを起動" style="width:340px;">
@@ -76,7 +76,7 @@ pwndbg> set arch i386:x86-64:intel
 ```
 
 ## カーネルのデバック
-`/proc/kallsyms`というprocfsを通して、Linuxカーネル中で定義されたアドレスとシンボルの一覧を見られます。[次章のKADRの節](security#kadr-kernel-address-display-restriction)でも説明しますが、セキュリティ機構によりカーネルのアドレスはroot権限でも見えないことがあります。
+`/proc/kallsyms`というprocfsを通して、Linuxカーネル中で定義されたアドレスとシンボルの一覧を見られます。[次章のKADRの節](security.html#kadr-kernel-address-display-restriction)でも説明しますが、セキュリティ機構によりカーネルのアドレスはroot権限でも見えないことがあります。
 [root権限取得の節](#root権限の取得)で既にやりましたが、初期化スクリプトの以下の行をコメントアウトするのを忘れないでください。これをしないとカーネル空間のポインタが見えなくなります。
 ```bash
 echo 2 > /proc/sys/kernel/kptr_restrict     # 変更前

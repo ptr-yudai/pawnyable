@@ -197,13 +197,11 @@ static ssize_t module_read(struct file *file,
 `g_buf`から`BUFFER_SIZE`だけ`kbuf`というスタックの変数に`memcpy`でコピーしています。
 次に、`_copy_to_user`という関数を呼んでいます。SMAPの節で既に説明しましたが、これはユーザー空間に安全にデータをコピーする関数です。`copy_to_user`ではなく`_copy_to_user`になっていますが、これはスタックオーバーフローを検知しないバージョンの`copy_to_user`になります。通常は使われませんが、今回は脆弱性を入れるために使っています。
 
-<div class="balloon">
-  <div class="balloon-image-left">
-    牛さん
-  </div>
-  <div class="balloon-text-right">
+<div class="balloon_l">
+  <div class="faceicon"><img src="../img/cow.jpg" alt="牛さん" ></div>
+  <p class="says">
     <code>copy_to_user</code>や<code>copy_from_user</code>はインライン関数で、可能な場合サイズチェックをするようになっているよ。
-  </div>
+  </p>
 </div>
 
 ということで、`read`関数は`g_buf`から一度スタックにデータをコピーし、そのデータを要求したサイズだけ読み込む処理になります。
@@ -282,21 +280,11 @@ int main() {
 ```
 `write`で"Hello, World!"と書き込んで、それを`read`で読むだけのプログラムです。
 これをカーネル上で実行してみましょう。
-```
-/ # ./pwn
-Data: Hello, World!
-/ # dmesg | tail
-input: ImExPS/2 Generic Explorer Mouse as /devices/platform/i8042/serio1/input/input3
-tsc: Refined TSC clocksource calibration: 2207.983 MHz
-clocksource: tsc: mask: 0xffffffffffffffff max_cycles: 0x1fd3a847c71, max_idle_ns: 440795301953 ns
-clocksource: Switched to clocksource tsc
-vuln: loading out-of-tree module taints kernel.
-module_open called
-module_write called
-module_read called
-module_close called
-random: fast init done
-```
+
+<center>
+  <img src="img/analysis_nocrash.png" alt="モジュールの通常の利用" style="width:720px;">
+</center>
+
 期待通りに動いていることが分かります。また、カーネルモジュールが出したログを確認しても特にエラーは発生していません。
 
 次にスタックオーバーフローを発生させてみます。こんな感じで良いでしょう。
@@ -325,42 +313,11 @@ int main() {
 }
 ```
 実行します。
-```
-/ # ./pwn 
-BUG: stack guard page was hit at (____ptrval____) (stack is (____ptrval____)..(____ptrval____))
-kernel stack overflow (page fault): 0000 [#1] PREEMPT SMP PTI
-CPU: 0 PID: 62 Comm: pwn Tainted: G           O      5.10.7 #1
-Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.13.0-1ubuntu1.1 04/01/2014
-RIP: 0010:memset_orig+0x33/0xb0
-Code: 01 01 01 01 01 01 01 01 48 0f af c1 41 89 f9 41 83 e1 07 75 70 48 89 d1 48 c1 e9 06 74 39 66 0f 1f 84 00 00 00 00 00 48 ff c9 <48> 89 07 48 89 47 08 48 89 47 10 48 89 47 18 48 89 47 20 48 89 47
-RSP: 0018:ffffc90000413a58 EFLAGS: 00000207
-RAX: 0000000000000000 RBX: 0000000000000558 RCX: 0000000000000009
-RDX: 00000000000002a8 RSI: 0000000000000000 RDI: ffffc90000414000
-RBP: ffffc90000413a78 R08: 4141414141414141 R09: 0000000000000000
-R10: ffffc90000414000 R11: 4141414141414141 R12: ffffc90000413aa8
-R13: 00000000000002a8 R14: 00007ffe47aac5d0 R15: ffffc90000413ef8
-FS:  00000000004051d8(0000) GS:ffff888003800000(0000) knlGS:0000000000000000
-CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
-CR2: ffffc90000414000 CR3: 000000000317a000 CR4: 00000000000006f0
-Call Trace:
- ? _copy_from_user+0x70/0x80
- module_write+0x75/0xef [vuln]
-Modules linked in: vuln(O)
----[ end trace 5d32e23a000a5292 ]---
-RIP: 0010:memset_orig+0x33/0xb0
-Code: 01 01 01 01 01 01 01 01 48 0f af c1 41 89 f9 41 83 e1 07 75 70 48 89 d1 48 c1 e9 06 74 39 66 0f 1f 84 00 00 00 00 00 48 ff c9 <48> 89 07 48 89 47 08 48 89 47 10 48 89 47 18 48 89 47 20 48 89 47
-RSP: 0018:ffffc90000413a58 EFLAGS: 00000207
-RAX: 0000000000000000 RBX: 0000000000000558 RCX: 0000000000000009
-RDX: 00000000000002a8 RSI: 0000000000000000 RDI: ffffc90000414000
-RBP: ffffc90000413a78 R08: 4141414141414141 R09: 0000000000000000
-R10: ffffc90000414000 R11: 4141414141414141 R12: ffffc90000413aa8
-R13: 00000000000002a8 R14: 00007ffe47aac5d0 R15: ffffc90000413ef8
-FS:  00000000004051d8(0000) GS:ffff888003800000(0000) knlGS:0000000000000000
-CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
-CR2: ffffc90000414000 CR3: 000000000317a000 CR4: 00000000000006f0
-Kernel panic - not syncing: Fatal exception
-Kernel Offset: disabled
-```
+
+<center>
+  <img src="img/analysis_crash.png" alt="Stack Overflowの発生" style="width:720px;">
+</center>
+
 何やら禍々しいメッセージが出力されました。
 このようにカーネルモジュールが異常な処理を起こすと通常カーネルごと落ちてしまいます。その際クラッシュした原因と、クラッシュ時のレジスタの様子やスタックトレースが出力されます。この情報はKernel Exploitのデバッグで非常に重要です。
 
@@ -379,43 +336,11 @@ RIP: 0010:memset_orig+0x33/0xb0
 write(fd, buf, 0x420);
 ```
 するとクラッシュメッセージが変わります。
-```
-/ # ./pwn 
-general protection fault: 0000 [#1] PREEMPT SMP PTI
-CPU: 0 PID: 62 Comm: pwn Tainted: G           O      5.10.7 #1
-Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.13.0-1ubuntu1.1 04/01/2014
-RIP: 0010:0x4141414141414141
-Code: Unable to access opcode bytes at RIP 0x4141414141414117.
-RSP: 0018:ffffc90000413eb8 EFLAGS: 00000202
-RAX: 0000000000000420 RBX: ffff888003149700 RCX: 0000000000000000
-RDX: 000000000000007f RSI: ffffc90000413ea8 RDI: ffff88800315fc00
-RBP: 4141414141414141 R08: 4141414141414141 R09: 4141414141414141
-R10: 4141414141414141 R11: 4141414141414141 R12: 0000000000000420
-R13: 0000000000000000 R14: 00007ffc38eb1360 R15: ffffc90000413ef8
-FS:  00000000004051d8(0000) GS:ffff888003800000(0000) knlGS:0000000000000000
-CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
-CR2: 0000000000403000 CR3: 000000000316c000 CR4: 00000000000006f0
-Call Trace:
- ? ksys_write+0x53/0xd0
- ? __x64_sys_write+0x15/0x20
- ? do_syscall_64+0x38/0x50
- ? entry_SYSCALL_64_after_hwframe+0x44/0xa9
-Modules linked in: vuln(O)
----[ end trace cb6ce0e7fb8d7c81 ]---
-RIP: 0010:0x4141414141414141
-Code: Unable to access opcode bytes at RIP 0x4141414141414117.
-RSP: 0018:ffffc90000413eb8 EFLAGS: 00000202
-RAX: 0000000000000420 RBX: ffff888003149700 RCX: 0000000000000000
-RDX: 000000000000007f RSI: ffffc90000413ea8 RDI: ffff88800315fc00
-RBP: 4141414141414141 R08: 4141414141414141 R09: 4141414141414141
-R10: 4141414141414141 R11: 4141414141414141 R12: 0000000000000420
-R13: 0000000000000000 R14: 00007ffc38eb1360 R15: ffffc90000413ef8
-FS:  00000000004051d8(0000) GS:ffff888003800000(0000) knlGS:0000000000000000
-CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
-CR2: 0000000000403000 CR3: 000000000316c000 CR4: 00000000000006f0
-Kernel panic - not syncing: Fatal exception
-Kernel Offset: disabled
-```
+
+<center>
+  <img src="img/analysis_rip.png" alt="Stack OverflowによるRIP制御" style="width:720px;">
+</center>
+
 今度はgeneral protection faultになり、RIPが取れています！
 ```
 RIP: 0010:0x4141414141414141
