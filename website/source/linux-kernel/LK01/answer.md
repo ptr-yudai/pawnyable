@@ -100,4 +100,12 @@ RDIレジスタには次のような文字列ポインタが入っています�
 このように、`native_write_cr4`を利用する場合はチェックが入るため、SMEPやSMAPは動的に無効化できないことが分かりました。ROPができる状況になったら、CR4を書き換えるより`commit_creds`を使う方が簡単です。
 しかし、SMEPを無効化する手法はWindows 7のKernel Exploitなどで登場します。
 
-ということで例題の答えは、「CR4を直接変更するgadgetが存在すれば可能だが、基本的に面倒」です。
+ということで例題の答えは、「`native_write_cr4`を使わずにCR4に0x1000をORできるROP gadgetが存在すれば可能」です。
+
+<div class="balloon_l">
+  <div class="faceicon"><img src="../img/cow.jpg" alt="牛さん" ></div>
+  <p class="says">
+    CR4に0x1000をORしてくれるようなgadgetは普通は存在しないけど、実はbpfというLinux Kernelの機能を悪用すれば任意のgadgetが作れるよ。
+  </p>
+</div>
+

@@ -7,7 +7,7 @@
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("ptr-yudai");
-MODULE_DESCRIPTION("Holstein v1 - Vulnerable Kernel Driver for Pawnyable");
+MODULE_DESCRIPTION("Holstein v2 - Vulnerable Kernel Driver for Pawnyable");
 
 #define DEVICE_NAME "holstein"
 #define BUFFER_SIZE 0x400
@@ -28,15 +28,12 @@ static int module_open(struct inode *inode, struct file *file)
 }
 
 static ssize_t module_read(struct file *file,
-                        char __user *buf, size_t count,
-                        loff_t *f_pos)
+                           char __user *buf, size_t count,
+                           loff_t *f_pos)
 {
-  char kbuf[BUFFER_SIZE] = { 0 };
-
   printk(KERN_INFO "module_read called\n");
 
-  memcpy(kbuf, g_buf, BUFFER_SIZE);
-  if (_copy_to_user(buf, kbuf, count)) {
+  if (copy_to_user(buf, g_buf, count)) {
     printk(KERN_INFO "copy_to_user failed\n");
     return -EINVAL;
   }
@@ -48,15 +45,12 @@ static ssize_t module_write(struct file *file,
                             const char __user *buf, size_t count,
                             loff_t *f_pos)
 {
-  char kbuf[BUFFER_SIZE] = { 0 };
-
   printk(KERN_INFO "module_write called\n");
 
-  if (_copy_from_user(kbuf, buf, count)) {
+  if (copy_from_user(g_buf, buf, count)) {
     printk(KERN_INFO "copy_from_user failed\n");
     return -EINVAL;
   }
-  memcpy(g_buf, kbuf, BUFFER_SIZE);
 
   return count;
 }

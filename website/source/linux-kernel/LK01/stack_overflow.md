@@ -287,7 +287,7 @@ $ ropr vmlinux --nosys --nojop -R '^pop rdi.+ret;'
 Linuxカーネルはlibcなどよりも膨大な量のコードなので、基本的に任意の操作ができるほどのROP gadgetがあります。今回は以下のgadgetを使いましたが、デバッグの練習も兼ねて自分の好きなROP chainを組んでみてください。
 ```
 0xffffffff8127bbdc: pop rdi; ret;
-0xffffffff812ea083: pop rcx; ret;
+0xffffffff81c9480d: pop rcx; ret;
 0xffffffff8160c96b: mov rdi, rax; rep movsq [rdi], [rsi]; ret;
 0xffffffff8160bf7e: swapgs; ret;
 ```
@@ -297,6 +297,16 @@ $ objdump -S -M intel vmlinux | grep iretq
 ffffffff810202af:       48 cf                   iretq
 ...
 ```
+
+<div class="balloon_l">
+  <div class="faceicon"><img src="../img/cow.jpg" alt="牛さん" ></div>
+  <p class="says">
+    ROP gadgetを探すためのツールの多くはカーネルのような膨大な量のバイナリに対して十分にテストされていないよ。
+    対応していない命令をスキップしていたり、命令のprefixを省略したりと、間違った出力が多いから注意してね。
+    また、gadgetがカーネル空間で実際に実行可能領域に含まれるかを正しく判別できないツールがほとんどだから、アドレスが大きいgadget (例:0xffffffff81cXXXYYY) には特に注意が必要だよ。
+  </p>
+</div>
+
 ROP chainの書き方は自由ですが、筆者は次のように書いています。gadgetを途中で追加したり削除したりしてもオフセットの値を変更しなくて良いため、おすすめです。
 ```c
 unsigned long *chain = (unsigned long*)&buf[0x408];
@@ -305,7 +315,7 @@ unsigned long *chain = (unsigned long*)&buf[0x408];
 *chain++ = prepare_kernel_cred;
 ...
 ```
-ROP chainに直すだけなので、各自でexploitを書いてみてください。exploitの例は[ここ](exploit/krop1.c)からダウンロードできます。
+ROP chainに直すだけなので、各自でexploitを書いてみてください。exploitの例は[ここ](exploit/krop.c)からダウンロードできます。
 
 ROP chainがなぜか動かないけどデバッグするのが面倒な場合は、ユーザーランドのexploitと同様に適当なアドレスを入れてクラッシュメッセージを見て、そこまで実行できているかデバッグするのが楽です。
 ```
@@ -397,9 +407,9 @@ ffffffff81800e10 T swapgs_restore_regs_and_return_to_usermode
 
 ## KASLRの回避
 ここまでKASLRを無効化してきましたが、KASLR有効だとexploit可能でしょうか。
-今回扱ったStack Overflow以外にも脆弱性は複数存在するのでアドレスリークは可能ですが、いずれもヒープに関する知識が必要になります。ヒープの話は次章以降で登場するので、KASLRを回避してkROPするのは次回以降の演習で登場させることにします。
 
-ところで、KASLRのエントロピーはどの程度なのでしょうか。
+### KASLRのエントロピー
+本題に入る前に、そもそもKASLRはどのように実装されているのでしょうか。
 カーネルのアドレスランダム化はページテーブルレベルで行われ、`kaslr.c`の[`kernel_randomize_memory`](https://elixir.bootlin.com/linux/v5.10.7/source/arch/x86/mm/kaslr.c#L64)関数で実装されています。
 カーネルは0xffffffff80000000から0xffffffffc0000000までの1GBのアドレス空間を確保しています。したがって、KASLRが有効でも0x810から0xc00までの、たかだか0x3f0通り程度のベースアドレスしか錬成されません。<!-- TODO:要出展 -->
 
@@ -407,17 +417,65 @@ ffffffff81800e10 T swapgs_restore_regs_and_return_to_usermode
   <img src="img/kaslr_entropy.png" alt="KASLRの範囲" style="width:300px;">
 </center>
 
-<div class="balloon">
-  <div class="balloon-image-left">
-    牛さん
-  </div>
-  <div class="balloon-text-right">
+<div class="balloon_l">
+  <div class="faceicon"><img src="../img/cow.jpg" alt="牛さん" ></div>
+  <p class="says">
     もしKASLRが有効なのにアドレスリークが不可能な問題が問題が出たら、総当りで解けるということだね。まったく実用的ではないけど、CTFでは出題されたことがあるよ。(0CTF Finals 2021)
-  </div>
+  </p>
 </div>
 
-さて、ヒープが関わるのでKASLRの演習は次回以降と説明しましたが、SMAP,SMEP,KPTIを無効にしてKASLRだけ有効にした場合、ここまでの知識でもexploitを書けます。
 
+### アドレスリーク
+ASLRを回避するのと同様に、Kernel ExploitでもKASLRを回避するためにはカーネル空間のアドレスリークが必要です。カーネルは全プログラムで共通なので、例えこのドライバに脆弱性がなくても、別のドライバやカーネル自体にアドレスリークの脆弱性がある場合、それを使えます。
+今回は`module_read`に範囲外読み込みの脆弱性があるため、これを利用しましょう。今までは`module_write`のStack Overflowを悪用しましたが、`module_read`にも同様のスタック上での脆弱性が存在します。
+```c
+static ssize_t module_read(struct file *file,
+                        char __user *buf, size_t count,
+                        loff_t *f_pos)
+{
+  char kbuf[BUFFER_SIZE] = { 0 };
+
+  printk(KERN_INFO "module_read called\n");
+
+  memcpy(kbuf, g_buf, BUFFER_SIZE);
+  if (_copy_to_user(buf, kbuf, count)) {
+    printk(KERN_INFO "copy_to_user failed\n");
+    return -EINVAL;
+  }
+
+  return count;
+}
+```
+スタック上の変数`kbuf`にデータを入れていますが、`copy_to_user`でコピーできるサイズは自由です。したがって、0x400バイトより多くのデータをスタックから読むことが可能です。スタック上にはリターンアドレスの他にも様々なデータがあるため、カーネルの関数やデータの一部を指したポインタが必ず存在します。これをリークすることで、カーネルがロードされたベースアドレスが計算でき、さらに`commit_creds`等の関数のアドレスも分かります。
+
+まずはスタック上にKASLRのベースアドレスを特定できるアドレスが存在するかをgdbで確認します。基本的に、デバッグ中はKASLRを無効にしておきましょう。
+
+<center>
+  <img src="img/kaslr_overread.png" alt="copy_to_user呼び出し時のスタック" style="width:560px;">
+</center>
+
+0xffffffff81000000付近を指しているアドレスを探すと、上の図で0xffffc9000041beb0と0xffffc9000041bef0にそれぞれ0xffffffff8113d33cと0xffffffff8113d6e3が存在します。このアドレスが何かをkallsymsから調べましょう。ちょうどこのアドレスに合うシンボルは見つからないので、リターンアドレスなど関数の途中を指すポインタであると推測できます。下位数ビットを除外してgrepしてみると、次のようにいくつかヒットします。
+
+<center>
+  <img src="img/kaslr_lookup.png" alt="アドレスからシンボルの調査" style="width:480px;">
+</center>
+
+`vfs_read`や`ksys_read`関数の途中を指しているようです。いずれにせよFGKASLRは無効ですので、カーネルのベースアドレスからこのポインタまでのオフセットは固定です。今回は最初の`vfs_read`を指しているポインタを利用します。
+```c
+  /* Leak kernel base */
+  memset(buf, 'B', 0x480);
+  read(fd, buf, 0x410);
+  unsigned long addr_vfs_read = *(unsigned long*)&buf[0x408];
+  unsigned long kbase = addr_vfs_read - (0xffffffff8113d33c-0xffffffff81000000);
+  printf("[+] kbase = 0x%016lx\n", kbase);
+```
+これでSMAP,SMEP,KPTI,KASLRすべて有効でも動作するexploitが書けます。ROP gadgetや各種関数に、リークしたカーネルのベースアドレスを使うように修正してみてください。次のようにKASLR有効でも権限昇格できれば成功です。
+
+<center>
+  <img src="img/kaslr_bypass.png" alt="KASLR有効下での権限昇格" style="width:320px;">
+</center>
+
+Exploitの例は[ここ](exploit/kaslr.c)からダウンロードできます。
 
 ----
 
@@ -430,4 +488,9 @@ ffffffff81800e10 T swapgs_restore_regs_and_return_to_usermode
 <div class="column" title="例題２">
   <a href="../introduction/security#smep-supervisor-mode-execution-prevention">セキュリティ機構</a>の節で見たように、SMEPはCR4レジスタの21ビット目で制御されます。kROPでCR4レジスタの21ビット目を0にすることでSMEPを無効化し、ret2userで権限昇格できるでしょうか？
   可能な場合はexploitを書き、不可能な場合は理由を説明してください。
+</div>
+
+<div class="column" title="例題３">
+  SMAP,SMEP,KPTIが無効でKASLRが有効なとき、Stack Overflow脆弱性のみで（すなわちreadは使わず）権限昇格してください。<br>
+  ヒント：ret2usrでシェルコードを実行する瞬間のレジスタの値を確認する。
 </div>
