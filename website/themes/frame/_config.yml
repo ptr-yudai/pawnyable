@@ -38,9 +38,9 @@ profile:
   image: /profile_cover.png
 
   links:
-    "🐑 Linux Userland [工事中]": /linux-user/
+    "🐑 Linux Userland": /linux-userland/
     "🐮 Linux Kernel": /linux-kernel/
-    "🐥 Windows Userland [工事中]": /windows-user/
+    "🐤 Windows Userland [工事中]": /windows-user/
     "🐻 Windows Kernel [工事中]": /windows-kernel/
     "🐺 Browser Exploit [工事中]": /browser/
     "🐰 VM Escape [工事中]": /vm-escape/

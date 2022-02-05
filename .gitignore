@@ -1,4 +1,5 @@
 *~
 
+.gdb_history
 node_modules
 package-lock.json
