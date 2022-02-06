@@ -187,9 +187,11 @@ shellcode = nasm(assembly, bits=64)
 
 ----
 
-<div class="column" title="例題">
-  (1) <code>rep movsb</code>命令を使ってmemcpy相当のシェルコードを書いてください。<br>
-  (2) シェルコード領域は書き込み可能だがRSPの初期値が0から始まる状況で、次のようなシェルコードを書いたがSegmentation Faultを起こしてしまった。
+<div class="column" title="例題１">
+  <code>rep movsb</code>命令を使ってmemcpy相当のシェルコードを書いてください。
+</div>
+<div class="column" title="例題２">
+  シェルコード領域は書き込み可能だがRSPの初期値が0から始まる状況で、次のようなシェルコードを書いたところ、Segmentation Faultを起こしてしまいました。
   <pre>
 global _start
 section .text
@@ -213,6 +215,10 @@ s_arg0: db "/bin/sh", 0
 s_arg1: db "-c", 0
 s_arg2: db "/bin/ls -lha", 0
   </pre>
-  原因を特定して直してください。（ヒント：textセクションを書き込み可能にするにはldに<code>--omagic</code>オプションを渡す。）<br>
-  (3) 「ls -lha」した結果を自分のサーバー（例：127.0.0.1:8080）に送信するシェルコードを書いてください。（ヒント：標準入出力をsocketのfdにdupするとpipeを作らなくてもexecveするだけで結果が転送される。）
+  原因を特定して直してください。（ヒント：textセクションを書き込み可能にするにはldに<code>--omagic</code>オプションを渡す。）
 </div>
+<div class="column" title="例題３">
+  「ls -lha」した結果を自分のサーバー（例：127.0.0.1:8080）に送信するシェルコードを書いてください。（ヒント：標準入出力をsocketのfdにdupするとpipeを作らなくてもexecveするだけで結果が転送される。）
+</div>
+
+[☞ 例題の解答](how2write-answer.html)

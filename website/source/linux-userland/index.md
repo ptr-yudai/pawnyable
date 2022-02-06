@@ -1,28 +1,31 @@
 ---
 title: Linux Userland Exploitation
 ---
-この章では🐤ひよこ先生と一緒にLinuxのユーザー空間におけるExploit手法について学びます。Linuxのユーザー空間におけるExploit手法を解説した資料は人間社会にも多数出回っているため、ここではより重要な知識のみを説明します。
+この章ではひよこ先生🐤と一緒にLinuxのユーザー空間におけるExploit手法について学びます。Linuxのユーザー空間におけるExploit手法を解説した資料は人間社会にも多数出回っているため、ここではより重要な知識のみを説明します。
 
+- 前提知識
+  - [セキュリティ機構](introduction/security.html)
+  - [Primitiveについて](introduction/primitive.html)
 - シェルコード
   - [シェルコードの書き方](shellcode/how2write.html)
   - [制約付きシェルコード](shellcode/restricted.html)
   - [seccompの回避](shellcode/seccomp.html)
   - [Egg Hunter](shellcode/egg-hunter.html)
   - [Bring Your Own Gadget](shellcode/byog.html)
-- LK01: Holstein
-  - [Holsteinモジュールの解析と脆弱性の発火](LK01/welcome-to-holstein.html)
-  - [Holstein v1: Stack Overflowの悪用](LK01/stack_overflow.html)
-  - [Holstein v2: Heap Overflowの悪用 (工事中)](LK01/heap_overflow.html)
-  - [Holstein v3: Use-after-Freeの悪用 (工事中)](LK01/use_after_free.html)
-- カーネル特有の攻撃手法
-  - [NULL Pointer Dereference (LK0?: Angus) (工事中)](#)
-  - [ユーザー空間のポインタの利用 (LK0?: Highland) (工事中)](#)
-  - [Double Fetch (LK0?: Dexter) (工事中)](#)
-  - [Race Conditionとuserfaultfd (LK0?: Hereford) (工事中)](#)
-  - [BPFとJIT (LK0?: Brahman) (工事中)](#)
+- スタック
+  - [Return Oriented Programming](stack/rop.html)
+  - [Stack Buffer Overflow](stack/bof.html)
+  - [forkとcanary](stack/fork.html)
+  - [スレッドとcanary](stack/thread.html)
+- ヒープ
+  - [Call/Jump Oriented Programming](heap/cop.html)
+  - [Heap Buffer Overflow](heap/bof.html)
+  - [Use-after-Free](heap/uaf.html)
+  - [Heap Sprayその１：特定のアドレスにデータを置く手法](heap/spray1.html)
+  - [Heap Sprayその２：2つのオブジェクトを隣接させる手法](heap/spray2.html)
+  - [Heap Sprayその３：ヒープの初期状態を固定する手法](heap/spray3.html)
 - その他の脆弱性
-  - [参照カウンタ (LK0?: Simmental) (工事中)](#)
-  - [サイドチャネル攻撃 (LK0?: Charolai) (工事中)](#)
-- UEFIに対する攻撃
-  - UEFIアプリケーションの特徴
-  - メモリアロケータ
+  - [Format String Bug](others/fsb.html)
+  - [Integer Overflow](others/integer.html)
+  - [Type Confusion](others/confusion.html)
+
