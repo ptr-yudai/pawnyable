@@ -13,8 +13,8 @@ title: Linux Kernel Exploitation
   - [Holstein v1: Stack Overflowの悪用](LK01/stack_overflow.html)
   - [Holstein v2: Heap Overflowの悪用](LK01/heap_overflow.html)
   - [Holstein v3: Use-after-Freeの悪用](LK01/use_after_free.html)
+  - [Holstein v4: Race Conditionの悪用](LK01/race_condition.html)
 - カーネル特有の攻撃手法
-  - [Holstein v4: Race Condition](LK01/race_condition.html)
   - [NULL Pointer Dereference (LK0?: Angus) (工事中)](#)
   - [ユーザー空間のポインタの利用 (LK0?: Highland) (工事中)](#)
   - [Double Fetch (LK0?: Dexter) (工事中)](#)
