@@ -14,11 +14,11 @@ title: Linux Kernel Exploitation
   - [Holstein v2: Heap Overflowの悪用](LK01/heap_overflow.html)
   - [Holstein v3: Use-after-Freeの悪用](LK01/use_after_free.html)
   - [Holstein v4: Race Conditionの悪用](LK01/race_condition.html)
-- カーネル特有の攻撃手法
+- カーネル空間特有の攻撃
   - [NULL Pointer Dereference (LK02: Angus)](LK02/null_ptr_deref.html)
-  - [ユーザー空間のポインタの利用 (LK0?: Highland) (工事中)](#)
-  - [Double Fetch (LK0?: Dexter) (工事中)](#)
-  - [脆弱なmmap実装の悪用 (LK0?: ?) (工事中)](#)
+  - [Double Fetch (LK03: Dexter)](LK03/double_fetch.html)
+  - [userfaultfdとFUSEの利用 (LK0?: ?) (工事中)](#)
+  - [脆弱なmmap実装の悪用 (LK0?: Highland) (工事中)](#)
   - [eBPFとJIT (LK0?: Brahman) (工事中)](#)
 - その他の脆弱性
   - [参照カウンタ (LK0?: Simmental) (工事中)](#)
