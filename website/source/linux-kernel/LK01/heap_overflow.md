@@ -314,15 +314,6 @@ unsigned long kbase;
 0xffffffff81516264: mov esp, 0x39000000; ret;
 ```
 あらかじめユーザー空間の0x39000000をmmapで確保してROP chainを書き込んでおき、上記gadgetを呼び出すとstack pivotとしてユーザー空間に設置したROP chainが走ります。
-
-<div class="balloon_l">
-  <div class="faceicon"><img src="../img/cow.jpg" alt="牛さん" ></div>
-  <p class="says">
-    Kernel ROPではスタックのアドレスがアラインされている必要があるので、このようなgadgetを使うときはpivot先のアドレスが8バイト単位にアラインされている必要があるよ。
-    例えば<code>mov esp, 0x5d00018a; ret;</code>みたいなgadgetは使えないから注意してね。
-  </p>
-</div>
-
 しかし今回はSMAPが有効なのでユーザー空間に置いたROP chainは実行できません。幸いにも制御可能なカーネル空間（ヒープ）のアドレスを知っているので、偽の関数テーブルと一緒にヒープ上にROP chainを書き込んで、それを実行させましょう。
 
 ヒープ上のROP chainを実行するにはスタックポインタrspをヒープのアドレスに持ってくる必要があります。先程例で
@@ -492,7 +483,7 @@ for (u64 p = heap_address; ; p += 4) {
   }
 }
 ```
-問題はどのようにして自分のプロセスのcred構造体を見つけるかです。ここで[**task_struct構造体**](https://elixir.bootlin.com/linux/v5.15/source/include/linux/sched.h#L723)構造体のメンバを再び見てみます。
+問題はどのようにして自分のプロセスのcred構造体を見つけるかです。ここで[**task_struct構造体**](https://elixir.bootlin.com/linux/v5.15/source/include/linux/sched.h#L723)のメンバを再び見てみます。
 ```c
 struct task_struct {
     ...

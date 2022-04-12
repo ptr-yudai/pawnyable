@@ -129,6 +129,14 @@ $ cat /proc/cpuinfo | grep smap
 
 SMAPもSMEP同様にハードウェアのセキュリティ機構です。CR4レジスタの22ビット目を立てるとSMAPが有効になります。
 
+<div class="balloon_l">
+  <div class="faceicon"><img src="../img/cow.jpg" alt="牛さん" ></div>
+  <p class="says">
+    Intel CPUではEFLAGS.AC (Alignment Check)というフラグをそれぞれ1,0に変更する<a href="https://www.felixcloutier.com/x86/stac" target="_blank">STAC</a>と<a href="https://www.felixcloutier.com/x86/clac" target="_blank">CLAC</a>という命令があって、ACがセットされている間はSMAPの効力が無効になるよ。
+  </p>
+</div>
+
+
 ## KASLR / FGKASLR
 ユーザー空間ではアドレスをランダム化するASLR(Address Space Layout Randomization)が存在しました。これと同様に、Linuxカーネルやデバイスドライバのコード・データ領域のアドレスをランダム化する**KASLR**(Kernel ASLR)という緩和機構も存在します。
 カーネルは一度ロードされたら移動しませんので、KASLRは起動時に1度だけ働きます。何か1つでもLinuxカーネル中の関数やデータのアドレスをリークできれば、ベースアドレスが求まります。

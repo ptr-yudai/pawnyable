@@ -1,6 +1,5 @@
 obj-m := vuln.o
-#KBUILD_DIR := /lib/modules/$(KVERSION)/build
-KBUILD_DIR := /home/ptr/armoury/buildroot/output/build/linux-5.15
+KBUILD_DIR := /lib/modules/$(KVERSION)/build
 CFLAGS_vuln.o := -O0
 
 all:
