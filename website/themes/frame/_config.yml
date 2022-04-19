@@ -33,17 +33,19 @@ date_format: MMM D, YYYY
 
 # profile
 profile:
-  body: 愉快な森の仲間たちと楽しくpwnしましょう。
-  description: Pawnyableはpwn(Binary Exploitation)を勉強するための資料です。森の仲間たちはみんな自然界を生き抜いてきた強者なので、ある程度の前提知識がある人間を対象としています。
+  description: Pawnyableはpwn(Binary Exploitation)を勉強するための資料です。既にある程度勉強済みの人が対象です。
   image: /profile_cover.png
-
+  langs:
+    "English": /#
+    "简体中文": /#
+    "한국어": /#
   links:
-    "🐑 Linux Userland": /linux-userland/
-    "🐮 Linux Kernel": /linux-kernel/
-    "🐤 Windows Userland [工事中]": /windows-user/
-    "🐻 Windows Kernel [工事中]": /windows-kernel/
-    "🐺 Browser Exploit [工事中]": /browser/
-    "🐰 VM Escape [工事中]": /vm-escape/
+    "🐤 Linux Userland [工事中]": #/linux-userland/
+    "🐺 Linux Kernel": /linux-kernel/
+    "🐑 Windows Userland [工事中]": #/windows-user/
+    "🐻 Windows Kernel [工事中]": #/windows-kernel/
+    "🐼 Browser Exploit [工事中]": #/browser/
+    "🐰 VM Escape [工事中]": #/vm-escape/
 
 # footer
 footer:

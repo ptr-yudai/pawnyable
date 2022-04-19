@@ -67,8 +67,8 @@ mov esp, 0x12345678; ret;
 ```
 ESPに入る値が何であれ、このROP gadgetが呼ばれるとRSPはその値に変更されます[^1]。一方、このような低いアドレスはユーザーランドから`mmap`で確保可能ですので、SMEPが有効でも攻撃者はRIPを取るだけで次のようにROP chainを実行できます。
 ```c
-void *p = mmap(0x12345000, 0x1000, ...);
-unsigned long *chain = (unsigned long*)(p + 0x678);
+void *p = mmap(0x12340000, 0x10000, ...);
+unsigned long *chain = (unsigned long*)(p + 0x5678);
 *chain++ = rop_pop_rdi;
 *chain++ = 0;
 *chain++ = ...;
@@ -160,7 +160,7 @@ KPTIはカーネルの起動時引数で有効化できます。qemuの`-append`
 ```
 -append "... pti=on ..."
 ```
-ただし、最近のLinuxカーネルでは固定でKPTIを有効にする場合もあるため、`/sys/devices/system/cpu/vulnerabilities/meltdown`を確認しましょう。次のように「Mitigation: PTI」と書いていればKPTIが有効です。
+KPTIは`/sys/devices/system/cpu/vulnerabilities/meltdown`からも確認できます。次のように「Mitigation: PTI」と書いていればKPTIが有効です。
 ```
 # cat /sys/devices/system/cpu/vulnerabilities/meltdown
 Mitigation: PTI

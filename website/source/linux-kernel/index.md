@@ -1,7 +1,7 @@
 ---
 title: Linux Kernel Exploitation
 ---
-この章では~~牛さん🐮~~yoshi-campなのでyoshikingと一緒にLinuxのカーネル空間におけるExploit手法、すなわち権限昇格について学びます。WindowsのKernel Exploitでも共通のハードウェアセキュリティ機構や権限昇格の手法に関する説明も含まれています。
+この章ではオオカミ君🐺と一緒にLinuxのカーネル空間におけるExploit手法、すなわち権限昇格について学びます。WindowsのKernel Exploitでも共通のハードウェアセキュリティ機構や権限昇格の手法に関する説明も含まれています。
 
 - 実行環境とデバッグ方法
   - [Kernel Exploitへの導入](introduction/introduction.html)

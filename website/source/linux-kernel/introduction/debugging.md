@@ -42,14 +42,14 @@ exec /sbin/init "$@"
 ```bash
 setsid cttyhack setuidgid 1337 sh
 ```
-この行が今回のカーネルで起動時にユーザー権限でシェルを起動しているコードになります。`cttyhack`というコマンドを使ってユーザーIDとグループIDを1337に設定し、`/bin/sh`を起動しています。この数字を0(=rootユーザー)に変えます。
+この行が今回のカーネルで起動時にユーザー権限でシェルを起動しているコードになります。`cttyhack`はCtrl+Cなどの入力を使えるようにしてくれるコマンドです。そして`setuidgid`コマンドを使ってユーザーIDとグループIDを1337に設定し、`/bin/sh`を起動しています。この数字を0(=rootユーザー)に変えます。
 ```bash
 setsid cttyhack setuidgid 0 sh
 ```
 また、詳細は[次章](security.html)で説明しますが、一部のセキュリティ機構を無効化するために、次の行もコメントアウトして消しておいてください。
-```bash
-echo 2 > /proc/sys/kernel/kptr_restrict     # 変更前
-#echo 2 > /proc/sys/kernel/kptr_restrict    # 変更後
+```diff
+-echo 2 > /proc/sys/kernel/kptr_restrict    # 変更前
++#echo 2 > /proc/sys/kernel/kptr_restrict   # 変更後
 ```
 変更したらcpioに再びパックして、`run.sh`を実行すれば下のスクリーンショットのようにroot権限でシェルが使えるようになっているはずです。（パックの方法は[前章](introduction.html#%E3%83%87%E3%82%A3%E3%82%B9%E3%82%AF%E3%82%A4%E3%83%A1%E3%83%BC%E3%82%B8)を参照）
 
@@ -109,6 +109,7 @@ pwndbg> conti
 </center>
 
 このように、カーネル空間でもユーザー空間と同じようにgdbのコマンドが利用可能です。pwndbg等の拡張機能も使えますが、もちろんカーネル空間向けに書かれた拡張機能でなければうまく動かないので注意してください。
+カーネルのデバッグ用の機能が[搭載されたデバッガ](https://github.com/bata24/gef)などもあるので、みなさんが好みのデバッガを使ってください。
 
 ## ドライバのデバッグ
 次にカーネルモジュールをデバッグしてみましょう。

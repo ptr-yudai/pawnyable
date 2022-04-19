@@ -1,3 +1,4 @@
+
 <div class="profile">
     <div class="profile-image">
         <% if (theme.profile.image) {%>
@@ -6,21 +7,28 @@
     </div>
     <div class="post-content profile-content">
         <div class="profile-body">
-            <%=theme.profile.body%>
+            <% /* %>
+            <% Object.keys(theme.profile.langs).forEach(key => { %>
+                <a href="<%=theme.profile.langs[key]%>"><%=key%></a>
+            <% }); %>
+            <% */ %>
+            <a title="I don't have time to internationalize this website. Feel free to make translation PR on GitHub.">English</a>
+            <a title="我的汉语水平低，不能翻译这个网页成中文。请随意在GitHub上创建翻译PR。">简体中文</a>
+            <a title="I don't have time to internationalize this website. Feel free to make translation PR on GitHub.">한국어</a>
         </div>
         <div class="profile-title">
-             🐾What's Pawnyable?🐾
+            🐾What's Pawnyable?🐾
         </div>
         <div class="profile-body">
-             <%=theme.profile.description%>
+            <%=theme.profile.description%>
         </div>
         <div class="profile-title">
-             🐾Contents🐾
+            🐾Contents🐾
         </div>
         <% Object.keys(theme.profile.links).forEach(key => { %>
             <div class="profile-link">
                 <a href="<%=theme.profile.links[key]%>"><%=key%></a> 
-            </div>           
+            </div>
         <% }); %>
     </div>
     
