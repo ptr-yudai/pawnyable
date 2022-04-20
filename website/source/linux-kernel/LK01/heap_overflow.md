@@ -332,9 +332,9 @@ R14: 00000000cafebabe
 つまり、`ioctl`の引数にROP chainのアドレスを渡し、`mov rsp, rcx; ret;`のようなgadgetを呼べばROPできると分かります。
 
 <div class="balloon_l">
-  <div class="faceicon"><img src="../img/cow.jpg" alt="牛さん" ></div>
+  <div class="faceicon"><img src="../img/wolf_normal.smal.png" alt="オオカミくん" ></div>
   <p class="says">
-    <code>write</code>や<code>read</code>の引数は、バッファのアドレスがユーザーランドの範囲か確認されたり、サイズが大きすぎるとハンドラが呼ばれなかったりして、stack pivotには使えないことが多いよ。
+    <code>write</code>や<code>read</code>の引数は、バッファのアドレスがユーザーランドの範囲か確認されたり、サイズが大きすぎるとハンドラが呼ばれなかったりして、カーネルヒープへのstack pivotには使えないことが多いよ。
   </p>
 </div>
 
@@ -411,7 +411,7 @@ Linuxには実行ファイル形式が複数共存しており、実行権限の
 コマンドが設定されていない場合は、単に`core`という文字列が入っています。（これがコアダンプの名前になります。）`core_pattern`をAAWで書き換えれば、ユーザー空間のプログラムがクラッシュした際に特権で外部プログラムを呼び出せるため、わざとクラッシュするプログラムを実行すれば権限昇格できます。
 
 <div class="balloon_l">
-  <div class="faceicon"><img src="../img/cow.jpg" alt="牛さん" ></div>
+  <div class="faceicon"><img src="../img/wolf_fun.smal.png" alt="オオカミくん" ></div>
   <p class="says">
     変数のアドレスはFGKASLRの影響を受けないから、FGKASLRが有効な場合でも使えそうだね。
   </p>
@@ -525,7 +525,7 @@ PR_SET_NAME (since Linux 2.6.9)
 したがって、カーネル中になさそうな文字列を`comm`に設定し、それをAARで探せば良い訳です。`task_struct`構造体の定義を見ると`comm`の前に`cred`構造体へのポインタがあるので、ここから自分のプロセスの権限情報を書き換えられます。
 
 <div class="balloon_l">
-  <div class="faceicon"><img src="../img/cow.jpg" alt="牛さん" ></div>
+  <div class="faceicon"><img src="../img/wolf_normal.smal.png" alt="オオカミくん" ></div>
   <p class="says">
     この方法はAAR/AAWさえ持っていればROP gadgetや関数のオフセットに依存しないexploitが書けるから、いろんな環境で安定して動くexploitを書きたい場合には便利だね。
   </p>

@@ -102,9 +102,9 @@ static int module_close(struct inode *inode, struct file *filp) {
 ```
 
 <div class="balloon_l">
-  <div class="faceicon"><img src="../img/cow.jpg" alt="牛さん" ></div>
+  <div class="faceicon"><img src="../img/wolf_fun.smal.png" alt="オオカミくん" ></div>
   <p class="says">
-    LK01-4でもここにデータを格納すれば競合が起きなかったね。
+    LK01-4 (Holstein v4)でもここにデータを格納すれば競合が起きなかったね。
   </p>
 </div>
 
@@ -319,9 +319,9 @@ NULLポインタ参照はユーザー空間のプログラムでも度々発生�
 [Linuxの仕様](https://www.kernel.org/doc/Documentation/x86/x86_64/mm.txt)として、仮想メモリはアドレスによって使用用途が異なります。例えば`0000000000000000`から`00007fffffffffff`まではユーザー空間が自由に使えます。また、`ffffffff80000000`から`ffffffff9fffffff`まではカーネルデータの領域で、物理アドレス0にマップされています。
 
 <div class="balloon_l">
-  <div class="faceicon"><img src="../img/cow.jpg" alt="牛さん" ></div>
+  <div class="faceicon"><img src="../img/wolf_normal.smal.png" alt="オオカミくん" ></div>
   <p class="says">
-    Linuxでは48ビットのアドレスを64ビットに符号付き拡張するよ。だから0x800000000000から0xffff7fffffffffffまではアドレスとして不正で、non-canonicalと呼ばれるよ。
+    Linuxでは48ビットのアドレスを64ビットに符号付き拡張するよ。だから0x800000000000から0xffff7fffffffffffまではアドレスとして不正で、non-canonicalと呼ばれているんだね。
   </p>
 </div>
 

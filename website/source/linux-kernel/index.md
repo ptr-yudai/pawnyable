@@ -1,7 +1,14 @@
 ---
 title: Linux Kernel Exploitation
 ---
-この章ではオオカミ君🐺と一緒にLinuxのカーネル空間におけるExploit手法、すなわち権限昇格について学びます。WindowsのKernel Exploitでも共通のハードウェアセキュリティ機構や権限昇格の手法に関する説明も含まれています。
+
+<div class="balloon_l">
+  <div class="faceicon"><img src="img/wolf_normal.smal.png" alt="オオカミくん" ></div>
+  <p class="says">
+  この章を担当するオオカミです。この章ではカーネル空間におけるExploit手法、いわゆる権限昇格について勉強していきましょう。<br>
+  WindowsのKernel Exploitでも共通のハードウェアセキュリティ機構や権限昇格の手法が登場するから、この章の知識はLinuxに限らず使えるよ。
+  </p>
+</div>
 
 - 実行環境とデバッグ方法
   - [Kernel Exploitへの導入](introduction/introduction.html)
@@ -17,12 +24,9 @@ title: Linux Kernel Exploitation
 - カーネル空間特有の攻撃
   - [NULL Pointer Dereference (LK02: Angus)](LK02/null_ptr_deref.html)
   - [Double Fetch (LK03: Dexter)](LK03/double_fetch.html)
-  - [userfaultfdとFUSEの利用 (LK0?: ?) (工事中)](#)
+  - [userfaultfdとFUSEの利用 (LK04: Fleckvieh) (工事中)](LK04/uffd_and_fuse.html)
   - [脆弱なmmap実装の悪用 (LK0?: Highland) (工事中)](#)
   - [eBPFとJIT (LK0?: Brahman) (工事中)](#)
 - その他の脆弱性
   - [参照カウンタ (LK0?: Simmental) (工事中)](#)
   - [サイドチャネル攻撃 (LK0?: Charolai) (工事中)](#)
-- UEFIに対する攻撃
-  - UEFIアプリケーションの特徴
-  - メモリアロケータ

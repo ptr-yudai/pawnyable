@@ -227,9 +227,10 @@ static void escalate_privilege() {
 </center>
 
 <div class="balloon_l">
-  <div class="faceicon"><img src="../img/cow.jpg" alt="牛さん" ></div>
+  <div class="faceicon"><img src="../img/wolf_thinking.smal.png" alt="オオカミくん" ></div>
   <p class="says">
-    カーネル空間ではnextiを実行しても、次の命令で止まらないことがあるよ。そういう時はstepiを試してみるか、少し先にブレークポイントを貼ると良いかも？
+    nextiコマンドを実行しても次の命令で止まらないことがあるよ。<br>
+    そういうときはstepiを試してみるか、少し先にブレークポイントを貼ると良いかも？
   </p>
 </div>
 
@@ -299,11 +300,11 @@ ffffffff810202af:       48 cf                   iretq
 ```
 
 <div class="balloon_l">
-  <div class="faceicon"><img src="../img/cow.jpg" alt="牛さん" ></div>
+  <div class="faceicon"><img src="../img/wolf_normal.smal.png" alt="オオカミくん" ></div>
   <p class="says">
-    ROP gadgetを探すためのツールの多くはカーネルのような膨大な量のバイナリに対して十分にテストされていないよ。
-    対応していない命令をスキップしていたり、命令のprefixを省略したりと、間違った出力が多いから注意してね。
-    また、gadgetがカーネル空間で実際に実行可能領域に含まれるかを正しく判別できないツールがほとんどだから、アドレスが大きいgadget (例:0xffffffff81cXXXYYY) には特に注意が必要だよ。
+    ROP gadgetを探すためのツールのほとんどはカーネルのような膨大な量のバイナリに対して十分にテストされていないよ。<br>
+    対応していない命令をスキップしていたり、命令のprefixを省略したりと、間違った出力が多いから気を付けようね。<br>
+    それから、gadgetがカーネル空間で実際に実行可能領域に含まれるかを正しく判別できないツールがほとんどだから、アドレスが大きいgadget (例:0xffffffff81cXXXYYY) には特に注意が必要だよ。
   </p>
 </div>
 
@@ -431,16 +432,17 @@ ffffffff81800e10 T swapgs_restore_regs_and_return_to_usermode
 ### KASLRのエントロピー
 本題に入る前に、そもそもKASLRはどのように実装されているのでしょうか。
 カーネルのアドレスランダム化はページテーブルレベルで行われ、`kaslr.c`の[`kernel_randomize_memory`](https://elixir.bootlin.com/linux/v5.10.7/source/arch/x86/mm/kaslr.c#L64)関数で実装されています。
-カーネルは0xffffffff80000000から0xffffffffc0000000までの1GBのアドレス空間を確保しています。したがって、KASLRが有効でも0x810から0xc00までの、たかだか0x3f0通り程度のベースアドレスしか錬成されません。<!-- TODO:要出展 -->
+カーネルは0xffffffff80000000から0xffffffffc0000000までの1GBのアドレス空間を確保しています。したがって、KASLRが有効でも0x810から0xc00までの、たかだか0x3f0通り程度のベースアドレスしか生成されません。<!-- TODO:要出展 -->
 
 <center>
   <img src="img/kaslr_entropy.png" alt="KASLRの範囲" style="width:300px;">
 </center>
 
 <div class="balloon_l">
-  <div class="faceicon"><img src="../img/cow.jpg" alt="牛さん" ></div>
+  <div class="faceicon"><img src="../img/wolf_thinking.smal.png" alt="オオカミくん" ></div>
   <p class="says">
-    もしKASLRが有効なのにアドレスリークが不可能な問題が問題が出たら、総当りで解けるということだね。まったく実用的ではないけど、CTFでは出題されたことがあるよ。(0CTF Finals 2021)
+    カーネル空間のASLRはユーザー空間よりも弱いんだね。<br>
+    意外かもしれないけど、カーネルでは一度攻撃が失敗するとカーネルパニックになって総当りが現実的じゃないから、エントロピーが小さくても十分だよ。
   </p>
 </div>
 

@@ -22,14 +22,27 @@
         <div class="profile-body">
             <%=theme.profile.description%>
         </div>
+
         <div class="profile-title">
             🐾Contents🐾
         </div>
-        <% Object.keys(theme.profile.links).forEach(key => { %>
-            <div class="profile-link">
-                <a href="<%=theme.profile.links[key]%>"><%=key%></a> 
-            </div>
-        <% }); %>
+        <div class="profile-body">
+            <% Object.keys(theme.profile.links).forEach(key => { %>
+                <div class="profile-link">
+                    <a href="<%=theme.profile.links[key]%>"><%=key%></a> 
+                </div>
+            <% }); %>
+        </div>
+
+        <div class="profile-title">
+            🐾Author🐾
+        </div>
+        <div class="profile-body">
+            著者：<a href="https://twitter.com/ptrYudai" target="_blank">@ptrYudai</a><br>
+            挿絵：<a href="https://twitter.com/K_Soraimu" target="_blank">@K_Soraimu</a><br>
+            校正：N/A<br>
+            翻訳：N/A
+        </div>
     </div>
     
 </div>

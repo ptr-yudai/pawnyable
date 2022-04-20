@@ -90,9 +90,10 @@ write(fd2, "Hello", 5);
 このように、カーネル空間のプログラムは**複数のプログラムにリソースが共有される**という点に注意して設計しないと、簡単に脆弱性が生まれてしまいます。
 
 <div class="balloon_l">
-  <div class="faceicon"><img src="../img/cow.jpg" alt="牛さん" ></div>
+  <div class="faceicon"><img src="../img/wolf_thinking.smal.png" alt="オオカミくん" ></div>
   <p class="says">
-    closeする時にポインタをNULLで消したり、openする時にg_bufが確保済みなら失敗するような設計にすれば、少なくとも今回のような簡単な脆弱性は防げたね。
+    closeする時にポインタをNULLで消したり、openする時にg_bufが確保済みなら失敗するような設計にすれば、少なくとも今回のような簡単な脆弱性は防げたね。<br>
+    本当にそれだけで十分かは次の章で調べるよ。
   </p>
 </div>
 

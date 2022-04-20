@@ -111,7 +111,7 @@ long copy_data_from_user(struct file *filp, void *reqp) {
 今回のドライバでは、`verify_request`と`copy_data_to_user`/`copy_data_from_user`でユーザーからのリクエストデータをfetchしています。つまり、`verify_request`では正しいサイズを渡し、そこから`copy_data_to_user`あるいは`copy_data_from_user`が実行されるまでの間にサイズを不正な値に書き換えれば、Heap Buffer Oveflowが起こせます。
 
 <div class="balloon_l">
-  <div class="faceicon"><img src="../img/cow.jpg" alt="牛さん" ></div>
+  <div class="faceicon"><img src="../img/wolf_thinking.smal.png" alt="オオカミくん" ></div>
   <p class="says">
     ユーザー空間のデータを複数回扱うときは、最初にカーネル空間にコピーしたものを使わないとダメなんだね。
   </p>
@@ -255,6 +255,14 @@ struct seq_operations {
 `seq_operations`はsysfs, debugfs, procfs等の特殊なファイルをユーザー空間から読むときにカーネル側で呼ばれるハンドラを記載する構造体です。したがって、`/proc/self/stat`等の特殊ファイルを開くことで確保できます。
 関数ポインタなのでカーネルのアドレスがリークできる上、例えば`read`を呼ぶと`seq_operations`の`start`が呼ばれるため、RIPの制御も可能です。
 
+<div class="balloon_l">
+  <div class="faceicon"><img src="../img/wolf_fun.smal.png" alt="オオカミくん" ></div>
+  <p class="says">
+    kmalloc-32が使われる構造体は他にもたくさんあるよ。<br>
+    詳しくは例題で見てみよう。
+  </p>
+</div>
+
 ## 権限昇格
 今回はSMAPが無効なのでユーザー空間にStack Pivotできます。各自ROP chainを書いて権限昇格してみてください。
 
@@ -262,8 +270,10 @@ struct seq_operations {
   <img src="img/dexter_privesc.png" alt="Double Fetchによる権限昇格" style="width:320px;">
 </center>
 
-
-
 [^1]: シングルコアで競合を起こす方法も後の章で登場します。
 
 ---
+
+<div class="column" title="例題">
+  SMAPを有効にしても動くようにexploitを修正してください。
+</div>

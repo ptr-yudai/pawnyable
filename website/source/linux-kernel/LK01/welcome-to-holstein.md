@@ -198,13 +198,13 @@ static ssize_t module_read(struct file *file,
 次に、`_copy_to_user`という関数を呼んでいます。SMAPの節で既に説明しましたが、これはユーザー空間に安全にデータをコピーする関数です。`copy_to_user`ではなく`_copy_to_user`になっていますが、これはスタックオーバーフローを検知しないバージョンの`copy_to_user`になります。通常は使われませんが、今回は脆弱性を入れるために使っています。
 
 <div class="balloon_l">
-  <div class="faceicon"><img src="../img/cow.jpg" alt="牛さん" ></div>
+  <div class="faceicon"><img src="../img/wolf_fun.smal.png" alt="オオカミくん" ></div>
   <p class="says">
-    <code>copy_to_user</code>や<code>copy_from_user</code>はインライン関数で、可能な場合サイズチェックをするようになっているよ。
+    <code>copy_to_user</code>や<code>copy_from_user</code>はインライン関数として定義されていて、可能な場合はサイズチェックをするようになっているよ。
   </p>
 </div>
 
-ということで、`read`関数は`g_buf`から一度スタックにデータをコピーし、そのデータを要求したサイズだけ読み込む処理になります。
+まとめると、`read`関数は`g_buf`から一度スタックにデータをコピーし、そのデータを要求したサイズだけ読み込む処理になります。
 
 ### write
 最後に`module_write`を読みましょう。

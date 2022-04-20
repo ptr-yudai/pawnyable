@@ -85,7 +85,7 @@ echo 2 > /proc/sys/kernel/kptr_restrict     # 変更前
 さて、では実際に`kallsyms`を見てみましょう。量が膨大なのでheadなどで先頭だけ見てみます。
 
 <center>
-  <img src="img/kallsyms_head.png" alt="/proc/kallsymsの先頭" style="width:400px;">
+  <img src="img/kallsyms_head.png" alt="/proc/kallsymsの先頭" style="width:480px;">
 </center>
 
 このように、シンボルのアドレス、アドレスの位置するセクション、シンボル名の順に並んで出力されます。セクションは例えば"T"ならtextセクション、"D"ならdataセクションのように表され、大文字はグローバルにエクスポートされたシンボルを表します。これらの文字の詳細な仕様は`man nm`で確認できます。
@@ -99,13 +99,13 @@ pwndbg> conti
 この関数は実は新しくプロセスが作られる時などに呼ばれる関数です。シェルでlsコマンドなどを叩くとブレークポイントでgdbが反応するはずです。
 
 <center>
-  <img src="img/commit_creds_bp.png" alt="commit_credsでブレークポイントにより停止する様子" style="width:640px;">
+  <img src="img/commit_creds_bp.png" alt="commit_credsでブレークポイントにより停止する様子" style="width:720px;">
 </center>
 
 第一引数RDIにはカーネル空間のポインタが入っています。このポインタの指すメモリを見てみましょう。
 
 <center>
-  <img src="img/commit_creds_rdi.png" alt="commit_credsでのメモリの確認" style="width:520px;">
+  <img src="img/commit_creds_rdi.png" alt="commit_credsでのメモリの確認" style="width:620px;">
 </center>
 
 このように、カーネル空間でもユーザー空間と同じようにgdbのコマンドが利用可能です。pwndbg等の拡張機能も使えますが、もちろんカーネル空間向けに書かれた拡張機能でなければうまく動かないので注意してください。
@@ -116,7 +116,7 @@ pwndbg> conti
 LK01にはvulnという名前のカーネルモジュールがロードされています。ロードされているモジュールの一覧と、そのベースアドレスは`/proc/modules`から確認できます。
 
 <center>
-  <img src="img/modules.png" alt="/proc/moudlesの中身" style="width:360px;">
+  <img src="img/modules.png" alt="/proc/moudlesの中身" style="width:420px;">
 </center>
 
 これを見ると、`vuln`というモジュールが0xffffffffc0000000にロードされていることが分かります。なお、このモジュールのソースコードとバイナリは配布ファイルの`src`ディレクトリに存在します。ソースコードの詳細解析は別の章でやりますが、このモジュールの関数にブレークポイントを付けてみましょう。
@@ -135,7 +135,7 @@ IDAなどで`src/vuln.ko`を開くといくつかの関数が見えます。例�
 詳しくは先の章で解析しますが、このモジュールは`/dev/holstein`というファイルにマップされています。`cat`コマンドを使えば`module_close`を呼び出せます。ブレークポイントで止まることを確認しましょう。
 
 <div class="balloon_l">
-  <div class="faceicon"><img src="../img/cow.jpg" alt="牛さん" ></div>
+  <div class="faceicon"><img src="../img/wolf_normal.smal.png" alt="オオカミくん" ></div>
   <p class="says">
     ドライバのシンボル情報が欲しい場合はadd-symbol-file命令を使って、第一引数に手持ちのドライバ、第二引数にベースアドレスを渡すとシンボル情報を読み込んでくれるよ。関数名を使ってブレークポイントを設定できるね。
   </p>

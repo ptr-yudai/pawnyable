@@ -85,7 +85,7 @@ OSは複数のプロセス（スレッド）を同時に実行できるように
 このように、カーネル空間のコードを設計する際は、常にマルチスレッドを考慮した設計にしないとバグが起きてしまいます。
 
 <div class="balloon_l">
-  <div class="faceicon"><img src="../img/cow.jpg" alt="牛さん" ></div>
+  <div class="faceicon"><img src="../img/wolf_normal.smal.png" alt="オオカミくん" ></div>
   <p class="says">
   　変数mutexの読み書きにatomicな演算を使わなかったことが原因で起きた競合だね。
   </p>
@@ -195,9 +195,9 @@ void* spray_thread(void *args) {
 ```
 
 <div class="balloon_l">
-  <div class="faceicon"><img src="../img/cow.jpg" alt="牛さん" ></div>
+  <div class="faceicon"><img src="../img/wolf_fun.smal.png" alt="オオカミくん" ></div>
   <p class="says">
-  　sched_setaffinity関数を使うとスレッドが利用するCPUを制限できるから、コア数が増えても2コアの時と同じ挙動に設定できるよ。
+  　sched_setaffinity関数を使うと、スレッドが利用するCPUを制限できるから、コア数が増えても2コアの時と同じような挙動になるよ。
   </p>
 </div>
 

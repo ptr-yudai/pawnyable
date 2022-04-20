@@ -80,9 +80,9 @@ https://www.musl-libc.org/
 著者の環境では先ほどのHello, Worldプログラムは、gccの場合851KB、musl-gccの場合18KBでした。さらに小さくしたい場合はstripなどでデバッグシンボルを削除しても構いません。
 
 <div class="balloon_l">
-  <div class="faceicon"><img src="../img/cow.jpg" alt="牛さん" ></div>
+  <div class="faceicon"><img src="../img/wolf_normal.smal.png" alt="オオカミくん" ></div>
   <p class="says">
-    一部のヘッダファイル（linuxカーネル系）はmusl-gccには存在しないから、gccでコンパイルする必要があるよ。そういう場合は次のように一度アセンブリを経由してビルドするとgccの機能を使いつつファイルサイズを抑えられるよ。
+    一部のヘッダファイル（Linuxカーネル系）はmusl-gccにはないから、インクルードパスを設定するかgccでコンパイルする必要があるよ。そういうときは一度アセンブリを経由してビルドすれば、gccの機能を使いつつファイルサイズを抑えられるね。<br>
     <code>
     $ gcc -S sample.c -o sample.S<br>
     $ musl-gcc sample.S -o sample.elf
