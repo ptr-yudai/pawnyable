@@ -329,7 +329,7 @@ ROP chainがなぜか動かないけどデバッグするのが面倒な場合�
 
 今回のROP chainはカーネル空間のスタックで動いているので、実はSMAPを有効にしてもexploitはそのまま動きます。試してみてください。
 
-<div class="column" title="カラム：raxをrdiに移せない">
+<div class="column" title="コラム：raxをrdiに移せない">
   通常「<code>mov rdi, rax; rep movsq; ret;</code>」のようなgadgetが存在し、<code>prepare_kernel_cred(NULL)</code>の結果を<code>commit_creds</code>に渡せます。あるいは「<code>mov rdi, rax; call rcx;</code>」のようなgadgetで<code>commit_creds</code>の先頭の<code>push rbp</code>をスキップして実行しても良いでしょう。<br>
   どうしてもgadgetが見つからない時や、ROP chainを短くしたいときは<a href="https://elixir.bootlin.com/linux/v5.14.9/source/kernel/cred.c#L41"><code>init_cred</code></a>が使えます。<code>init_cred</code>というグローバル変数にはroot権限のcred構造体が入っています。つまり、単に<code>commit_creds(init_cred)</code>を実行するだけでも権限昇格できます。
 </div>

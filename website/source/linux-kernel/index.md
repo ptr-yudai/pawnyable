@@ -24,9 +24,12 @@ title: Linux Kernel Exploitation
 - カーネル空間特有の攻撃
   - [NULL Pointer Dereference (LK02: Angus)](LK02/null_ptr_deref.html)
   - [Double Fetch (LK03: Dexter)](LK03/double_fetch.html)
-  - [userfaultfdとFUSEの利用 (LK04: Fleckvieh) (工事中)](LK04/uffd_and_fuse.html)
+  - [userfaultfdの利用 (LK04: Fleckvieh)](LK04/uffd.html)
+  - [FUSEの利用 (LK04: Fleckvieh)](LK04/fuse.html)
   - [脆弱なmmap実装の悪用 (LK0?: Highland) (工事中)](#)
   - [eBPFとJIT (LK0?: Brahman) (工事中)](#)
 - その他の脆弱性
   - [参照カウンタ (LK0?: Simmental) (工事中)](#)
   - [サイドチャネル攻撃 (LK0?: Charolai) (工事中)](#)
+- 付録
+  - [buildrootによるカーネルのビルド](appendix/buildroot.html)
