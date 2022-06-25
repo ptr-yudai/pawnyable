@@ -135,7 +135,7 @@ IDAなどで`src/vuln.ko`を開くといくつかの関数が見えます。例�
 詳しくは先の章で解析しますが、このモジュールは`/dev/holstein`というファイルにマップされています。`cat`コマンドを使えば`module_close`を呼び出せます。ブレークポイントで止まることを確認しましょう。
 
 <div class="balloon_l">
-  <div class="faceicon"><img src="../img/wolf_normal.smal.png" alt="オオカミくん" ></div>
+  <div class="faceicon"><img src="../img/wolf_atamawaru.png" alt="オオカミくん" ></div>
   <p class="says">
     ドライバのシンボル情報が欲しい場合はadd-symbol-file命令を使って、第一引数に手持ちのドライバ、第二引数にベースアドレスを渡すとシンボル情報を読み込んでくれるよ。関数名を使ってブレークポイントを設定できるね。
   </p>

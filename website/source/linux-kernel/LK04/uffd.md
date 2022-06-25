@@ -35,7 +35,7 @@ static int module_open(struct inode *inode, struct file *filp) {
 ほとんどの場合片方しか通らない条件分岐（セキュリティチェックやメモリ不足の確認）などにおいて、どちらの分岐に通りやすいかをコンパイラに教えられます。正しい予測で`likely`, `unlikely`マクロを使えば、何度も通るような条件分岐では実行速度の向上に繋がります。
 
 <div class="balloon_l">
-  <div class="faceicon"><img src="../img/wolf_normal.smal.png" alt="オオカミくん" ></div>
+  <div class="faceicon"><img src="../img/wolf_suyasua.png" alt="オオカミくん" ></div>
   <p class="says">
     コンパイラにヒントを与えると、よく通るパスほど命令数や分岐回数を減らしてくれるよ。
     このあたりの話はCPUの分岐予測とも関わるから、気になる人は調べてみてね。
@@ -286,7 +286,7 @@ int main() {
 </center>
 
 <div class="balloon_l">
-  <div class="faceicon"><img src="../img/wolf_normal.smal.png" alt="オオカミくん" ></div>
+  <div class="faceicon"><img src="../img/wolf_normal.png" alt="オオカミくん" ></div>
   <p class="says">
     userfaultfdのハンドラは別スレッドで動くから、メインスレッドと違うCPUで動く可能性があるよ。
     ハンドラ内でオブジェクトを確保するとき、CPUごとにキャッシュされたヒープ領域が使われるとUAFが失敗しちゃうから、sched_setaffinity関数でCPUを固定するように注意してね。
@@ -417,7 +417,7 @@ int main() {
 幸いにも`copy_to_user`はコピーサイズに応じて、コピーの各ループイテレーションでどれだけのサイズのデータをコピーするか（レジスタに貯め込むか）が変わります。したがって、例えば0x20のような小さいサイズで`copy_to_user`を呼べば、最初の0x10バイトのみがUAF前のデータとなり、`tty_operations`のポインタを含む残りの0x10バイトはUAF後のものがコピーされます。
 
 <div class="balloon_l">
-  <div class="faceicon"><img src="../img/wolf_thinking.smal.png" alt="オオカミくん" ></div>
+  <div class="faceicon"><img src="../img/wolf_thinking.png" alt="オオカミくん" ></div>
   <p class="says">
   　アセンブリレベルでいつページフォルトが起きるかを把握できていないと、デバッグが大変そうだね。
   </p>

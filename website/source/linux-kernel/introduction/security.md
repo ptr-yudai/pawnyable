@@ -37,7 +37,7 @@ control_rip(shellcode); // RIP = shellcode
 しかしSMEPが有効の場合、上のようにユーザー空間に用意したシェルコードを実行しようとするとカーネルパニックを引き起こします。これにより、攻撃者はRIPを奪っても権限昇格に繋げられなくなる可能性が上がります。
 
 <div class="balloon_l">
-  <div class="faceicon"><img src="../img/wolf_thinking.smal.png" alt="オオカミくん" ></div>
+  <div class="faceicon"><img src="../img/wolf_thinking.png" alt="オオカミくん" ></div>
   <p class="says">
     カーネル空間のシェルコードでは何を実行すれば良いのかな？<br>
     権限昇格の方法はまた別の章で勉強するよ。
@@ -131,7 +131,7 @@ $ cat /proc/cpuinfo | grep smap
 SMAPもSMEP同様にハードウェアのセキュリティ機構です。CR4レジスタの22ビット目を立てるとSMAPが有効になります。
 
 <div class="balloon_l">
-  <div class="faceicon"><img src="../img/wolf_normal.smal.png" alt="オオカミくん" ></div>
+  <div class="faceicon"><img src="../img/wolf_suyasuya.png" alt="オオカミくん" ></div>
   <p class="says">
     Intel CPUではEFLAGS.AC (Alignment Check)というフラグをそれぞれ1,0に変更する<a href="https://www.felixcloutier.com/x86/stac" target="_blank">STAC</a>と<a href="https://www.felixcloutier.com/x86/clac" target="_blank">CLAC</a>という命令があって、ACがセットされている間はSMAPの効力が無効になるよ。
   </p>

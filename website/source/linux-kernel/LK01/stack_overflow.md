@@ -227,7 +227,7 @@ static void escalate_privilege() {
 </center>
 
 <div class="balloon_l">
-  <div class="faceicon"><img src="../img/wolf_thinking.smal.png" alt="オオカミくん" ></div>
+  <div class="faceicon"><img src="../img/wolf_thinking.png" alt="オオカミくん" ></div>
   <p class="says">
     nextiコマンドを実行しても次の命令で止まらないことがあるよ。<br>
     そういうときはstepiを試してみるか、少し先にブレークポイントを貼ると良いかも？
@@ -300,7 +300,7 @@ ffffffff810202af:       48 cf                   iretq
 ```
 
 <div class="balloon_l">
-  <div class="faceicon"><img src="../img/wolf_normal.smal.png" alt="オオカミくん" ></div>
+  <div class="faceicon"><img src="../img/wolf_atamawaru.png" alt="オオカミくん" ></div>
   <p class="says">
     ROP gadgetを探すためのツールのほとんどはカーネルのような膨大な量のバイナリに対して十分にテストされていないよ。<br>
     対応していない命令をスキップしていたり、命令のprefixを省略したりと、間違った出力が多いから気を付けようね。<br>
@@ -439,7 +439,7 @@ ffffffff81800e10 T swapgs_restore_regs_and_return_to_usermode
 </center>
 
 <div class="balloon_l">
-  <div class="faceicon"><img src="../img/wolf_thinking.smal.png" alt="オオカミくん" ></div>
+  <div class="faceicon"><img src="../img/wolf_suyasuya.png" alt="オオカミくん" ></div>
   <p class="says">
     カーネル空間のASLRはユーザー空間よりも弱いんだね。<br>
     意外かもしれないけど、カーネルでは一度攻撃が失敗するとカーネルパニックになって総当りが現実的じゃないから、エントロピーが小さくても十分だよ。

@@ -3,7 +3,7 @@ title: Linux Kernel Exploitation
 ---
 
 <div class="balloon_l">
-  <div class="faceicon"><img src="img/wolf_normal.smal.png" alt="オオカミくん" ></div>
+  <div class="faceicon"><img src="img/wolf_normal.png" alt="オオカミくん" ></div>
   <p class="says">
   この章を担当するオオカミです。この章ではカーネル空間におけるExploit手法、いわゆる権限昇格について勉強していきましょう。<br>
   WindowsのKernel Exploitでも共通のハードウェアセキュリティ機構や権限昇格の手法が登場するから、この章の知識はLinuxに限らず使えるよ。
@@ -33,3 +33,17 @@ title: Linux Kernel Exploitation
   - [サイドチャネル攻撃 (LK0?: Charolai) (工事中)](#)
 - 付録
   - [buildrootによるカーネルのビルド](appendix/buildroot.html)
+
+<div class="column" title="講師プロフィール">
+  <div style="overflow: hidden">
+    <div style="float: left; margin-right: 1em;" class="faceicon">
+      <img src="img/wolf_suyasuya.png" alt="オオカミくん" >
+    </div>
+    <div style="float: left;">
+      <b>オオカミくん</b><br>
+      動物界ではOS開発の第一人者。基本寝ている。<br>
+      好きなもの：羊 / Linux<br>
+      嫌いなもの：牛 / Windows
+    </div>
+  </div>
+</div>

@@ -39,7 +39,7 @@ fusermount version: 2.9.9
 </center>
 
 <div class="balloon_l">
-  <div class="faceicon"><img src="../img/wolf_normal.smal.png" alt="オオカミくん" ></div>
+  <div class="faceicon"><img src="../img/wolf_normal.png" alt="オオカミくん" ></div>
   <p class="says">
     userfaultfdのハンドラは別スレッドで動くから、メインスレッドと違うCPUで動く可能性があるよ。
     ハンドラ内でオブジェクトを確保するとき、CPUごとにキャッシュされたヒープ領域が使われるとUAFが失敗しちゃうから、sched_setaffinity関数でCPUを固定するように注意してね。

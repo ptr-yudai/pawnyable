@@ -111,7 +111,7 @@ long copy_data_from_user(struct file *filp, void *reqp) {
 今回のドライバでは、`verify_request`と`copy_data_to_user`/`copy_data_from_user`でユーザーからのリクエストデータをfetchしています。つまり、`verify_request`では正しいサイズを渡し、そこから`copy_data_to_user`あるいは`copy_data_from_user`が実行されるまでの間にサイズを不正な値に書き換えれば、Heap Buffer Oveflowが起こせます。
 
 <div class="balloon_l">
-  <div class="faceicon"><img src="../img/wolf_thinking.smal.png" alt="オオカミくん" ></div>
+  <div class="faceicon"><img src="../img/wolf_suyasuya.png" alt="オオカミくん" ></div>
   <p class="says">
     ユーザー空間のデータを複数回扱うときは、最初にカーネル空間にコピーしたものを使わないとダメなんだね。
   </p>
@@ -256,7 +256,7 @@ struct seq_operations {
 関数ポインタなのでカーネルのアドレスがリークできる上、例えば`read`を呼ぶと`seq_operations`の`start`が呼ばれるため、RIPの制御も可能です。
 
 <div class="balloon_l">
-  <div class="faceicon"><img src="../img/wolf_fun.smal.png" alt="オオカミくん" ></div>
+  <div class="faceicon"><img src="../img/wolf_normal.png" alt="オオカミくん" ></div>
   <p class="says">
     kmalloc-32が使われる構造体は他にもたくさんあるよ。<br>
     詳しくは例題で見てみよう。
