@@ -34,7 +34,7 @@ date_format: MMM D, YYYY
 # profile
 profile:
   description: Pawnyableはpwn(Binary Exploitation)を勉強するための資料です。既にある程度勉強済みの人が対象です。
-  image: /profile_cover.png
+  image: /pawnyable.png
   langs:
     "English": /#
     "简体中文": /#

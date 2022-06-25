@@ -11,7 +11,7 @@ title: Linux Kernel Exploitation
 </div>
 
 - 実行環境とデバッグ方法
-  - [Kernel Exploitへの導入](introduction/introduction.html)
+  - [カーネルexploitへの導入](introduction/introduction.html)
   - [gdbによるカーネルのデバッグ](introduction/debugging.html)
   - [セキュリティ機構](introduction/security.html)
   - [コンパイルとexploitの転送](introduction/compile-and-transfer.html)
