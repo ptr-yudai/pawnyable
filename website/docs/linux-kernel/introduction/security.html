@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+    <meta name="author" content="ptr-yudai">
+
+
+
+
+
+
+
+<title>セキュリティ機構 | PAWNYABLE!</title>
+
+
+
+    <link rel="icon" href="/favicon.ico">
+
+
+
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=Roboto+Mono&display=swap');
+</style>
+
+
+
+    <!-- stylesheets list from _config.yml -->
+    
+    <link rel="stylesheet" href="/css/style.css">
+    
+
+
+
+
+    <!-- scripts list from _config.yml -->
+    
+    <script src="/js/frame.js"></script>
+    
+
+
+
+
+
+
+
+  <style type="text/css">
+.spoiler {
+  display: inline-flex;
+}
+p.spoiler {
+  display: flex;
+}
+.spoiler a {
+  pointer-events: none;
+}
+.spoiler-blur, .spoiler-blur > * {
+  transition: text-shadow .5s ease;
+}
+.spoiler .spoiler-blur, .spoiler .spoiler-blur > * {
+  color: rgba(0, 0, 0, 0);
+  background-color: rgba(0, 0, 0, 0);
+  text-shadow: 0 0 10px grey;
+  cursor: pointer;
+}
+.spoiler .spoiler-blur:hover, .spoiler .spoiler-blur:hover > * {
+  text-shadow: 0 0 5px grey;
+}
+.spoiler-box, .spoiler-box > * {
+  transition: color .5s ease,
+  background-color .5s ease;
+}
+.spoiler .spoiler-box, .spoiler .spoiler-box > * {
+  color: black;
+  background-color: black;
+  text-shadow: none;
+}</style><meta name="generator" content="Hexo 5.4.0"></head>
+  <body>
+    <div class="mask-border">
+    </div>
+
+    <div class="wrapper">
+
+      <div class="header">
+  <div class="flex-container">
+    <div class="header-inner">
+      <div class="site-brand-container">
+        <a href="/">PAWNYABLE</a>
+      </div>
+      <div id="menu-btn" class="menu-btn" onclick="toggleMenu()">
+        Menu
+      </div>
+      <nav class="site-nav">
+        <ul class="menu-list">
+          
+            
+              <li class="menu-item">
+                <a href="/practice/">Practice</a>
+              </li> 
+                   
+          
+            
+              <li class="menu-item">
+                <a href="/about/">About</a>
+              </li> 
+                   
+          
+        </ul>
+      </nav>
+    </div>
+  </div>
+</div>
+
+
+      <div class="main">
+        <div class="flex-container">
+          <article id="post">
+
+  
+    <div class="post-head">
+    <div class="post-info">
+        <div class="post-title">
+            
+            
+                セキュリティ機構
+            
+            
+        </div>
+    </div>
+    <div class="h-line-primary"></div>
+    
+        <div class="pagination">
+            <div class="pagination-bk"><a href="debugging.html">前のページへ</a></div>
+            <div class="pagination-index"><a href="../index.html">目次へ</a></div>
+            <div class="pagination-fd"><a href="compile-and-transfer.html">次のページへ</a></div>
+        </div>
+    
+</div>
+
+    <div class="post-content">
+    <p>カーネルexploitへの緩和策として、Linuxカーネルにはセキュリティ機構がいくつか存在します。ユーザーランドで登場したNXのように、ハードウェアレベルでのセキュリティ機構も存在するため、いくつかの知識はWindowsのカーネルexploitにもそのまま適用できます。</p>
+<p>ここで取り上げるのはカーネル特有の保護策で、Stack Canaryのようなセキュリティ機構はデバイスドライバにも存在しますが、それについては特筆すべき点はないためここでは説明しません。</p>
+<p>カーネル起動時のパラメータについては<a target="_blank" rel="noopener" href="https://github.com/torvalds/linux/blob/master/Documentation/admin-guide/kernel-parameters.txt">公式のドキュメント</a>が分かりやすいです。</p>
+<div class="column" title="目次">
+<!-- toc -->
+<ul>
+<li><a href="#smep-supervisor-mode-execution-prevention">SMEP (Supervisor Mode Execution Prevention)</a></li>
+<li><a href="#smap-supervisor-mode-access-prevention">SMAP (Supervisor Mode Access Prevention)</a></li>
+<li><a href="#kaslr-fgkaslr">KASLR / FGKASLR</a></li>
+<li><a href="#kpti-kernel-page-table-isolation">KPTI (Kernel Page-Table Isolation)</a></li>
+<li><a href="#kadr-kernel-address-display-restriction">KADR (Kernel Address Display Restriction)</a></li>
+</ul>
+<!-- tocstop -->
+<br>
+</div>
+<h2><span id="smep-supervisor-mode-execution-prevention">SMEP (Supervisor Mode Execution Prevention)</span></h2>
+<p>カーネルのセキュリティ機構として代表的なものが、SMEPとSMAPです。<br>
+SMEPはカーネル空間のコードを実行中に、突然ユーザー空間のコードを実行するのを禁止するセキュリティ機構です。イメージとしてはNXに似ています。</p>
+<p>SMEPは緩和機構で、それ単体で強い防御策という訳ではありません。例えばカーネル空間の脆弱性を利用して攻撃者にRIPを奪われてしまったとします。もしSMEPが無効だと、次のようにユーザー空間に用意したシェルコードを実行されてしまいます。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">char</span> *shellcode = mmap(<span class="literal">NULL</span>, <span class="number">0x1000</span>, PROT_READ|PROT_WRITE|PROT_EXECUTE,</span><br><span class="line">                       MAP_ANONYMOUS | MAP_PRIVATE, <span class="number">-1</span>, <span class="number">0</span>);</span><br><span class="line"><span class="built_in">memcpy</span>(shellcode, SHELLCODE, <span class="keyword">sizeof</span>(SHELLCODE));</span><br><span class="line"></span><br><span class="line">control_rip(shellcode); <span class="comment">// RIP = shellcode</span></span><br></pre></td></tr></table></figure>
+<p>しかしSMEPが有効の場合、上のようにユーザー空間に用意したシェルコードを実行しようとするとカーネルパニックを引き起こします。これにより、攻撃者はRIPを奪っても権限昇格に繋げられなくなる可能性が上がります。</p>
+<div class="balloon_l">
+  <div class="faceicon"><img src="../img/wolf_thinking.png" alt="オオカミくん"></div>
+  <p class="says">
+    カーネル空間のシェルコードでは何を実行すれば良いのかな？<br>
+    権限昇格の方法はまた別の章で勉強するよ。
+  </p>
+</div>
+<p>SMEPはqemu実行時の引数で有効化できます。次のように<code>-cpu</code>オプションに<code>+smep</code>と付いていればSMEPが有効化されます。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">-cpu kvm64,+smep</span><br></pre></td></tr></table></figure>
+<p>マシン内部からは<code>/proc/cpuinfo</code>を見ることでも確認できます。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ cat /proc/cpuinfo | grep smep</span><br></pre></td></tr></table></figure>
+<p>SMEPはハードウェアのセキュリティ機構です。CR4レジスタの21ビット目を立てるとSMEPが有効になります。</p>
+<h2><span id="smap-supervisor-mode-access-prevention">SMAP (Supervisor Mode Access Prevention)</span></h2>
+<p>ユーザー空間からカーネル空間のメモリを読み書きできないのはセキュリティ上当たり前ですが、実はカーネル空間からユーザー空間のメモリを読み書きできなくする<strong>SMAP</strong>(Supervisor Mode Access Prevention)というセキュリティ機構が存在します。カーネル空間からユーザー空間のデータを読み書きするには、<a target="_blank" rel="noopener" href="https://www.kernel.org/doc/htmldocs/kernel-api/API---copy-from-user.html"><code>copy_from_user</code></a>, <a target="_blank" rel="noopener" href="https://www.kernel.org/doc/htmldocs/kernel-api/API---copy-to-user.html"><code>copy_to_user</code></a>という関数を使う必要があります。<br>
+しかし、なぜ高い権限のカーネル空間から低い権限のユーザー空間のデータを読み書きできなくするのでしょうか。</p>
+<p>私は歴史的な経緯については知りませんが、SMAPによる恩恵は主に2つあると考えます。</p>
+<p>まず1つ目が、Stack Pivotの防止です。<br>
+SMEPで出した例ではRIPを制御できてもシェルコードは実行できなくなりました。しかし、Linuxカーネルは非常に膨大な量の機械語を持っているため、次のようなROP gadgetが必ず存在します。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mov esp, 0x12345678; ret;</span><br></pre></td></tr></table></figure>
+<p>ESPに入る値が何であれ、このROP gadgetが呼ばれるとRSPはその値に変更されます<sup class="footnote-ref"><a href="#fn1" id="fnref1">[1]</a></sup>。一方、このような低いアドレスはユーザーランドから<code>mmap</code>で確保可能ですので、SMEPが有効でも攻撃者はRIPを取るだけで次のようにROP chainを実行できます。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">void</span> *p = mmap(<span class="number">0x12340000</span>, <span class="number">0x10000</span>, ...);</span><br><span class="line"><span class="keyword">unsigned</span> <span class="keyword">long</span> *chain = (<span class="keyword">unsigned</span> <span class="keyword">long</span>*)(p + <span class="number">0x5678</span>);</span><br><span class="line">*chain++ = rop_pop_rdi;</span><br><span class="line">*chain++ = <span class="number">0</span>;</span><br><span class="line">*chain++ = ...;</span><br><span class="line">...</span><br><span class="line"></span><br><span class="line">control_rip(rop_mov_esp_12345678h);</span><br></pre></td></tr></table></figure>
+<p>もしSMAPが有効なら、ユーザー空間でmmapしたデータはカーネル空間から見えませんので、stack pivotの後のretの瞬間にカーネルパニックを起こします。<br>
+このように、SMEPに加えてSMAPが有効になることで攻撃者がROPを実行するのを困難にできます。</p>
+<p>SMAPによる2つ目の恩恵が、カーネルプログラミングで頻出するバグの防止です。<br>
+これにはデバイスドライバなどのプログラマが頻繁に起こしてしまうカーネル特有のバグが関係します。<code>ioctl</code>というシステムコールでユーザー空間からデバイスドライバとデータをやり取りできるのですが、ドライバが次のようなコードを書いたとしましょう。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">char</span> buffer[<span class="number">0x10</span>];</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">long</span> <span class="title">mydevice_ioctl</span><span class="params">(struct file *filp, <span class="keyword">unsigned</span> <span class="keyword">int</span> cmd, <span class="keyword">unsigned</span> <span class="keyword">long</span> arg)</span> </span>&#123;</span><br><span class="line">  <span class="keyword">if</span> (cmd == <span class="number">0xdead</span>) &#123;</span><br><span class="line">    <span class="built_in">memcpy</span>(buffer, arg, <span class="number">0x10</span>);</span><br><span class="line">  &#125; <span class="keyword">else</span> <span class="keyword">if</span> (cmd == <span class="number">0xcafe</span>) &#123;</span><br><span class="line">    <span class="built_in">memcpy</span>(arg, buffer, <span class="number">0x10</span>);</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">return</span> </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>このデバイスドライバはユーザー空間から次のように利用すると、0x10バイトのデータを記憶してくれます。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">int</span> fd = open(<span class="string">&quot;/dev/mydevice&quot;</span>, O_RDWR);</span><br><span class="line"></span><br><span class="line"><span class="keyword">char</span> src[<span class="number">0x10</span>] = <span class="string">&quot;Hello, World!&quot;</span>;</span><br><span class="line"><span class="keyword">char</span> dst[<span class="number">0x10</span>];</span><br><span class="line"></span><br><span class="line">ioctl(fd, <span class="number">0xdead</span>, src);</span><br><span class="line">ioctl(fd, <span class="number">0xcafe</span>, dst);</span><br><span class="line"></span><br><span class="line"><span class="built_in">printf</span>(<span class="string">&quot;%s\n&quot;</span>, dst); <span class="comment">// --&gt; Hello, World!</span></span><br></pre></td></tr></table></figure>
+<p>ユーザー空間のプログラミングに慣れていると何ということはありません。<code>memcpy</code>のサイズも固定で、特に問題は無いように思えます。</p>
+<p>しかし、もしSMAPが無効だと、次のような呼び出しも許されてしまいます。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ioctl(fd, <span class="number">0xdead</span>, <span class="number">0xffffffffdeadbeef</span>);</span><br></pre></td></tr></table></figure>
+<p><code>0xffffffffdeadbeef</code>というのはユーザー空間としては無効なアドレスですが、仮にこれがLinuxカーネル中の秘密のデータが入っているアドレスだったとしましょう。するとデバイスドライバは</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">memcpy(buffer, 0xffffffffdeadbeef, 0x10);</span><br></pre></td></tr></table></figure>
+<p>を実行してしまい、秘密のデータを読んでしまいます。今回の例のように何のチェックもなしにユーザー空間から受け取ったアドレスで<code>memcpy</code>を使ってしまうと、ユーザー空間からカーネル空間の任意のアドレスを読み書きできてしまうことになります。<br>
+カーネルプログラミングに慣れ親しんでいない方にとっては非常に気づきにくい脆弱性ですが、AAR/AAWができるため影響は重大です。このようなミスを防ぐためにもSMAPは役に立っているのです。</p>
+<p>SMAPはqemu実行時の引数で有効化できます。次のように<code>-cpu</code>オプションに<code>+smap</code>と付いていればSMAPが有効化されます。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">-cpu kvm64,+smap</span><br></pre></td></tr></table></figure>
+<p>マシン内部からは<code>/proc/cpuinfo</code>を見ることでも確認できます。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ cat /proc/cpuinfo | grep smap</span><br></pre></td></tr></table></figure>
+<p>SMAPもSMEP同様にハードウェアのセキュリティ機構です。CR4レジスタの22ビット目を立てるとSMAPが有効になります。</p>
+<div class="balloon_l">
+  <div class="faceicon"><img src="../img/wolf_suyasuya.png" alt="オオカミくん"></div>
+  <p class="says">
+    Intel CPUではEFLAGS.AC (Alignment Check)というフラグをそれぞれ1,0に変更する<a href="https://www.felixcloutier.com/x86/stac" target="_blank">STAC</a>と<a href="https://www.felixcloutier.com/x86/clac" target="_blank">CLAC</a>という命令があって、ACがセットされている間はSMAPの効力が無効になるよ。
+  </p>
+</div>
+<h2><span id="kaslr-fgkaslr">KASLR / FGKASLR</span></h2>
+<p>ユーザー空間ではアドレスをランダム化するASLR(Address Space Layout Randomization)が存在しました。これと同様に、Linuxカーネルやデバイスドライバのコード・データ領域のアドレスをランダム化する<strong>KASLR</strong>(Kernel ASLR)という緩和機構も存在します。<br>
+カーネルは一度ロードされたら移動しませんので、KASLRは起動時に1度だけ働きます。何か1つでもLinuxカーネル中の関数やデータのアドレスをリークできれば、ベースアドレスが求まります。</p>
+<p><a target="_blank" rel="noopener" href="https://lwn.net/Articles/824307/">2020年に入ってから</a><strong>FGKASLR</strong>(Function Granular KASLR)と呼ばれるさらに強いKASLRが登場しました。2021年現在はデフォルトで無効なようですが、これはLinuxカーネルの関数ごとにアドレスをランダム化するという技術です。たとえLinuxカーネル中の関数のアドレスがリークできても、ベースアドレスは求まりません。<br>
+しかし、FGKASLRはデータセクションなどはランダム化しませんので、データのアドレスをリークできればベースアドレスが求まります。もっともベースアドレスから特定の関数のアドレスを求めることもできませんが、後々登場する特殊な攻撃ベクタには利用可能です。</p>
+<p>アドレスはカーネル空間で共通という点に注意してください。たとえあるデバイスドライバがKASLRのおかげでexploit不可能だとしても、何か別のデバイスドライバがカーネルのアドレスをリークしてしまうと、そのアドレスはすべてに適用できます。</p>
+<p>KASLRはカーネルの起動時引数で無効化できます。qemuの<code>-append</code>オプションに<code>nokaslr</code>と付いていればKASLRは無効化されています</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">-append &quot;... nokaslr ...&quot;</span><br></pre></td></tr></table></figure>
+<h2><span id="kpti-kernel-page-table-isolation">KPTI (Kernel Page-Table Isolation)</span></h2>
+<p>2018年にIntel等のCPUで<a target="_blank" rel="noopener" href="https://ja.wikipedia.org/wiki/Meltdown">Meltdown</a>と呼ばれるサイドチャネル攻撃が発見されました。この脆弱性については説明しませんが、カーネル空間のメモリをユーザー権限で読めてしまうという重大な脆弱性で、KASLRの回避などが可能でした。近年のLinuxカーネルではMeltdownの対策として、<strong>KPTI</strong>(Kernel Page-Table Isolation)、あるいは古い名称で<strong>KAISER</strong>と呼ばれる機構が有効になっています。</p>
+<p>仮想アドレスから物理アドレスに変換する際にページテーブルが利用されるのはご存知の通りですが、このページテーブルをユーザーモードとカーネルモードで分離する<sup class="footnote-ref"><a href="#fn2" id="fnref2">[2]</a></sup>のがこのセキュリティ機構です。KPTIはあくまでMeltdownを防ぐためのセキュリティ機構なので通常のカーネルexploitにおいては問題になりません。しかし、カーネル空間でROPする場合などにKPTIが有効だと、最後にユーザー空間に戻る際に問題が発生します。具体的な解決方法はKernel ROPの章であらためて説明します。</p>
+<p>KPTIはカーネルの起動時引数で有効化できます。qemuの<code>-append</code>オプションに<code>pti=on</code>と付いていればKPTIは有効化され、<code>pti=off</code>や<code>nopti</code>が付いていれば無効化されます。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">-append &quot;... pti=on ...&quot;</span><br></pre></td></tr></table></figure>
+<p>KPTIは<code>/sys/devices/system/cpu/vulnerabilities/meltdown</code>からも確認できます。次のように「Mitigation: PTI」と書いていればKPTIが有効です。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"># cat /sys/devices/system/cpu/vulnerabilities/meltdown</span><br><span class="line">Mitigation: PTI</span><br></pre></td></tr></table></figure>
+<p>無効な場合は「Vulnerable」となります。</p>
+<p>KPTIはページテーブルの切り替えなので、CR3レジスタの操作でユーザー・カーネル空間を切り替えられます。LinuxにおいてはCR3に0x1000をORする（すなわちPDBRを変更する）ことでカーネル空間からユーザー空間に切り替わります。この操作は<a target="_blank" rel="noopener" href="https://github.com/torvalds/linux/blob/master/arch/x86/entry/entry_64.S"><code>swapgs_restore_regs_and_return_to_usermode</code></a>で定義されていますが、詳細は実際にexploitを書く章で説明します。</p>
+<h2><span id="kadr-kernel-address-display-restriction">KADR (Kernel Address Display Restriction)</span></h2>
+<p>Linuxカーネルでは、関数の名前とアドレスの情報を<code>/proc/kallsyms</code>から読むことができます。また、デバイスドライバによっては<code>printk</code>関数などを使い、さまざまなデバッグ情報をログに出力するものもあり、このログは<code>dmesg</code>コマンドなどでユーザーから見ることができます。<br>
+このように、カーネル空間の関数やデータ、ヒープなどのアドレス情報のリークを防ぐための機構がLinuxには存在します。正式な名称は無いと思いますが、<a target="_blank" rel="noopener" href="https://inaz2.hatenablog.com/entry/2015/03/27/021422">参考文献</a>では<strong>KADR</strong>(Kernel Address Display Restriction)と呼んでいるようなので、このサイトでもその名称を採用します。</p>
+<p>この機能は<code>/proc/sys/kernel/kptr_restrict</code>の値により変更できます。<code>kptr_restrict</code>が0である場合、アドレスの表示に制限はかかりません。<code>kptr_restrict</code>が1である場合、<code>CAP_SYSLOG</code>権限を持つユーザーにはアドレスが表示されます。<code>kptr_restrict</code>が2である場合、ユーザーが特権レベルであってもカーネルアドレスは隠されます。<br>
+KADRが無効な場合はアドレスリークの必要がなくなるため、最初に確認するとexploitが簡単になる場合があります。</p>
+<hr>
+<div class="column" title="例題">
+  <a href="../LK01/distfiles/LK01.tar.gz">練習問題LK01</a>のカーネルに対して以下の操作を実行しましょう。（前の例題で既にroot権限のシェルを持っている状態から始めてください。）<br>
+  (1) <code>run.sh</code>を読んで、KASLR, KPTI, SMAP, SMEPが有効かどうかを確認してください。<br>
+  (2) SMAP, SMEP両方を有効にするオプションを付けて起動し、<code>/proc/cpuinfo</code>を見てSMAP, SMEPが有効になっていることを確認してください。（確認後にSMAP, SMEPは再度無効化してください。）<br>
+  (3) 「<code>head /proc/kallsyms</code>」で最初に現れるアドレスはカーネルのベースアドレスです。KASLRが無効の場合、ベースアドレスがいくつになるか確認してください。（ヒント：KADRに注意）
+</div>
+<hr class="footnotes-sep">
+<section class="footnotes">
+<ol class="footnotes-list">
+<li id="fn1" class="footnote-item"><p>x64では32-bitのレジスタに対して演算する結果が64-bitに拡張されます。 <a href="#fnref1" class="footnote-backref">↩︎</a></p>
+</li>
+<li id="fn2" class="footnote-item"><p>システムコールの呼び出しだけはカーネル・ユーザー空間で共有されます。 <a href="#fnref2" class="footnote-backref">↩︎</a></p>
+</li>
+</ol>
+</section>
+
+</div> 
+
+<div style="margin-top: 1em">
+    <div class="h-line-primary"></div>
+    
+        <div class="pagination">
+            <div class="pagination-bk"><a href="debugging.html">前のページへ</a></div>
+            <div class="pagination-index"><a href="../index.html">目次へ</a></div>
+            <div class="pagination-fd"><a href="compile-and-transfer.html">次のページへ</a></div>
+        </div>
+    
+</div>
+
+<script>
+    window.onload = detectors();
+</script>
+
+  
+</article>
+        </div>
+      </div>
+      
+      <div class="footer">
+    <div class="flex-container">
+        <div class="footer-text">
+            
+                © 2022 ptr-yudai 🐈
+                <br>
+            
+            
+                
+        </div>
+    </div>
+</div>
+
+    </div>
+
+  </body>
+</html>

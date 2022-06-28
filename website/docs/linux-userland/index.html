@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+    <meta name="author" content="ptr-yudai">
+
+
+
+
+
+
+
+<title>Linux Userland Exploitation | PAWNYABLE!</title>
+
+
+
+    <link rel="icon" href="/favicon.ico">
+
+
+
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=Roboto+Mono&display=swap');
+</style>
+
+
+
+    <!-- stylesheets list from _config.yml -->
+    
+    <link rel="stylesheet" href="/css/style.css">
+    
+
+
+
+
+    <!-- scripts list from _config.yml -->
+    
+    <script src="/js/frame.js"></script>
+    
+
+
+
+
+
+
+
+  <style type="text/css">
+.spoiler {
+  display: inline-flex;
+}
+p.spoiler {
+  display: flex;
+}
+.spoiler a {
+  pointer-events: none;
+}
+.spoiler-blur, .spoiler-blur > * {
+  transition: text-shadow .5s ease;
+}
+.spoiler .spoiler-blur, .spoiler .spoiler-blur > * {
+  color: rgba(0, 0, 0, 0);
+  background-color: rgba(0, 0, 0, 0);
+  text-shadow: 0 0 10px grey;
+  cursor: pointer;
+}
+.spoiler .spoiler-blur:hover, .spoiler .spoiler-blur:hover > * {
+  text-shadow: 0 0 5px grey;
+}
+.spoiler-box, .spoiler-box > * {
+  transition: color .5s ease,
+  background-color .5s ease;
+}
+.spoiler .spoiler-box, .spoiler .spoiler-box > * {
+  color: black;
+  background-color: black;
+  text-shadow: none;
+}</style><meta name="generator" content="Hexo 5.4.0"></head>
+  <body>
+    <div class="mask-border">
+    </div>
+
+    <div class="wrapper">
+
+      <div class="header">
+  <div class="flex-container">
+    <div class="header-inner">
+      <div class="site-brand-container">
+        <a href="/">PAWNYABLE</a>
+      </div>
+      <div id="menu-btn" class="menu-btn" onclick="toggleMenu()">
+        Menu
+      </div>
+      <nav class="site-nav">
+        <ul class="menu-list">
+          
+            
+              <li class="menu-item">
+                <a href="/practice/">Practice</a>
+              </li> 
+                   
+          
+            
+              <li class="menu-item">
+                <a href="/about/">About</a>
+              </li> 
+                   
+          
+        </ul>
+      </nav>
+    </div>
+  </div>
+</div>
+
+
+      <div class="main">
+        <div class="flex-container">
+          <article id="post">
+
+  
+    <div class="post-head">
+    <div class="post-info">
+        <div class="post-title">
+            
+            
+                Linux Userland Exploitation
+            
+            
+        </div>
+    </div>
+    <div class="h-line-primary"></div>
+    
+</div>
+
+    <div class="post-content">
+    <p>この章ではひよこ先生🐤と一緒にLinuxのユーザー空間におけるExploit手法について学びます。Linuxのユーザー空間におけるExploit手法を解説した資料は人間社会にも多数出回っているため、ここではより重要な知識のみを説明します。</p>
+<ul>
+<li>前提知識
+<ul>
+<li><a href="introduction/security.html">セキュリティ機構</a></li>
+<li><a href="introduction/primitive.html">Primitiveについて</a></li>
+</ul>
+</li>
+<li>シェルコード
+<ul>
+<li><a href="shellcode/how2write.html">シェルコードの書き方</a></li>
+<li><a href="shellcode/restricted.html">制約付きシェルコード</a></li>
+<li><a href="shellcode/seccomp.html">seccompの回避（工事中）</a></li>
+<li><a href="shellcode/egg-hunter.html">Egg Hunter（工事中）</a></li>
+<li><a href="shellcode/byog.html">Bring Your Own Gadget（工事中）</a></li>
+</ul>
+</li>
+<li>スタック
+<ul>
+<li><a href="stack/bof.html">Stack Buffer Overflow</a></li>
+<li><a href="stack/rop.html">Return Oriented Programming</a></li>
+<li><a href="stack/fork.html">forkとcanary</a></li>
+<li><a href="stack/thread.html">スレッドとcanary</a></li>
+</ul>
+</li>
+<li>ヒープ
+<ul>
+<li><a href="heap/cop.html">Call/Jump Oriented Programming</a></li>
+<li><a href="heap/bof.html">Heap Buffer Overflow</a></li>
+<li><a href="heap/uaf.html">Use-after-Free</a></li>
+<li><a href="heap/spray1.html">Heap Sprayその１：特定のアドレスにデータを置く手法</a></li>
+<li><a href="heap/spray2.html">Heap Sprayその２：2つのオブジェクトを隣接させる手法</a></li>
+<li><a href="heap/spray3.html">Heap Sprayその３：ヒープの初期状態を固定する手法</a></li>
+</ul>
+</li>
+<li>その他の脆弱性
+<ul>
+<li><a href="others/fsb.html">Format String Bug</a></li>
+<li><a href="others/integer.html">Integer Overflow</a></li>
+<li><a href="others/confusion.html">Type Confusion</a></li>
+</ul>
+</li>
+</ul>
+<div class="column" title="豆知識：ひよこ鑑定士">
+  　鶏の雛はオスとメスがそれぞれ半分ずつ程度の割合で生まれますが、とくに卵を生産する採卵農場ではメスの鶏が必要になります。食肉専用のブロイラーでも性別によって異なる場所で飼育されることがありますが、その性別の判定は非常に難しいとされています。<br>
+  　これを判別する職業として初生雛鑑別師（通称：<b>ひよこ鑑定士</b>）と呼ばれる職業があります。日本では民間資格が存在し、養成所を修了するなどの条件を満たした人だけが受験できます。しかし、この試験に合格しただけでは職業鑑別師としては働けず、さらに数年間の研修を経て経験を積む必要があります。<br>
+  　ひよこ鑑定士は「ひよこかそれ以外の物体か」を判別する職業ではないので、使い方を間違えないように注意しましょう。
+</div>
+
+</div> 
+
+<div style="margin-top: 1em">
+    <div class="h-line-primary"></div>
+    
+</div>
+
+<script>
+    window.onload = detectors();
+</script>
+
+  
+</article>
+        </div>
+      </div>
+      
+      <div class="footer">
+    <div class="flex-container">
+        <div class="footer-text">
+            
+                © 2022 ptr-yudai 🐈
+                <br>
+            
+            
+                
+        </div>
+    </div>
+</div>
+
+    </div>
+
+  </body>
+</html>

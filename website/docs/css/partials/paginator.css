@@ -1,0 +1,22 @@
+.paginator {
+  margin-top: $margin-primary;
+}
+.pagination {
+  margin-top: $margin-m-1;
+  display: flex;
+}
+.pagination:before {
+  content: "";
+  flex-grow: 1;
+}
+.page-number {
+  position: relative;
+  margin-left: $margin-l-0;
+}
+.pagination .current:after {
+  border-bottom: solid $line-secondary;
+  width: 100%;
+}
+.pagination .space {
+  margin-left: $margin-l-0;
+}

@@ -1,0 +1,53 @@
+/*
+   
+   Dark style from softwaremaniacs.org (c) Ivan Sagalaev <Maniac@SoftwareManiacs.Org>
+   
+*/
+.highlight {
+  background: #444;
+  color: #ddd;
+}
+.highlight .code .keyword,
+.highlight .code .selector-tag,
+.highlight .code .literal,
+.highlight .code .section,
+.highlight .code .link {
+  color: #fff;
+}
+.highlight .code .subst {
+  color: #ddd;
+}
+.highlight .code .string,
+.highlight .code .title,
+.highlight .code .name,
+.highlight .code .type,
+.highlight .code .attribute,
+.highlight .code .symbol,
+.highlight .code .bullet,
+.highlight .code .built_in,
+.highlight .code .addition,
+.highlight .code .variable,
+.highlight .code .template-tag,
+.highlight .code .template-variable {
+  color: #d88;
+}
+.highlight .code .comment,
+.highlight .code .quote,
+.highlight .code .deletion,
+.highlight .code .meta {
+  color: #777;
+}
+.highlight .code .keyword,
+.highlight .code .selector-tag,
+.highlight .code .literal,
+.highlight .code .title,
+.highlight .code .section,
+.highlight .code .doctag,
+.highlight .code .type,
+.highlight .code .name,
+.highlight .code .strong {
+  font-weight: bold;
+}
+.highlight .code .emphasis {
+  font-style: italic;
+}

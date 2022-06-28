@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+    <meta name="author" content="ptr-yudai">
+
+
+
+
+
+
+
+<title>PAWNYABLE!</title>
+
+
+
+    <link rel="icon" href="/favicon.ico">
+
+
+
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=Roboto+Mono&display=swap');
+</style>
+
+
+
+    <!-- stylesheets list from _config.yml -->
+    
+    <link rel="stylesheet" href="/css/style.css">
+    
+
+
+
+
+    <!-- scripts list from _config.yml -->
+    
+    <script src="/js/frame.js"></script>
+    
+
+
+
+
+
+
+
+  <style type="text/css">
+.spoiler {
+  display: inline-flex;
+}
+p.spoiler {
+  display: flex;
+}
+.spoiler a {
+  pointer-events: none;
+}
+.spoiler-blur, .spoiler-blur > * {
+  transition: text-shadow .5s ease;
+}
+.spoiler .spoiler-blur, .spoiler .spoiler-blur > * {
+  color: rgba(0, 0, 0, 0);
+  background-color: rgba(0, 0, 0, 0);
+  text-shadow: 0 0 10px grey;
+  cursor: pointer;
+}
+.spoiler .spoiler-blur:hover, .spoiler .spoiler-blur:hover > * {
+  text-shadow: 0 0 5px grey;
+}
+.spoiler-box, .spoiler-box > * {
+  transition: color .5s ease,
+  background-color .5s ease;
+}
+.spoiler .spoiler-box, .spoiler .spoiler-box > * {
+  color: black;
+  background-color: black;
+  text-shadow: none;
+}</style><meta name="generator" content="Hexo 5.4.0"></head>
+  <body>
+    <div class="mask-border">
+    </div>
+
+    <div class="wrapper">
+
+      <div class="header">
+  <div class="flex-container">
+    <div class="header-inner">
+      <div class="site-brand-container">
+        <a href="/">PAWNYABLE</a>
+      </div>
+      <div id="menu-btn" class="menu-btn" onclick="toggleMenu()">
+        Menu
+      </div>
+      <nav class="site-nav">
+        <ul class="menu-list">
+          
+            
+              <li class="menu-item">
+                <a href="/practice/">Practice</a>
+              </li> 
+                   
+          
+            
+              <li class="menu-item">
+                <a href="/about/">About</a>
+              </li> 
+                   
+          
+        </ul>
+      </nav>
+    </div>
+  </div>
+</div>
+
+
+      <div class="main">
+        <div class="flex-container">
+          <article id="post">
+
+  
+    <div class="post-head">
+    <div class="post-info">
+        <div class="post-title">
+            
+            
+                *Untitled
+            
+            
+        </div>
+    </div>
+    <div class="h-line-primary"></div>
+    
+</div>
+
+    <div class="post-content">
+    <h3><span id="smepの無効化">SMEPの無効化？</span></h3>
+<p>ここまででkROPにより権限昇格できることが確認できましたが、実は別の方法を考えてみましょう。<br>
+<a href="../introduction/security#smep-supervisor-mode-execution-prevention">セキュリティ機構</a>の節で説明したように、SMEPはCR4レジスタで制御されています。したがって、ROPでCR4レジスタの21ビット目をフリップできればSMEPが無効化され、ret2userが使えるようになるはずです。</p>
+<p>問題はそのようなROP gadgetが存在するかです。CR4に対する即値の演算はできないので、別の汎用レジスタ経由で操作することになります。CR4を操作するコードはカーネル中に存在するので、そのようなgadgetは必ずありますが、副作用なくretで終わるものがあるかはobjdumpで探す必要があります。（多くのツールはCRレジスタに対する操作を正しく見つけてくれない上、このような処理の後にはjmpが続くことが多いです。）<br>
+例えば次のようにCR4を設定するgadgetは存在します。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">ffffffff810284d5:       0f 22 e7                mov    cr4,rdi</span><br><span class="line">ffffffff810284d8:       8b 05 4a 2f d4 00       mov    eax,DWORD PTR [rip+0xd42f4a]        # 0xffffffff81d6b428</span><br><span class="line">ffffffff810284de:       85 c0                   test   eax,eax</span><br><span class="line">ffffffff810284e0:       7e ea                   jle    0xffffffff810284cc</span><br><span class="line">...</span><br><span class="line">ffffffff810284cc:       c3                      ret</span><br></pre></td></tr></table></figure>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">ffffffff81028535:       8b 05 ed 2e d4 00       mov    eax,DWORD PTR [rip+0xd42eed]        # 0xffffffff81d6b428</span><br><span class="line">ffffffff8102853b:       85 c0                   test   eax,eax</span><br><span class="line">ffffffff8102853d:       7f a5                   jg     0xffffffff810284e4</span><br><span class="line">ffffffff8102853f:       c3                      ret</span><br></pre></td></tr></table></figure>
+<p>すぐさまretで終わるようなgadgetは見つからないので、これらのgadgetがどこから来たものか確認しましょう。kallsymsから近いアドレスにある関数を見つけます。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">/ # cat /proc/kallsyms | grep ffffffff810285</span><br><span class="line">ffffffff81028540 T native_write_cr4</span><br><span class="line">ffffffff810285b0 T cr4_init</span><br><span class="line">/ # cat /proc/kallsyms | grep ffffffff810284</span><br><span class="line">ffffffff81028440 t default_init</span><br><span class="line">ffffffff810284b0 T cr4_update_irqsoff</span><br></pre></td></tr></table></figure>
+<p>それぞれ<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v5.10.7/source/arch/x86/kernel/cpu/common.c#L420"><code>cr4_init</code></a>、<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v5.10.7/source/arch/x86/kernel/cpu/common.c#L399"><code>cr4_update_irqsoff</code></a>という関数から来ています。<br>
+特に<code>cr4_update_irqsoff</code>という関数は使えそうな見た目をしています。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">cr4_update_irqsoff</span><span class="params">(<span class="keyword">unsigned</span> <span class="keyword">long</span> <span class="built_in">set</span>, <span class="keyword">unsigned</span> <span class="keyword">long</span> clear)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">unsigned</span> <span class="keyword">long</span> newval, cr4 = this_cpu_read(cpu_tlbstate.cr4);</span><br><span class="line"></span><br><span class="line">	lockdep_assert_irqs_disabled();</span><br><span class="line"></span><br><span class="line">	newval = (cr4 &amp; ~clear) | <span class="built_in">set</span>;</span><br><span class="line">	<span class="keyword">if</span> (newval != cr4) &#123;</span><br><span class="line">		this_cpu_write(cpu_tlbstate.cr4, newval);</span><br><span class="line">		__write_cr4(newval);</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line">EXPORT_SYMBOL(cr4_update_irqsoff);</span><br></pre></td></tr></table></figure>
+<p>CR4中で1に更新するビットと0に更新するビットを引数で操作できます。<br>
+そこで次のようなROP chianを実行してみます。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">*chain++ = rop_pop_rdi;</span><br><span class="line">*chain++ = <span class="number">0</span>; <span class="comment">// bit to set</span></span><br><span class="line">*chain++ = rop_pop_rsi;</span><br><span class="line">*chain++ = <span class="number">1</span> &lt;&lt; <span class="number">20</span>; <span class="comment">// bit to clear</span></span><br><span class="line">*chain++ = cr4_update_irqsoff;</span><br><span class="line">*chain++ = (<span class="keyword">unsigned</span> <span class="keyword">long</span>)&amp;escalate_privilege;</span><br></pre></td></tr></table></figure>
+<p>これを実行すると、やはり<code>escalate_privilege</code>実行時にSMEPでクラッシュしてしまいます。直前でCR4の値を確認すると、SMEPのビットが有効になっていることが分かります。なぜCR4が更新できていないのかステップ実行で確認しましょう。</p>
+<center>
+  <img src="img/update_cr4.png" alt="cr4_update_irqoffのCR4更新部分" style="width:640px;">
+</center>
+<p>この機械語は<code>cr4_update_irqsoff</code>の次の部分にあたります。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">if (newval != cr4) &#123;</span><br></pre></td></tr></table></figure>
+<p>これを見ても分かるように、この段階では実際のCR4レジスタの値を読み書きしていません。さらにステップ実行を進めると、次のようなパスに入ります。</p>
+<center>
+  <img src="img/pinned_cr4.png" alt="CR4の固定ビット変更の検出処理" style="width:640px;">
+</center>
+<p>RDIレジスタには次のような文字列ポインタが入っています。</p>
+<center>
+  <img src="img/pinned_cr4_message.png" alt="pinned CR4 bits changed" style="width:480px;">
+</center>
+<p>このメッセージでカーネルコードを検索すると、<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v5.10.7/source/arch/x86/kernel/cpu/common.c#L377"><code>native_write_cr4</code></a>に次のような処理があります。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (static_branch_likely(&amp;cr_pinning)) &#123;</span><br><span class="line">	<span class="keyword">if</span> (unlikely((val &amp; cr4_pinned_mask) != cr4_pinned_bits)) &#123;</span><br><span class="line">		bits_changed = (val &amp; cr4_pinned_mask) ^ cr4_pinned_bits;</span><br><span class="line">		val = (val &amp; ~cr4_pinned_mask) | cr4_pinned_bits;</span><br><span class="line">		<span class="keyword">goto</span> set_register;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">/* Warn after we&#x27;ve corrected the changed bits. */</span></span><br><span class="line">	WARN_ONCE(bits_changed, <span class="string">&quot;pinned CR4 bits changed: 0x%lx!?\n&quot;</span>,</span><br><span class="line">		  bits_changed);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>cr_pinning</code>というグローバル変数があります。実はちょっとしたセキュリティ機構があり、CR4レジスタの特定のビットは変更できないようになっています。<br>
+<code>cr4_pinned_bits</code>は定数なので変更できませんし、<code>cr_pinning</code>に関してはread onlyな箇所のデータが使われるので変更できません。機械語では次の部分にあたります。</p>
+<center>
+  <img src="img/cr_pinning.png" alt="cr_pinningの確認" style="width:480px;">
+</center>
+<p>このように、<code>native_write_cr4</code>を利用する場合はチェックが入るため、SMEPやSMAPは動的に無効化できないことが分かりました。ROPができる状況になったら、CR4を書き換えるより<code>commit_creds</code>を使う方が簡単です。<br>
+しかし、SMEPを無効化する手法はWindows 7のKernel Exploitなどで登場します。</p>
+<p>ということで例題の答えは、「<code>native_write_cr4</code>を使わずにCR4に0x1000をORできるROP gadgetが存在すれば可能」です。</p>
+<div class="balloon_l">
+  <div class="faceicon"><img src="../img/cow.jpg" alt="牛さん"></div>
+  <p class="says">
+    CR4に0x1000をORしてくれるようなgadgetは普通は存在しないけど、実はbpfというLinux Kernelの機能を悪用すれば任意のgadgetが作れるよ。
+  </p>
+</div>
+
+</div> 
+
+<div style="margin-top: 1em">
+    <div class="h-line-primary"></div>
+    
+</div>
+
+<script>
+    window.onload = detectors();
+</script>
+
+  
+</article>
+        </div>
+      </div>
+      
+      <div class="footer">
+    <div class="flex-container">
+        <div class="footer-text">
+            
+                © 2022 ptr-yudai 🐈
+                <br>
+            
+            
+                
+        </div>
+    </div>
+</div>
+
+    </div>
+
+  </body>
+</html>

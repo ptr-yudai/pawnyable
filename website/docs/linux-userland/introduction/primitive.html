@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+    <meta name="author" content="ptr-yudai">
+
+
+
+
+
+
+
+<title>Primitiveについて | PAWNYABLE!</title>
+
+
+
+    <link rel="icon" href="/favicon.ico">
+
+
+
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=Roboto+Mono&display=swap');
+</style>
+
+
+
+    <!-- stylesheets list from _config.yml -->
+    
+    <link rel="stylesheet" href="/css/style.css">
+    
+
+
+
+
+    <!-- scripts list from _config.yml -->
+    
+    <script src="/js/frame.js"></script>
+    
+
+
+
+
+
+
+
+  <style type="text/css">
+.spoiler {
+  display: inline-flex;
+}
+p.spoiler {
+  display: flex;
+}
+.spoiler a {
+  pointer-events: none;
+}
+.spoiler-blur, .spoiler-blur > * {
+  transition: text-shadow .5s ease;
+}
+.spoiler .spoiler-blur, .spoiler .spoiler-blur > * {
+  color: rgba(0, 0, 0, 0);
+  background-color: rgba(0, 0, 0, 0);
+  text-shadow: 0 0 10px grey;
+  cursor: pointer;
+}
+.spoiler .spoiler-blur:hover, .spoiler .spoiler-blur:hover > * {
+  text-shadow: 0 0 5px grey;
+}
+.spoiler-box, .spoiler-box > * {
+  transition: color .5s ease,
+  background-color .5s ease;
+}
+.spoiler .spoiler-box, .spoiler .spoiler-box > * {
+  color: black;
+  background-color: black;
+  text-shadow: none;
+}</style><meta name="generator" content="Hexo 5.4.0"></head>
+  <body>
+    <div class="mask-border">
+    </div>
+
+    <div class="wrapper">
+
+      <div class="header">
+  <div class="flex-container">
+    <div class="header-inner">
+      <div class="site-brand-container">
+        <a href="/">PAWNYABLE</a>
+      </div>
+      <div id="menu-btn" class="menu-btn" onclick="toggleMenu()">
+        Menu
+      </div>
+      <nav class="site-nav">
+        <ul class="menu-list">
+          
+            
+              <li class="menu-item">
+                <a href="/practice/">Practice</a>
+              </li> 
+                   
+          
+            
+              <li class="menu-item">
+                <a href="/about/">About</a>
+              </li> 
+                   
+          
+        </ul>
+      </nav>
+    </div>
+  </div>
+</div>
+
+
+      <div class="main">
+        <div class="flex-container">
+          <article id="post">
+
+  
+    <div class="post-head">
+    <div class="post-info">
+        <div class="post-title">
+            
+            
+                Primitiveについて
+            
+            
+        </div>
+    </div>
+    <div class="h-line-primary"></div>
+    
+</div>
+
+    <div class="post-content">
+    <p>Binary Exploitationにおいて最も重要となるのがprimitiveと呼ばれるものです。本章では、primitiveの種類と重要性について説明します。</p>
+<div class="column" title="目次">
+<!-- toc -->
+<ul>
+<li><a href="#primitive%E3%81%A8%E3%81%AF">Primitiveとは</a></li>
+<li><a href="#%E4%B8%80%E8%88%AC%E7%9A%84%E3%81%AAprimitive">一般的なprimitive</a>
+<ul>
+<li><a href="#rip%E5%88%B6%E5%BE%A1">RIP制御</a></li>
+<li><a href="#%E3%82%A2%E3%83%89%E3%83%AC%E3%82%B9%E3%83%AA%E3%83%BC%E3%82%AF">アドレスリーク</a></li>
+<li><a href="#addrof">addrof</a></li>
+<li><a href="#fakeobj">fakeobj</a></li>
+<li><a href="#aar">AAR</a></li>
+<li><a href="#aaw">AAW</a></li>
+</ul>
+</li>
+</ul>
+<!-- tocstop -->
+<br>
+</div>
+<h2><span id="primitiveとは">Primitiveとは</span></h2>
+<p>Binary Exploitationとは、脆弱性を利用して目的を達成する作業です。<br>
+例えば「整数オーバーフローで値が負になる」という脆弱性から「任意コード実行する」という目的に向けてexploitを記述します。この過程で重要になってくるのが<strong>primitive</strong>（プリミティブ：原理）です。Primitiveとは、あらゆるexploitにおいて役に立つ基本的な処理のことです。いわば、脆弱性と目的を橋渡しする中間にあるプロセスを指します。<br>
+例えば「任意のアドレスからデータを読める」や「RIPを自由に制御できる」といった処理が一般的なprimitiveにあたります。Exploitの対象や攻撃手法によってprimitiveは異なりますが、綺麗なexploitを書くためには必ずprimitiveを作ることを意識しましょう。特に、何度でも呼び出せるPrimitiveを作っておくことで、exploitを後から容易に変更できたり、exploit自体が安定化したりといったメリットがあります。</p>
+<h2><span id="一般的なprimitive">一般的なprimitive</span></h2>
+<p>Exploitにより何をprimitiveと呼ぶかは様々ですが、ここでは多くのexploitで共通して使われるprimitiveを挙げます。</p>
+<h3><span id="rip制御">RIP制御</span></h3>
+<p>Exploitにおいて最も重要となるprimitiveがRIP制御です。リターンアドレスや関数ポインタを書き換えて任意のアドレスにジャンプすることを指します。<br>
+もちろんコマンドインジェクションなどの脆弱性の場合は不要ですが、多くのexploitでは必要となります。多くのRIP制御は1回だけ使いますが、<a href="../stack/rop.html">ROP</a>の章でも説明するように何度もRIP制御を使う特殊なパターンも存在します。</p>
+<h3><span id="アドレスリーク">アドレスリーク</span></h3>
+<p>近年の多くのアーキテクチャではASLRが有効です。ASLRを安定して回避するためにはライブラリやプログラム、ヒープなどのアドレスをリークする必要になります。何かしらの方法でアドレスをリークするprimitiveを<strong>アドレスリーク</strong>と呼びます。未初期化のメモリを使ったり、Type Confusionでポインタと整数値を混同させたり、アドレスリークの手法は脆弱性によって様々です。</p>
+<div class="balloon_l">
+  <div class="faceicon"><img src="../img/piyo.jpg" alt="ひよこ先生"></div>
+  <p class="says">
+    アドレスリークと似た言葉に<b>メモリリーク</b>という言葉があるよ。メモリの内容がリークしそうな言葉だけど、メモリリークは確保したメモリを解放(free)し忘れてメモリを消費し続けるバグを指しているから注意してね。
+  </p>
+</div>
+<h3><span id="addrof">addrof</span></h3>
+<p>特にJavaScript Exploitでは、変数（JavaScriptオブジェクト）のアドレスをリークします。このように特定のオブジェクトのアドレスをリークするprimitiveを<strong>addrof</strong>(address of)と呼びます。つまり、addrofはオブジェクトを渡すとアドレスがリークできる関数です。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">addr_obj = addrof(obj)</span><br></pre></td></tr></table></figure>
+<h3><span id="fakeobj">fakeobj</span></h3>
+<p>addrofと逆に、アドレスを渡すとそのメモリ領域を何かしらのオブジェクトとして認識させるprimitiveを<strong>fakeobj</strong>と呼びます。例えばヒープ関連のexploit経験のある方なら、脆弱性を利用して<code>malloc</code>関数に任意のアドレスを返させたことがあるでしょう。これは特定のアドレスにオブジェクトを作ったことになります。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">obj = fakeobj(addr_obj)</span><br></pre></td></tr></table></figure>
+<p>fakeobjとaddrofは常に次の関係にあります。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">obj = fakeobj(addrof(obj))</span><br><span class="line">addr = addrof(fakeobj(addr))</span><br></pre></td></tr></table></figure>
+<p>このprimitiveについては意識して作ることは少ないでしょうが、JavaScript Exploitなどでは頻出のprimitiveですので、頭の片隅に記憶しておいてください。</p>
+<h3><span id="aar">AAR</span></h3>
+<p>任意のアドレスからデータを読むprimitiveを<strong>AAR</strong>(Arbitrary Address Read)などと呼びます。このprimitiveはアドレスリークなどに役立ちます。<br>
+AAR primitiveを持っていると、例えばlibcからスタックのアドレスをリークし、さらにスタックのアドレスからプログラムのベースアドレスをリークする、といったアドレスチェインを辿ることができます。</p>
+<h3><span id="aaw">AAW</span></h3>
+<p>任意のアドレスにデータを書き込むprimitiveを<strong>AAW</strong>(Arbitrary Address Write)や<strong>WWW</strong>(Write-What-Where)などと呼びます。このprimitiveは関数ポインタの書き換え（RIP制御）などに役立ちます。<br>
+特にKernel Exploitにおいては、安定した<sup class="footnote-ref"><a href="#fn1" id="fnref1">[1]</a></sup>AARとAAWが実現できれば権限昇格が可能です。AAR, AAWは非常に強力なprimitiveなので、脆弱性を使って実現できるかを考えるようにしましょう。</p>
+<hr>
+<div class="column" title="例題">
+  次のFSBを何度も呼び出せるとき、アドレスリーク、AAR、AAWの3つのprimitiveはどのように作れるでしょうか。FORTIFYは無効とします。
+  <pre>
+  char buf[0x100] = {};
+  read(0, buf, 0x100);
+  printf(buf);</pre>
+</div>
+<hr class="footnotes-sep">
+<section class="footnotes">
+<ol class="footnotes-list">
+<li id="fn1" class="footnote-item"><p>カーネル空間では<code>copy_to_user</code>や<code>copy_from_user</code>といった関数を使うとマップされていない不正なアドレスでもクラッシュせずデータの読み書きを試行できる。 <a href="#fnref1" class="footnote-backref">↩︎</a></p>
+</li>
+</ol>
+</section>
+
+</div> 
+
+<div style="margin-top: 1em">
+    <div class="h-line-primary"></div>
+    
+</div>
+
+<script>
+    window.onload = detectors();
+</script>
+
+  
+</article>
+        </div>
+      </div>
+      
+      <div class="footer">
+    <div class="flex-container">
+        <div class="footer-text">
+            
+                © 2022 ptr-yudai 🐈
+                <br>
+            
+            
+                
+        </div>
+    </div>
+</div>
+
+    </div>
+
+  </body>
+</html>

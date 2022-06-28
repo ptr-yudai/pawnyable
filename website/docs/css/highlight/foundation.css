@@ -1,0 +1,71 @@
+/*
+Description: Foundation 4 docs style for highlight.js
+Author: Dan Allen <dan.j.allen@gmail.com>
+Website: http://foundation.zurb.com/docs/
+Version: 1.0
+Date: 2013-04-02
+*/
+.highlight {
+  color: #000;
+  background: #eee;
+}
+.highlight .code .link,
+.highlight .code .emphasis,
+.highlight .code .attribute,
+.highlight .code .addition {
+  color: #070;
+}
+.highlight .code .emphasis {
+  font-style: italic;
+}
+.highlight .code .strong,
+.highlight .code .string,
+.highlight .code .deletion {
+  color: #d14;
+}
+.highlight .code .strong {
+  font-weight: bold;
+}
+.highlight .code .quote,
+.highlight .code .comment {
+  color: #998;
+  font-style: italic;
+}
+.highlight .code .section,
+.highlight .code .title {
+  color: #900;
+}
+.highlight .code .class .title,
+.highlight .code .type {
+  color: #458;
+}
+.highlight .code .variable,
+.highlight .code .template-variable {
+  color: #369;
+}
+.highlight .code .bullet {
+  color: #970;
+}
+.highlight .code .meta {
+  color: #34b;
+}
+.highlight .code .code,
+.highlight .code .number,
+.highlight .code .literal,
+.highlight .code .keyword,
+.highlight .code .selector-tag {
+  color: #099;
+}
+.highlight .code .regexp {
+  background-color: #fff0ff;
+  color: #808;
+}
+.highlight .code .symbol {
+  color: #990073;
+}
+.highlight .code .tag,
+.highlight .code .name,
+.highlight .code .selector-id,
+.highlight .code .selector-class {
+  color: #070;
+}

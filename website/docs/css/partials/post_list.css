@@ -1,0 +1,34 @@
+.year-title {
+  margin-top: $margin-primary;
+  margin-bottom: $margin-m-1;
+}
+.post-list-item {
+  display: flex;
+  flex-wrap: nowrap;
+  margin-top: $margin-m-1;
+  align-items: top;
+}
+.post-list-item .post-title {
+  flex-grow: 1;
+  font-variation-settings: 'wght' $font-weight-medium;
+}
+.post-list-item .post-date {
+  margin-left: $margin-l-0;
+  min-width: 8rem;
+  text-align: right;
+  line-height: $line-height-body;
+  color: $color-text-secondary;
+}
+@media (max-width: 480px) {
+  .post-list-item {
+    flex-wrap: wrap;
+  }
+  .post-list-item .post-title {
+    width: 100%;
+  }
+  .post-list-item .post-date {
+    margin-left: 0;
+    width: 100%;
+    text-align: left;
+  }
+}

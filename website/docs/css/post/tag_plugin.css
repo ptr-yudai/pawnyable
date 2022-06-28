@@ -1,0 +1,46 @@
+.gist td {
+  border: 0;
+}
+.gist a {
+  color: $color-text-secondary;
+  background-image: none !important;
+}
+blockquote>footer {
+  margin: 0 $margin-m-2;
+  padding: $margin-m-0 0;
+  font-size: $font-size-blockquote-footer;
+  color: $color-text-secondary;
+}
+blockquote>footer cite {
+  margin-left: $margin-m-0;
+}
+blockquote>footer cite::before {
+  content: " — ";
+}
+blockquote>footer strong {
+  color: $color-text-secondary;
+  font-size: $font-size-blockquote-footer;
+}
+blockquote>footer a {
+  color: $color-text-secondary;
+  background-image: none !important;
+}
+figcaption {
+  font-family: roboto-mono, menlo, monospace;
+  font-size: $font-size-blockquote-footer;
+  padding: $margin-m-0 0;
+  color: $color-text-secondary;
+}
+figcaption span {
+  padding-right: $margin-m-0;
+}
+figcaption a {
+  color: $color-text-secondary;
+  background-image: none !important;
+}
+blockquote.pullquote.left {
+  float: left;
+}
+blockquote.pullquote.right {
+  float: right;
+}

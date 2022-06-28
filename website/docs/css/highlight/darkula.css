@@ -1,0 +1,58 @@
+/*
+   
+   Darkula color scheme from the JetBrains family of IDEs
+   
+*/
+.highlight {
+  background: #2b2b2b;
+  color: #bababa;
+}
+.highlight .code .strong,
+.highlight .code .emphasis {
+  color: #a8a8a2;
+}
+.highlight .code .bullet,
+.highlight .code .quote,
+.highlight .code .link,
+.highlight .code .number,
+.highlight .code .regexp,
+.highlight .code .literal {
+  color: #6896ba;
+}
+.highlight .code .code,
+.highlight .code .selector-class {
+  color: #a6e22e;
+}
+.highlight .code .emphasis {
+  font-style: italic;
+}
+.highlight .code .keyword,
+.highlight .code .selector-tag,
+.highlight .code .section,
+.highlight .code .attribute,
+.highlight .code .name,
+.highlight .code .variable {
+  color: #cb7832;
+}
+.highlight .code .params {
+  color: #b9b9b9;
+}
+.highlight .code .string,
+.highlight .code .subst,
+.highlight .code .type,
+.highlight .code .built_in,
+.highlight .code .builtin-name,
+.highlight .code .symbol,
+.highlight .code .selector-id,
+.highlight .code .selector-attr,
+.highlight .code .selector-pseudo,
+.highlight .code .template-tag,
+.highlight .code .template-variable,
+.highlight .code .addition {
+  color: #e0c46c;
+}
+.highlight .code .comment,
+.highlight .code .deletion,
+.highlight .code .meta {
+  color: #7f7f7f;
+}

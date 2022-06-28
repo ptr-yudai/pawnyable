@@ -42,8 +42,8 @@ title: Linux Kernel Exploitation
     <div style="float: left;">
       <b>オオカミくん</b><br>
       動物界ではOS開発の第一人者。基本寝ている。<br>
-      好きなもの：羊 / Linux<br>
-      嫌いなもの：牛 / Windows
+      好きなもの：牛 / Linux<br>
+      苦手なもの：ハイエナ / Windows
     </div>
   </div>
 </div>

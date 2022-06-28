@@ -1,0 +1,37 @@
+/*
+
+Original style from softwaremaniacs.org (c) Ivan Sagalaev <Maniac@SoftwareManiacs.Org>
+
+*/
+.highlight {
+  color: #000;
+  background: #fff;
+}
+.highlight .code .string,
+.highlight .code .variable,
+.highlight .code .template-variable,
+.highlight .code .symbol,
+.highlight .code .bullet,
+.highlight .code .section,
+.highlight .code .addition,
+.highlight .code .attribute,
+.highlight .code .link {
+  color: #888;
+}
+.highlight .code .comment,
+.highlight .code .quote,
+.highlight .code .meta,
+.highlight .code .deletion {
+  color: #ccc;
+}
+.highlight .code .keyword,
+.highlight .code .selector-tag,
+.highlight .code .section,
+.highlight .code .name,
+.highlight .code .type,
+.highlight .code .strong {
+  font-weight: bold;
+}
+.highlight .code .emphasis {
+  font-style: italic;
+}

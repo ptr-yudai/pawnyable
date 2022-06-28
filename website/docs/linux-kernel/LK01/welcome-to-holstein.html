@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+    <meta name="author" content="ptr-yudai">
+
+
+
+
+
+
+
+<title>Holsteinモジュールの解析と脆弱性の発火 | PAWNYABLE!</title>
+
+
+
+    <link rel="icon" href="/favicon.ico">
+
+
+
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=Roboto+Mono&display=swap');
+</style>
+
+
+
+    <!-- stylesheets list from _config.yml -->
+    
+    <link rel="stylesheet" href="/css/style.css">
+    
+
+
+
+
+    <!-- scripts list from _config.yml -->
+    
+    <script src="/js/frame.js"></script>
+    
+
+
+
+
+
+
+
+  <style type="text/css">
+.spoiler {
+  display: inline-flex;
+}
+p.spoiler {
+  display: flex;
+}
+.spoiler a {
+  pointer-events: none;
+}
+.spoiler-blur, .spoiler-blur > * {
+  transition: text-shadow .5s ease;
+}
+.spoiler .spoiler-blur, .spoiler .spoiler-blur > * {
+  color: rgba(0, 0, 0, 0);
+  background-color: rgba(0, 0, 0, 0);
+  text-shadow: 0 0 10px grey;
+  cursor: pointer;
+}
+.spoiler .spoiler-blur:hover, .spoiler .spoiler-blur:hover > * {
+  text-shadow: 0 0 5px grey;
+}
+.spoiler-box, .spoiler-box > * {
+  transition: color .5s ease,
+  background-color .5s ease;
+}
+.spoiler .spoiler-box, .spoiler .spoiler-box > * {
+  color: black;
+  background-color: black;
+  text-shadow: none;
+}</style><meta name="generator" content="Hexo 5.4.0"></head>
+  <body>
+    <div class="mask-border">
+    </div>
+
+    <div class="wrapper">
+
+      <div class="header">
+  <div class="flex-container">
+    <div class="header-inner">
+      <div class="site-brand-container">
+        <a href="/">PAWNYABLE</a>
+      </div>
+      <div id="menu-btn" class="menu-btn" onclick="toggleMenu()">
+        Menu
+      </div>
+      <nav class="site-nav">
+        <ul class="menu-list">
+          
+            
+              <li class="menu-item">
+                <a href="/practice/">Practice</a>
+              </li> 
+                   
+          
+            
+              <li class="menu-item">
+                <a href="/about/">About</a>
+              </li> 
+                   
+          
+        </ul>
+      </nav>
+    </div>
+  </div>
+</div>
+
+
+      <div class="main">
+        <div class="flex-container">
+          <article id="post">
+
+  
+    <div class="post-head">
+    <div class="post-info">
+        <div class="post-title">
+            
+            
+                Holsteinモジュールの解析と脆弱性の発火
+            
+            
+        </div>
+    </div>
+    <div class="h-line-primary"></div>
+    
+        <div class="pagination">
+            <div class="pagination-bk"><a href="../introduction/compile-and-transfer.html">前のページへ</a></div>
+            <div class="pagination-index"><a href="../index.html">目次へ</a></div>
+            <div class="pagination-fd"><a href="stack_overflow.html">次のページへ</a></div>
+        </div>
+    
+</div>
+
+    <div class="post-content">
+    <p>LK01(Holstein)の章ではKernel Exploitの基礎的な攻撃手法について学びます。導入の章でLK01をダウンロードしていない方は、まず<a href="distfiles/LK01.tar.gz">練習問題LK01</a>のファイルをダウンロードしてください。</p>
+<p><code>qemu/rootfs.cpio</code>がファイルシステムになります。ここでは<code>mount</code>ディレクトリを作って、そこにcpioを展開しておきます。（root権限で作成してください。）</p>
+<div class="column" title="目次">
+<!-- toc -->
+<ul>
+<li><a href="#%E5%88%9D%E6%9C%9F%E5%8C%96%E5%87%A6%E7%90%86%E3%81%AE%E7%A2%BA%E8%AA%8D">初期化処理の確認</a></li>
+<li><a href="#holstein%E3%83%A2%E3%82%B8%E3%83%A5%E3%83%BC%E3%83%AB%E3%81%AE%E8%A7%A3%E6%9E%90">Holsteinモジュールの解析</a>
+<ul>
+<li><a href="#%E5%88%9D%E6%9C%9F%E5%8C%96%E3%81%A8%E7%B5%82%E4%BA%86">初期化と終了</a></li>
+<li><a href="#open">open</a></li>
+<li><a href="#close">close</a></li>
+<li><a href="#read">read</a></li>
+<li><a href="#write">write</a></li>
+</ul>
+</li>
+<li><a href="#%E3%82%B9%E3%82%BF%E3%83%83%E3%82%AF%E3%82%AA%E3%83%BC%E3%83%90%E3%83%BC%E3%83%95%E3%83%AD%E3%83%BC%E8%84%86%E5%BC%B1%E6%80%A7">スタックオーバーフロー脆弱性</a></li>
+<li><a href="#%E8%84%86%E5%BC%B1%E6%80%A7%E3%81%AE%E7%99%BA%E7%81%AB">脆弱性の発火</a></li>
+</ul>
+<!-- tocstop -->
+<br>
+</div>
+<h2><span id="初期化処理の確認">初期化処理の確認</span></h2>
+<p>まず<code>/init</code>というファイルがありますが、これはカーネルロード後、最初にユーザー空間で実行される処理になります。CTFなどではここにカーネルモジュールのロード等の処理が書かれている場合もあるので、必ずチェックしましょう。<br>
+今回は<code>/init</code>はbuildroot標準のもので、モジュールのロード等の処理は<code>/etc/init.d/S99pawnyable</code>に記載しています。</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#!/bin/sh</span></span><br><span class="line"></span><br><span class="line"><span class="comment">##</span></span><br><span class="line"><span class="comment">## Setup</span></span><br><span class="line"><span class="comment">##</span></span><br><span class="line">mdev -s</span><br><span class="line">mount -t proc none /proc</span><br><span class="line">mkdir -p /dev/pts</span><br><span class="line">mount -vt devpts -o gid=4,mode=620 none /dev/pts</span><br><span class="line">chmod 666 /dev/ptmx</span><br><span class="line">stty -opost</span><br><span class="line"><span class="built_in">echo</span> 2 &gt; /proc/sys/kernel/kptr_restrict</span><br><span class="line"><span class="comment">#echo 1 &gt; /proc/sys/kernel/dmesg_restrict</span></span><br><span class="line"></span><br><span class="line"><span class="comment">##</span></span><br><span class="line"><span class="comment">## Install driver</span></span><br><span class="line"><span class="comment">##</span></span><br><span class="line">insmod /root/vuln.ko</span><br><span class="line">mknod -m 666 /dev/holstein c `grep holstein /proc/devices | awk <span class="string">&#x27;&#123;print $1;&#125;&#x27;</span>` 0</span><br><span class="line"></span><br><span class="line"><span class="comment">##</span></span><br><span class="line"><span class="comment">## User shell</span></span><br><span class="line"><span class="comment">##</span></span><br><span class="line"><span class="built_in">echo</span> -e <span class="string">&quot;\nBoot took <span class="subst">$(cut -d&#x27; &#x27; -f1 /proc/uptime)</span> seconds\n&quot;</span></span><br><span class="line"><span class="built_in">echo</span> <span class="string">&quot;[ Holstein v1 (LK01) - Pawnyable ]&quot;</span></span><br><span class="line">setsid cttyhack setuidgid 1337 sh</span><br><span class="line"></span><br><span class="line"><span class="comment">##</span></span><br><span class="line"><span class="comment">## Cleanup</span></span><br><span class="line"><span class="comment">##</span></span><br><span class="line">umount /proc</span><br><span class="line">poweroff -d 0 -f</span><br></pre></td></tr></table></figure>
+<p>ここで重要になる行がいくつかあります。まず</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">echo</span> 2 &gt; /proc/sys/kernel/kptr_restrict</span><br></pre></td></tr></table></figure>
+<p>ですが、これは既に学んだ通りKADRを制御するコマンドで、KADRが有効になっていることが分かります。これはデバッグでは邪魔なので無効化しておきましょう。<br>
+次にコメントアウトされている</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#echo 1 &gt; /proc/sys/kernel/dmesg_restrict</span></span><br></pre></td></tr></table></figure>
+<p>ですが、これはCTFの問題では多くの場合有効になっています。意味は一般ユーザーにdmesgを許可するかです。今回は練習なのでdmesgは許可しています。</p>
+<p>次に</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">insmod /root/vuln.ko</span><br><span class="line">mknod -m 666 /dev/holstein c `grep holstein /proc/devices | awk <span class="string">&#x27;&#123;print $1;&#125;&#x27;</span>` 0</span><br></pre></td></tr></table></figure>
+<p>でカーネルモジュールをロードしています。<br>
+<code>insmod</code>コマンドで<code>/root/vuln.ko</code>というモジュールをロードし、その後<code>mknod</code>で<code>/dev/holstein</code>というキャラクタデバイスファイルに<code>holstein</code>という名前のモジュールを紐づけています。</p>
+<p>最後に</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">setsid cttyhack setuidgid 1337 sh</span><br></pre></td></tr></table></figure>
+<p>ですが、これはユーザーIDを1337にして<code>sh</code>を実行しています。ログインプロンプトなしでシェルが起動するのは、このコマンドのおかげです。</p>
+<p>デバッグの際は、このユーザーIDを0にしておけばrootのシェルが取れるので、まだ例題を済ませていない方は変更しておいてください。</p>
+<p>また、<code>/etc/init.d</code>には他にも<code>S01syslogd</code>や<code>S41dhcpcd</code>などの初期化スクリプトがあります。これらはネットワークの設定などをしますが、今回のexploitではデバッグの際は必要無いので別のディレクトリに移動するなどして、呼び出されないようにすることをおすすめします。これにより起動時間が数秒速くなります。<br>
+ディレクトリには<code>rcK</code>, <code>rcS</code>, <code>S99pawnyable</code>が残る状態になっていればOKです。</p>
+<h2><span id="holsteinモジュールの解析">Holsteinモジュールの解析</span></h2>
+<p>この章ではHolsteinと名付けられた脆弱なカーネルモジュールを題材にKernel Exploitを学びます。<code>src/vuln.c</code>にカーネルモジュールのソースコードがあるので、まずはこれを読んでいきましょう。</p>
+<h3><span id="初期化と終了">初期化と終了</span></h3>
+<p>カーネルモジュールを書く際は、必ず初期化と終了処理を書きます。<br>
+108行目で</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">module_init(module_initialize);</span><br><span class="line">module_exit(module_cleanup);</span><br></pre></td></tr></table></figure>
+<p>と記述されていますが、ここでそれぞれ初期化、終了処理の関数を指定しています。まずは初期化の<code>module_initialize</code>を読んでみましょう。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">int</span> __init <span class="title">module_initialize</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">  <span class="keyword">if</span> (alloc_chrdev_region(&amp;dev_id, <span class="number">0</span>, <span class="number">1</span>, DEVICE_NAME)) &#123;</span><br><span class="line">    printk(KERN_WARNING <span class="string">&quot;Failed to register device\n&quot;</span>);</span><br><span class="line">    <span class="keyword">return</span> -EBUSY;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  cdev_init(&amp;c_dev, &amp;module_fops);</span><br><span class="line">  c_dev.owner = THIS_MODULE;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span> (cdev_add(&amp;c_dev, dev_id, <span class="number">1</span>)) &#123;</span><br><span class="line">    printk(KERN_WARNING <span class="string">&quot;Failed to add cdev\n&quot;</span>);</span><br><span class="line">    unregister_chrdev_region(dev_id, <span class="number">1</span>);</span><br><span class="line">    <span class="keyword">return</span> -EBUSY;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>ユーザー空間からカーネルモジュールを操作できるようにするためには、インタフェースを作成する必要があります。インタフェースは<code>/dev</code>や<code>/proc</code>に作られることが多く、今回は<code>cdev_add</code>を使っているのでキャラクタデバイス<code>/dev</code>を介して操作するタイプのモジュールになります。といってもこの時点で<code>/dev</code>以下にファイルが作られる訳ではありません。先程<code>S99pawnyable</code>で見たように、<code>/dev/holstein</code>は<code>mknod</code>コマンドで作られていました。</p>
+<p>さて、<code>cdev_init</code>という関数の第二引数に<code>module_fops</code>という変数のポインタを渡しています。この変数は関数テーブルで、<code>/dev/holstein</code>に対して<code>open</code>や<code>write</code>等の操作があった際に、対応する関数が呼び出されるようになっています。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="class"><span class="keyword">struct</span> <span class="title">file_operations</span> <span class="title">module_fops</span> =</span></span><br><span class="line">  &#123;</span><br><span class="line">   .owner   = THIS_MODULE,</span><br><span class="line">   .read    = module_read,</span><br><span class="line">   .write   = module_write,</span><br><span class="line">   .open    = module_open,</span><br><span class="line">   .release = module_close,</span><br><span class="line">  &#125;;</span><br></pre></td></tr></table></figure>
+<p>このモジュールでは<code>open</code>, <code>read</code>, <code>write</code>, <code>close</code>の4つに対する処理のみを定義しており、その他は未実装（呼んでも何も起きない）となっています。</p>
+<p>最後に、モジュールの解放処理は単にキャラクタデバイスを削除しているだけです。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> __exit <span class="title">module_cleanup</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">  cdev_del(&amp;c_dev);</span><br><span class="line">  unregister_chrdev_region(dev_id, <span class="number">1</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3><span id="open">open</span></h3>
+<p><code>module_open</code>を見てみましょう。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">int</span> <span class="title">module_open</span><span class="params">(struct inode *inode, struct file *file)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">  printk(KERN_INFO <span class="string">&quot;module_open called\n&quot;</span>);</span><br><span class="line"></span><br><span class="line">  g_buf = kmalloc(BUFFER_SIZE, GFP_KERNEL);</span><br><span class="line">  <span class="keyword">if</span> (!g_buf) &#123;</span><br><span class="line">    printk(KERN_INFO <span class="string">&quot;kmalloc failed&quot;</span>);</span><br><span class="line">    <span class="keyword">return</span> -ENOMEM;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>printk</code>という見慣れない関数がありますが、これは文字列をカーネルのログバッファに出力します。<code>KERN_INFO</code>というのはログレベルで、他にも<code>KERN_WARN</code>等があります。出力は<code>dmesg</code>コマンドで確認できます。</p>
+<p>次に<code>kmalloc</code>という関数を呼んでいます。<br>
+これはカーネル空間における<code>malloc</code>で、ヒープから指定したサイズの領域を確保できます。今回は<code>char*</code>型のグローバル変数<code>g_buf</code>に<code>BUFFER_SIZE</code>(=0x400)バイトの領域を確保しています。</p>
+<p>このモジュールを<code>open</code>すると0x400バイトの領域を<code>g_buf</code>に確保することが分かりました。</p>
+<h3><span id="close">close</span></h3>
+<p>次に<code>module_close</code>を見ます。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">int</span> <span class="title">module_close</span><span class="params">(struct inode *inode, struct file *file)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">  printk(KERN_INFO <span class="string">&quot;module_close called\n&quot;</span>);</span><br><span class="line">  kfree(g_buf);</span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>kfree</code>は<code>kmalloc</code>と対応し、<code>kmalloc</code>で確保したヒープ領域を解放します。<br>
+一度ユーザーに<code>open</code>されたモジュールは最終的には必ず<code>close</code>されるので、最初に確保した<code>g_buf</code>を解放するというのは自然な処理です。（ユーザー空間のプログラムが明示的に<code>close</code>を呼ばなくても、そのプログラムが終了する際にカーネルが自動的に<code>close</code>を呼び出します。）</p>
+<p>実はこの段階で既にLPEに繋がる脆弱性があるのですが、それは後の章で扱います。</p>
+<h3><span id="read">read</span></h3>
+<p><code>module_read</code>はユーザーが<code>read</code>システムコール等を呼び出した際に呼ばれる処理です。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">ssize_t</span> <span class="title">module_read</span><span class="params">(struct file *file,</span></span></span><br><span class="line"><span class="params"><span class="function">                        <span class="keyword">char</span> __user *buf, <span class="keyword">size_t</span> count,</span></span></span><br><span class="line"><span class="params"><span class="function">                        <span class="keyword">loff_t</span> *f_pos)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">  <span class="keyword">char</span> kbuf[BUFFER_SIZE] = &#123; <span class="number">0</span> &#125;;</span><br><span class="line"></span><br><span class="line">  printk(KERN_INFO <span class="string">&quot;module_read called\n&quot;</span>);</span><br><span class="line"></span><br><span class="line">  <span class="built_in">memcpy</span>(kbuf, g_buf, BUFFER_SIZE);</span><br><span class="line">  <span class="keyword">if</span> (_copy_to_user(buf, kbuf, count)) &#123;</span><br><span class="line">    printk(KERN_INFO <span class="string">&quot;copy_to_user failed\n&quot;</span>);</span><br><span class="line">    <span class="keyword">return</span> -EINVAL;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> count;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>g_buf</code>から<code>BUFFER_SIZE</code>だけ<code>kbuf</code>というスタックの変数に<code>memcpy</code>でコピーしています。<br>
+次に、<code>_copy_to_user</code>という関数を呼んでいます。SMAPの節で既に説明しましたが、これはユーザー空間に安全にデータをコピーする関数です。<code>copy_to_user</code>ではなく<code>_copy_to_user</code>になっていますが、これはスタックオーバーフローを検知しないバージョンの<code>copy_to_user</code>になります。通常は使われませんが、今回は脆弱性を入れるために使っています。</p>
+<div class="balloon_l">
+  <div class="faceicon"><img src="../img/wolf_atamawaru.png" alt="オオカミくん"></div>
+  <p class="says">
+    <code>copy_to_user</code>や<code>copy_from_user</code>はインライン関数として定義されていて、可能な場合はサイズチェックをするようになっているよ。
+  </p>
+</div>
+<p>まとめると、<code>read</code>関数は<code>g_buf</code>から一度スタックにデータをコピーし、そのデータを要求したサイズだけ読み込む処理になります。</p>
+<h3><span id="write">write</span></h3>
+<p>最後に<code>module_write</code>を読みましょう。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">ssize_t</span> <span class="title">module_write</span><span class="params">(struct file *file,</span></span></span><br><span class="line"><span class="params"><span class="function">                            <span class="keyword">const</span> <span class="keyword">char</span> __user *buf, <span class="keyword">size_t</span> count,</span></span></span><br><span class="line"><span class="params"><span class="function">                            <span class="keyword">loff_t</span> *f_pos)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">  <span class="keyword">char</span> kbuf[BUFFER_SIZE] = &#123; <span class="number">0</span> &#125;;</span><br><span class="line"></span><br><span class="line">  printk(KERN_INFO <span class="string">&quot;module_write called\n&quot;</span>);</span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span> (_copy_from_user(kbuf, buf, count)) &#123;</span><br><span class="line">    printk(KERN_INFO <span class="string">&quot;copy_from_user failed\n&quot;</span>);</span><br><span class="line">    <span class="keyword">return</span> -EINVAL;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="built_in">memcpy</span>(g_buf, kbuf, BUFFER_SIZE);</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> count;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>まず<code>_copy_from_user</code>でユーザー空間からデータを<code>kbuf</code>というスタック変数にコピーしています。（これもスタックオーバーフローを検知しないバージョンの<code>copy_from_user</code>です。）最後に<code>memcpy</code>で<code>g_buf</code>に最大<code>BUFFER_SIZE</code>だけ<code>kbuf</code>からデータをコピーしています。</p>
+<h2><span id="スタックオーバーフロー脆弱性">スタックオーバーフロー脆弱性</span></h2>
+<p>さて、カーネルモジュールを一通り読み終えましたが、いくつの脆弱性を見つけられたでしょうか。<br>
+Kernel Exploitに挑戦するような方なら少なくとも1つは脆弱性を見つけたかと思います。この節では次の箇所にあるスタックオーバーフローの脆弱性を扱います。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">ssize_t</span> <span class="title">module_write</span><span class="params">(struct file *file,</span></span></span><br><span class="line"><span class="params"><span class="function">                            <span class="keyword">const</span> <span class="keyword">char</span> __user *buf, <span class="keyword">size_t</span> count,</span></span></span><br><span class="line"><span class="params"><span class="function">                            <span class="keyword">loff_t</span> *f_pos)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">  <span class="keyword">char</span> kbuf[BUFFER_SIZE] = &#123; <span class="number">0</span> &#125;;</span><br><span class="line"></span><br><span class="line">  printk(KERN_INFO <span class="string">&quot;module_write called\n&quot;</span>);</span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span> (_copy_from_user(kbuf, buf, count)) &#123;</span><br><span class="line">    printk(KERN_INFO <span class="string">&quot;copy_from_user failed\n&quot;</span>);</span><br><span class="line">    <span class="keyword">return</span> -EINVAL;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="built_in">memcpy</span>(g_buf, kbuf, BUFFER_SIZE);</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> count;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>9行目でコピーするサイズ<code>count</code>はユーザーから渡ってくるのに対し、<code>kbuf</code>は0x400バイトなので自明なスタックバッファオーバーフローがあります。カーネル空間でも関数呼び出しの仕組みはユーザー空間と同じなので、リターンアドレスを書き換えたりROP chainを実行したりできます。</p>
+<h2><span id="脆弱性の発火">脆弱性の発火</span></h2>
+<p>脆弱性を悪用する前に、このカーネルモジュールを普通に使うプログラムを書いて、動作することを確認しましょう。今回は次のようなプログラムを書いてみました。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdlib.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;fcntl.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;unistd.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">fatal</span><span class="params">(<span class="keyword">const</span> <span class="keyword">char</span> *msg)</span> </span>&#123;</span><br><span class="line">  perror(msg);</span><br><span class="line">  <span class="built_in">exit</span>(<span class="number">1</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span> </span>&#123;</span><br><span class="line">  <span class="keyword">int</span> fd = open(<span class="string">&quot;/dev/holstein&quot;</span>, O_RDWR);</span><br><span class="line">  <span class="keyword">if</span> (fd == <span class="number">-1</span>) fatal(<span class="string">&quot;open(\&quot;/dev/holstein\&quot;)&quot;</span>);</span><br><span class="line"></span><br><span class="line">  <span class="keyword">char</span> buf[<span class="number">0x100</span>] = &#123;&#125;;</span><br><span class="line">  write(fd, <span class="string">&quot;Hello, World!&quot;</span>, <span class="number">13</span>);</span><br><span class="line">  read(fd, buf, <span class="number">0x100</span>);</span><br><span class="line"></span><br><span class="line">  <span class="built_in">printf</span>(<span class="string">&quot;Data: %s\n&quot;</span>, buf);</span><br><span class="line"></span><br><span class="line">  close(fd);</span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>write</code>で&quot;Hello, World!&quot;と書き込んで、それを<code>read</code>で読むだけのプログラムです。<br>
+これをカーネル上で実行してみましょう。</p>
+<center>
+  <img src="img/analysis_nocrash.png" alt="モジュールの通常の利用" style="width:720px;">
+</center>
+<p>期待通りに動いていることが分かります。また、カーネルモジュールが出したログを確認しても特にエラーは発生していません。</p>
+<p>次にスタックオーバーフローを発生させてみます。こんな感じで良いでしょう。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdlib.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;string.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;fcntl.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;unistd.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">fatal</span><span class="params">(<span class="keyword">const</span> <span class="keyword">char</span> *msg)</span> </span>&#123;</span><br><span class="line">  perror(msg);</span><br><span class="line">  <span class="built_in">exit</span>(<span class="number">1</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span> </span>&#123;</span><br><span class="line">  <span class="keyword">int</span> fd = open(<span class="string">&quot;/dev/holstein&quot;</span>, O_RDWR);</span><br><span class="line">  <span class="keyword">if</span> (fd == <span class="number">-1</span>) fatal(<span class="string">&quot;open(\&quot;/dev/holstein\&quot;)&quot;</span>);</span><br><span class="line"></span><br><span class="line">  <span class="keyword">char</span> buf[<span class="number">0x800</span>];</span><br><span class="line">  <span class="built_in">memset</span>(buf, <span class="string">&#x27;A&#x27;</span>, <span class="number">0x800</span>);</span><br><span class="line">  write(fd, buf, <span class="number">0x800</span>);</span><br><span class="line"></span><br><span class="line">  close(fd);</span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>実行します。</p>
+<center>
+  <img src="img/analysis_crash.png" alt="Stack Overflowの発生" style="width:720px;">
+</center>
+<p>何やら禍々しいメッセージが出力されました。<br>
+このようにカーネルモジュールが異常な処理を起こすと通常カーネルごと落ちてしまいます。その際クラッシュした原因と、クラッシュ時のレジスタの様子やスタックトレースが出力されます。この情報はKernel Exploitのデバッグで非常に重要です。</p>
+<p>今回クラッシュの原因は</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">BUG: stack guard page was hit at (____ptrval____) (stack is (____ptrval____)..(____ptrval____))</span><br><span class="line">kernel stack overflow (page fault): 0000 [#1] PREEMPT SMP PTI</span><br></pre></td></tr></table></figure>
+<p>となっています。<code>ptrval</code>というのはポインタですが、KADRにより隠されています。<br>
+レジスタの様子で気になるのはRIPですが、残念ながら0x414141414141414141にはなっていません。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">RIP: 0010:memset_orig+0x33/0xb0</span><br></pre></td></tr></table></figure>
+<p>クラッシュの原因にも書かれているように、<code>copy_from_user</code>での書き込みの際にスタックの終端（guard page）に到達してしまったようです。書き込みすぎが原因なので、書き込む量を減らしてみましょう。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">write(fd, buf, <span class="number">0x420</span>);</span><br></pre></td></tr></table></figure>
+<p>するとクラッシュメッセージが変わります。</p>
+<center>
+  <img src="img/analysis_rip.png" alt="Stack OverflowによるRIP制御" style="width:720px;">
+</center>
+<p>今度はgeneral protection faultになり、RIPが取れています！</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">RIP: 0010:0x4141414141414141</span><br></pre></td></tr></table></figure>
+<p>このように、カーネル空間でもユーザー空間と同様にスタックオーバーフローでRIPを取れます。次の節ではここから権限昇格する方法について学びます。</p>
+
+</div> 
+
+<div style="margin-top: 1em">
+    <div class="h-line-primary"></div>
+    
+        <div class="pagination">
+            <div class="pagination-bk"><a href="../introduction/compile-and-transfer.html">前のページへ</a></div>
+            <div class="pagination-index"><a href="../index.html">目次へ</a></div>
+            <div class="pagination-fd"><a href="stack_overflow.html">次のページへ</a></div>
+        </div>
+    
+</div>
+
+<script>
+    window.onload = detectors();
+</script>
+
+  
+</article>
+        </div>
+      </div>
+      
+      <div class="footer">
+    <div class="flex-container">
+        <div class="footer-text">
+            
+                © 2022 ptr-yudai 🐈
+                <br>
+            
+            
+                
+        </div>
+    </div>
+</div>
+
+    </div>
+
+  </body>
+</html>

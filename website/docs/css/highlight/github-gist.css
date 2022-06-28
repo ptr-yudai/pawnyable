@@ -1,0 +1,57 @@
+/**
+ * GitHub Gist Theme
+ * Author : Louis Barranqueiro - https://github.com/LouisBarranqueiro
+ */
+.highlight {
+  padding: 0.5em;
+  color: #333;
+}
+.highlight .code .comment,
+.highlight .code .meta {
+  color: #969896;
+}
+.highlight .code .string,
+.highlight .code .variable,
+.highlight .code .template-variable,
+.highlight .code .strong,
+.highlight .code .emphasis,
+.highlight .code .quote {
+  color: #df5000;
+}
+.highlight .code .keyword,
+.highlight .code .selector-tag,
+.highlight .code .type {
+  color: #a71d5d;
+}
+.highlight .code .literal,
+.highlight .code .symbol,
+.highlight .code .bullet,
+.highlight .code .attribute {
+  color: #0086b3;
+}
+.highlight .code .section,
+.highlight .code .name {
+  color: #63a35c;
+}
+.highlight .code .tag {
+  color: #333;
+}
+.highlight .code .title,
+.highlight .code .attr,
+.highlight .code .selector-id,
+.highlight .code .selector-class,
+.highlight .code .selector-attr,
+.highlight .code .selector-pseudo {
+  color: #795da3;
+}
+.highlight .code .addition {
+  color: #55a532;
+  background-color: #eaffea;
+}
+.highlight .code .deletion {
+  color: #bd2c00;
+  background-color: #ffecec;
+}
+.highlight .code .link {
+  text-decoration: underline;
+}

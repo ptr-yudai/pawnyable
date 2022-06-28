@@ -1,0 +1,55 @@
+/*
+
+Brown Paper style from goldblog.com.ua (c) Zaripov Yura <yur4ik7@ukr.net>
+
+*/
+.highlight {
+  color: #363c69;
+  background: #b7a68e url("brown-papersq.png");
+}
+.highlight .code .keyword,
+.highlight .code .selector-tag,
+.highlight .code .literal {
+  color: #059;
+  font-weight: bold;
+}
+.highlight .code .highlight,
+.highlight .code .subst {
+  color: #363c69;
+}
+.highlight .code .string,
+.highlight .code .title,
+.highlight .code .section,
+.highlight .code .type,
+.highlight .code .attribute,
+.highlight .code .symbol,
+.highlight .code .bullet,
+.highlight .code .built_in,
+.highlight .code .addition,
+.highlight .code .variable,
+.highlight .code .template-tag,
+.highlight .code .template-variable,
+.highlight .code .link,
+.highlight .code .name {
+  color: #2c009f;
+}
+.highlight .code .comment,
+.highlight .code .quote,
+.highlight .code .meta,
+.highlight .code .deletion {
+  color: #802022;
+}
+.highlight .code .keyword,
+.highlight .code .selector-tag,
+.highlight .code .literal,
+.highlight .code .doctag,
+.highlight .code .title,
+.highlight .code .section,
+.highlight .code .type,
+.highlight .code .name,
+.highlight .code .strong {
+  font-weight: bold;
+}
+.highlight .code .emphasis {
+  font-style: italic;
+}

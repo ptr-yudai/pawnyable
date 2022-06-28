@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+    <meta name="author" content="ptr-yudai">
+
+
+
+
+
+
+
+<title>gdbによるカーネルのデバッグ | PAWNYABLE!</title>
+
+
+
+    <link rel="icon" href="/favicon.ico">
+
+
+
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=Roboto+Mono&display=swap');
+</style>
+
+
+
+    <!-- stylesheets list from _config.yml -->
+    
+    <link rel="stylesheet" href="/css/style.css">
+    
+
+
+
+
+    <!-- scripts list from _config.yml -->
+    
+    <script src="/js/frame.js"></script>
+    
+
+
+
+
+
+
+
+  <style type="text/css">
+.spoiler {
+  display: inline-flex;
+}
+p.spoiler {
+  display: flex;
+}
+.spoiler a {
+  pointer-events: none;
+}
+.spoiler-blur, .spoiler-blur > * {
+  transition: text-shadow .5s ease;
+}
+.spoiler .spoiler-blur, .spoiler .spoiler-blur > * {
+  color: rgba(0, 0, 0, 0);
+  background-color: rgba(0, 0, 0, 0);
+  text-shadow: 0 0 10px grey;
+  cursor: pointer;
+}
+.spoiler .spoiler-blur:hover, .spoiler .spoiler-blur:hover > * {
+  text-shadow: 0 0 5px grey;
+}
+.spoiler-box, .spoiler-box > * {
+  transition: color .5s ease,
+  background-color .5s ease;
+}
+.spoiler .spoiler-box, .spoiler .spoiler-box > * {
+  color: black;
+  background-color: black;
+  text-shadow: none;
+}</style><meta name="generator" content="Hexo 5.4.0"></head>
+  <body>
+    <div class="mask-border">
+    </div>
+
+    <div class="wrapper">
+
+      <div class="header">
+  <div class="flex-container">
+    <div class="header-inner">
+      <div class="site-brand-container">
+        <a href="/">PAWNYABLE</a>
+      </div>
+      <div id="menu-btn" class="menu-btn" onclick="toggleMenu()">
+        Menu
+      </div>
+      <nav class="site-nav">
+        <ul class="menu-list">
+          
+            
+              <li class="menu-item">
+                <a href="/practice/">Practice</a>
+              </li> 
+                   
+          
+            
+              <li class="menu-item">
+                <a href="/about/">About</a>
+              </li> 
+                   
+          
+        </ul>
+      </nav>
+    </div>
+  </div>
+</div>
+
+
+      <div class="main">
+        <div class="flex-container">
+          <article id="post">
+
+  
+    <div class="post-head">
+    <div class="post-info">
+        <div class="post-title">
+            
+            
+                gdbによるカーネルのデバッグ
+            
+            
+        </div>
+    </div>
+    <div class="h-line-primary"></div>
+    
+        <div class="pagination">
+            <div class="pagination-bk"><a href="introduction.html">前のページへ</a></div>
+            <div class="pagination-index"><a href="../index.html">目次へ</a></div>
+            <div class="pagination-fd"><a href="security.html">次のページへ</a></div>
+        </div>
+    
+</div>
+
+    <div class="post-content">
+    <p>カーネルexploitに入門しにくい大きな原因が、デバッグ方法がよく分からないという点です。<br>
+この節ではgdbを使ってqemu上で動くLinuxカーネルをデバッグする方法を学びます。</p>
+<p>まず<a href="../LK01/distfiles/LK01.tar.gz">練習問題LK01</a>のファイルをダウンロードしてください。</p>
+<div class="column" title="目次">
+<!-- toc -->
+<ul>
+<li><a href="#root%E6%A8%A9%E9%99%90%E3%81%AE%E5%8F%96%E5%BE%97">root権限の取得</a></li>
+<li><a href="#qemu%E3%81%B8%E3%81%AE%E3%82%A2%E3%82%BF%E3%83%83%E3%83%81">qemuへのアタッチ</a></li>
+<li><a href="#%E3%82%AB%E3%83%BC%E3%83%8D%E3%83%AB%E3%81%AE%E3%83%87%E3%83%90%E3%83%83%E3%82%AF">カーネルのデバック</a></li>
+<li><a href="#%E3%83%89%E3%83%A9%E3%82%A4%E3%83%90%E3%81%AE%E3%83%87%E3%83%90%E3%83%83%E3%82%B0">ドライバのデバッグ</a></li>
+</ul>
+<!-- tocstop -->
+<br>
+</div>
+<h2><span id="root権限の取得">root権限の取得</span></h2>
+<p>手元でKernel Exploitをデバッグする際、一般ユーザー権限だと不自由なことが多いです。特にカーネルやカーネルドライバの処理にブレークポイントを設定したり、リークしたアドレスが何の関数のアドレスかを調べたりする際、root権限がないとカーネル空間のアドレス情報を取得できません。<br>
+Kernel Exploitをデバッグする際はまずroot権限を取得しましょう。この節の内容は前章の例題の(2)と同じですので、既に解いた方は確認程度に読み流してください。</p>
+<p>カーネルが起動すると最初に1つのプログラムが実行されます。このプログラムは設定によりパスは様々ですが、多くの場合<code>/init</code>や<code>/sbin/init</code>等に存在します。LK01の<code>rootfs.cpio</code>を展開すると、<code>/init</code>が存在します。</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#!/bin/sh</span></span><br><span class="line"><span class="comment"># devtmpfs does not get automounted for initramfs</span></span><br><span class="line">/bin/mount -t devtmpfs devtmpfs /dev</span><br><span class="line"></span><br><span class="line"><span class="comment"># use the /dev/console device node from devtmpfs if possible to not</span></span><br><span class="line"><span class="comment"># confuse glibc&#x27;s ttyname_r().</span></span><br><span class="line"><span class="comment"># This may fail (E.G. booted with console=), and errors from exec will</span></span><br><span class="line"><span class="comment"># terminate the shell, so use a subshell for the test</span></span><br><span class="line"><span class="keyword">if</span> (<span class="built_in">exec</span> 0&lt;/dev/console) 2&gt;/dev/null; <span class="keyword">then</span></span><br><span class="line">    <span class="built_in">exec</span> 0&lt;/dev/console</span><br><span class="line">    <span class="built_in">exec</span> 1&gt;/dev/console</span><br><span class="line">    <span class="built_in">exec</span> 2&gt;/dev/console</span><br><span class="line"><span class="keyword">fi</span></span><br><span class="line"></span><br><span class="line"><span class="built_in">exec</span> /sbin/init <span class="string">&quot;<span class="variable">$@</span>&quot;</span></span><br></pre></td></tr></table></figure>
+<p>ここには特に重要な処理は書かれていませんが、<code>/sbin/init</code>を実行しています。なお、CTFなどで配布されるような小さい環境では<code>/init</code>に直接、ドライバをインストールしたりシェルを起動したりといった処理が書かれている場合があります。実際、最後の<code>exec</code>の行の前に<code>/bin/sh</code>と書けばカーネル起動時にroot権限でシェルを起動できます。ただし、ドライバのインストールなど他の必要な初期化処理が実行されませんので、今回はこのファイルは書き換えません。<br>
+さて、<code>/sbin/init</code>から最終的には<code>/etc/init.d/rcS</code>というシェルスクリプトが実行されます。このスクリプトは、<code>/etc/init.d</code>内にある<code>S</code>から始まる名前のファイルを実行していきます。今回は<code>S99pawnyable</code>というスクリプトが存在します。このスクリプトには様々な初期化処理が書かれていますが、終盤の次の行に注目してください。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">setsid cttyhack setuidgid 1337 sh</span><br></pre></td></tr></table></figure>
+<p>この行が今回のカーネルで起動時にユーザー権限でシェルを起動しているコードになります。<code>cttyhack</code>はCtrl+Cなどの入力を使えるようにしてくれるコマンドです。そして<code>setuidgid</code>コマンドを使ってユーザーIDとグループIDを1337に設定し、<code>/bin/sh</code>を起動しています。この数字を0(=rootユーザー)に変えます。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">setsid cttyhack setuidgid 0 sh</span><br></pre></td></tr></table></figure>
+<p>また、詳細は<a href="security.html">次章</a>で説明しますが、一部のセキュリティ機構を無効化するために、次の行もコメントアウトして消しておいてください。</p>
+<figure class="highlight diff"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="deletion">-echo 2 &gt; /proc/sys/kernel/kptr_restrict    # 変更前</span></span><br><span class="line"><span class="addition">+#echo 2 &gt; /proc/sys/kernel/kptr_restrict   # 変更後</span></span><br></pre></td></tr></table></figure>
+<p>変更したらcpioに再びパックして、<code>run.sh</code>を実行すれば下のスクリーンショットのようにroot権限でシェルが使えるようになっているはずです。（パックの方法は<a href="introduction.html#%E3%83%87%E3%82%A3%E3%82%B9%E3%82%AF%E3%82%A4%E3%83%A1%E3%83%BC%E3%82%B8">前章</a>を参照）</p>
+<center>
+  <img src="img/rooted.png" alt="root権限のシェルを起動" style="width:340px;">
+</center>
+<h2><span id="qemuへのアタッチ">qemuへのアタッチ</span></h2>
+<p>qemuはgdbでデバッグするための機能を搭載しています。qemuに<code>-gdb</code>オプションを渡し、プロトコル、ホスト、ポート番号を指定してlistenできます。<code>run.sh</code>を編集して、例えば次のオプションを追加するとローカルホストでTCPの12345番ポートでgdbを待ち受けられます。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">-gdb tcp::12345</span><br></pre></td></tr></table></figure>
+<p>今後の演習では断りなく12345番ポートを利用してデバッグしますが、自分の好きな番号を利用して問題ありません。</p>
+<p>gdbでアタッチするには<code>target</code>コマンドでターゲットを設定します。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">pwndbg&gt; target remote localhost:12345</span><br></pre></td></tr></table></figure>
+<p>これで接続が完了すれば成功です。あとは通常のgdbコマンドを利用してレジスタやメモリの読み書き、ブレークポイントの設定などが可能です。メモリアドレスは「そのブレークポイントを付けたコンテキストでの仮想アドレス」になります。つまり、カーネルドライバやユーザー空間のプログラムが使っている馴染みあるアドレスにそのままブレークポイントを設定して構いません。</p>
+<p>今回は対象がx86-64です。もし皆さんのgdbが標準でデバッグ対象のアーキテクチャを認識しない場合、次のようにアーキテクチャを設定できます。（通常は自動で認識してくれます。）</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">pwndbg&gt; set arch i386:x86-64:intel</span><br></pre></td></tr></table></figure>
+<h2><span id="カーネルのデバック">カーネルのデバック</span></h2>
+<p><code>/proc/kallsyms</code>というprocfsを通して、Linuxカーネル中で定義されたアドレスとシンボルの一覧を見られます。<a href="security.html#kadr-kernel-address-display-restriction">次章のKADRの節</a>でも説明しますが、セキュリティ機構によりカーネルのアドレスはroot権限でも見えないことがあります。<br>
+<a href="#root%E6%A8%A9%E9%99%90%E3%81%AE%E5%8F%96%E5%BE%97">root権限取得の節</a>で既にやりましたが、初期化スクリプトの以下の行をコメントアウトするのを忘れないでください。これをしないとカーネル空間のポインタが見えなくなります。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">echo</span> 2 &gt; /proc/sys/kernel/kptr_restrict     <span class="comment"># 変更前</span></span><br><span class="line"><span class="comment">#echo 2 &gt; /proc/sys/kernel/kptr_restrict    # 変更後</span></span><br></pre></td></tr></table></figure>
+<p>さて、では実際に<code>kallsyms</code>を見てみましょう。量が膨大なのでheadなどで先頭だけ見てみます。</p>
+<center>
+  <img src="img/kallsyms_head.png" alt="/proc/kallsymsの先頭" style="width:480px;">
+</center>
+<p>このように、シンボルのアドレス、アドレスの位置するセクション、シンボル名の順に並んで出力されます。セクションは例えば&quot;T&quot;ならtextセクション、&quot;D&quot;ならdataセクションのように表され、大文字はグローバルにエクスポートされたシンボルを表します。これらの文字の詳細な仕様は<code>man nm</code>で確認できます。<br>
+例えば上の図だと0xffffffff81000000が<code>_stext</code>というシンボルのアドレスであることが分かります。これはカーネルがロードされたベースアドレスにあたります。</p>
+<p>では、次に<code>commit_creds</code>という名前の関数のアドレスをgrepで探してください。見つかったら0xffffffff8106e390がヒットするはずです。gdbでこの関数にブレークポイントを付けて続行します。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">pwndbg&gt; break *0xffffffff8106e390</span><br><span class="line">pwndbg&gt; conti</span><br></pre></td></tr></table></figure>
+<p>この関数は実は新しくプロセスが作られる時などに呼ばれる関数です。シェルでlsコマンドなどを叩くとブレークポイントでgdbが反応するはずです。</p>
+<center>
+  <img src="img/commit_creds_bp.png" alt="commit_credsでブレークポイントにより停止する様子" style="width:720px;">
+</center>
+<p>第一引数RDIにはカーネル空間のポインタが入っています。このポインタの指すメモリを見てみましょう。</p>
+<center>
+  <img src="img/commit_creds_rdi.png" alt="commit_credsでのメモリの確認" style="width:620px;">
+</center>
+<p>このように、カーネル空間でもユーザー空間と同じようにgdbのコマンドが利用可能です。pwndbg等の拡張機能も使えますが、もちろんカーネル空間向けに書かれた拡張機能でなければうまく動かないので注意してください。<br>
+カーネルのデバッグ用の機能が<a target="_blank" rel="noopener" href="https://github.com/bata24/gef">搭載されたデバッガ</a>などもあるので、みなさんが好みのデバッガを使ってください。</p>
+<h2><span id="ドライバのデバッグ">ドライバのデバッグ</span></h2>
+<p>次にカーネルモジュールをデバッグしてみましょう。<br>
+LK01にはvulnという名前のカーネルモジュールがロードされています。ロードされているモジュールの一覧と、そのベースアドレスは<code>/proc/modules</code>から確認できます。</p>
+<center>
+  <img src="img/modules.png" alt="/proc/moudlesの中身" style="width:420px;">
+</center>
+<p>これを見ると、<code>vuln</code>というモジュールが0xffffffffc0000000にロードされていることが分かります。なお、このモジュールのソースコードとバイナリは配布ファイルの<code>src</code>ディレクトリに存在します。ソースコードの詳細解析は別の章でやりますが、このモジュールの関数にブレークポイントを付けてみましょう。<br>
+IDAなどで<code>src/vuln.ko</code>を開くといくつかの関数が見えます。例えば<code>module_close</code>を見ると、相対アドレスは0x20fであることが分かります。</p>
+<center>
+  <img src="img/module_close.png" alt="IDAで見たmodule_close関数" style="width:360px;">
+</center>
+<p>したがって、現在カーネル上では0xffffffffc0000000 + 0x20fにこの関数の先頭が存在するはずです。ここにブレークポイントを付けてみましょう</p>
+<center>
+  <img src="img/module_close_bp.png" alt="gdbでmodule_close関数にブレークポイントを付ける" style="width:520px;">
+</center>
+<p>詳しくは先の章で解析しますが、このモジュールは<code>/dev/holstein</code>というファイルにマップされています。<code>cat</code>コマンドを使えば<code>module_close</code>を呼び出せます。ブレークポイントで止まることを確認しましょう。</p>
+<div class="balloon_l">
+  <div class="faceicon"><img src="../img/wolf_atamawaru.png" alt="オオカミくん"></div>
+  <p class="says">
+    ドライバのシンボル情報が欲しい場合はadd-symbol-file命令を使って、第一引数に手持ちのドライバ、第二引数にベースアドレスを渡すとシンボル情報を読み込んでくれるよ。関数名を使ってブレークポイントを設定できるね。
+  </p>
+</div>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># cat /dev/holstein</span><br></pre></td></tr></table></figure>
+<p><code>stepi</code>や<code>nexti</code>といったコマンドも利用できます。このように、カーネル空間のデバッグはアタッチの方法が違うだけで、使えるコマンドやデバッグ方法はユーザー空間と何ら変わりません。</p>
+<hr>
+<div class="column" title="例題">
+  本章では<code>commit_creds</code>にブレークポイントを止めてRDIレジスタの指すメモリ領域を確認しました。同じことを今度はユーザー権限のシェル（cttyhackでuidを1337にした場合）でgdbを使って確認してみましょう。<br>また、root権限(uid=0)の場合と一般ユーザー権限(uid=1337等)の場合を比べて、<code>commit_creds</code>の第一引数に渡されるデータにどのような違いがあるかを確認してください。
+</div>
+
+</div> 
+
+<div style="margin-top: 1em">
+    <div class="h-line-primary"></div>
+    
+        <div class="pagination">
+            <div class="pagination-bk"><a href="introduction.html">前のページへ</a></div>
+            <div class="pagination-index"><a href="../index.html">目次へ</a></div>
+            <div class="pagination-fd"><a href="security.html">次のページへ</a></div>
+        </div>
+    
+</div>
+
+<script>
+    window.onload = detectors();
+</script>
+
+  
+</article>
+        </div>
+      </div>
+      
+      <div class="footer">
+    <div class="flex-container">
+        <div class="footer-text">
+            
+                © 2022 ptr-yudai 🐈
+                <br>
+            
+            
+                
+        </div>
+    </div>
+</div>
+
+    </div>
+
+  </body>
+</html>

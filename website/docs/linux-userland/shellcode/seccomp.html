@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+    <meta name="author" content="ptr-yudai">
+
+
+
+
+
+
+
+<title>seccompの回避 | PAWNYABLE!</title>
+
+
+
+    <link rel="icon" href="/favicon.ico">
+
+
+
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=Roboto+Mono&display=swap');
+</style>
+
+
+
+    <!-- stylesheets list from _config.yml -->
+    
+    <link rel="stylesheet" href="/css/style.css">
+    
+
+
+
+
+    <!-- scripts list from _config.yml -->
+    
+    <script src="/js/frame.js"></script>
+    
+
+
+
+
+
+
+
+  <style type="text/css">
+.spoiler {
+  display: inline-flex;
+}
+p.spoiler {
+  display: flex;
+}
+.spoiler a {
+  pointer-events: none;
+}
+.spoiler-blur, .spoiler-blur > * {
+  transition: text-shadow .5s ease;
+}
+.spoiler .spoiler-blur, .spoiler .spoiler-blur > * {
+  color: rgba(0, 0, 0, 0);
+  background-color: rgba(0, 0, 0, 0);
+  text-shadow: 0 0 10px grey;
+  cursor: pointer;
+}
+.spoiler .spoiler-blur:hover, .spoiler .spoiler-blur:hover > * {
+  text-shadow: 0 0 5px grey;
+}
+.spoiler-box, .spoiler-box > * {
+  transition: color .5s ease,
+  background-color .5s ease;
+}
+.spoiler .spoiler-box, .spoiler .spoiler-box > * {
+  color: black;
+  background-color: black;
+  text-shadow: none;
+}</style><meta name="generator" content="Hexo 5.4.0"></head>
+  <body>
+    <div class="mask-border">
+    </div>
+
+    <div class="wrapper">
+
+      <div class="header">
+  <div class="flex-container">
+    <div class="header-inner">
+      <div class="site-brand-container">
+        <a href="/">PAWNYABLE</a>
+      </div>
+      <div id="menu-btn" class="menu-btn" onclick="toggleMenu()">
+        Menu
+      </div>
+      <nav class="site-nav">
+        <ul class="menu-list">
+          
+            
+              <li class="menu-item">
+                <a href="/practice/">Practice</a>
+              </li> 
+                   
+          
+            
+              <li class="menu-item">
+                <a href="/about/">About</a>
+              </li> 
+                   
+          
+        </ul>
+      </nav>
+    </div>
+  </div>
+</div>
+
+
+      <div class="main">
+        <div class="flex-container">
+          <article id="post">
+
+  
+    <div class="post-head">
+    <div class="post-info">
+        <div class="post-title">
+            
+            
+                seccompの回避
+            
+            
+        </div>
+    </div>
+    <div class="h-line-primary"></div>
+    
+</div>
+
+    <div class="post-content">
+    <p>Linuxではseccompと呼ばれるサンドボックス機構が提供されています。seccompは正しく使えば非常に強力ですが、フィルタの設定を誤ると簡単に回避できてしまいます。この章ではseccompの様々な回避手法について紹介します。</p>
+<div class="column" title="目次">
+<!-- toc -->
+<ul>
+<li><a href="#seccomp">seccomp</a>
+<ul>
+<li><a href="#seccomp%E3%81%A8%E3%81%AF">seccompとは</a></li>
+<li><a href="#seccomp%E3%81%AE%E4%BD%BF%E3%81%84%E6%96%B9">seccompの使い方</a></li>
+<li><a href="#seccomp-tools">seccomp-tools</a></li>
+<li><a href="#%E7%A6%81%E6%AD%A2%E3%81%99%E3%81%B9%E3%81%8D%E3%82%B7%E3%82%B9%E3%83%86%E3%83%A0%E3%82%B3%E3%83%BC%E3%83%AB">禁止すべきシステムコール</a></li>
+</ul>
+</li>
+<li><a href="#%E3%83%96%E3%83%A9%E3%83%83%E3%82%AF%E3%83%AA%E3%82%B9%E3%83%88%E3%81%AE%E4%B8%8D%E5%82%99">ブラックリストの不備</a>
+<ul>
+<li><a href="#openat%E3%81%A8execveat">openatとexecveat</a></li>
+<li><a href="#creat%E3%81%A8procfs">creatとprocfs</a></li>
+<li><a href="#process_vm_readv-process_vm_writev">process_vm_readv, process_vm_writev</a></li>
+<li><a href="#open_by_handle_at-name_to_handle_at">open_by_handle_at, name_to_handle_at</a></li>
+</ul>
+</li>
+<li><a href="#%E3%82%B5%E3%82%A4%E3%83%89%E3%83%81%E3%83%A3%E3%83%8D%E3%83%AB%E6%94%BB%E6%92%83">サイドチャネル攻撃</a>
+<ul>
+<li><a href="#%E3%82%A8%E3%83%A9%E3%83%BC%E3%81%AE%E8%A6%B3%E6%B8%AC">エラーの観測</a></li>
+<li><a href="#%E5%87%A6%E7%90%86%E6%99%82%E9%96%93%E3%81%AE%E8%A8%88%E6%B8%AC">処理時間の計測</a></li>
+</ul>
+</li>
+<li><a href="#%E3%81%9D%E3%81%AE%E4%BB%96%E3%81%AE%E5%9B%9E%E9%81%BF%E6%89%8B%E6%B3%95">その他の回避手法</a>
+<ul>
+<li><a href="#%E4%BB%96%E3%83%97%E3%83%AD%E3%82%BB%E3%82%B9%E3%81%AE%E6%82%AA%E7%94%A8">他プロセスの悪用</a>
+<ul>
+<li><a href="#kill-tkill-tgkill">kill, tkill, tgkill</a></li>
+<li><a href="#prlimit64">prlimit64</a></li>
+</ul>
+</li>
+<li><a href="#%E3%82%AB%E3%83%BC%E3%83%8D%E3%83%AB%E3%82%84%E3%83%A9%E3%82%A4%E3%83%96%E3%83%A9%E3%83%AA%E3%81%AE%E6%AC%A0%E9%99%A5%E3%81%AE%E5%88%A9%E7%94%A8">カーネルやライブラリの欠陥の利用</a></li>
+</ul>
+</li>
+</ul>
+<!-- tocstop -->
+<br>
+</div>
+<h2><span id="seccomp">seccomp</span></h2>
+<p>seccompの回避方法について勉強する前に、seccompの仕組みについて知っておきましょう。</p>
+<h3><span id="seccompとは">seccompとは</span></h3>
+<h3><span id="seccompの使い方">seccompの使い方</span></h3>
+<h3><span id="seccomp-tools">seccomp-tools</span></h3>
+<h3><span id="禁止すべきシステムコール">禁止すべきシステムコール</span></h3>
+<p>では、seccompを使ってどのようなシステムコールを禁止すれば良いのでしょうか。プログラムや保護したいものによりますが、一般的には任意コマンド実行や任意ファイル読み書きを防ぐ目的で使われます。<br>
+コマンド実行に関しては次のシステムコールを禁止すれば十分です。</p>
+<ul>
+<li><code>execve</code></li>
+<li><code>execveat</code></li>
+</ul>
+<p>また、ファイル読み書きに関しては次のシステムコールを禁止します。<code>creat</code>は忘れがちなので注意が必要ですね。</p>
+<ul>
+<li><code>creat</code></li>
+<li><code>open</code></li>
+<li><code>openat</code></li>
+</ul>
+<p>もしプログラムがroot権限で動いているなら、ファイルopenに関して次のシステムコールも禁止する必要があります。（当然root権限の場合は他にもたくさんのシステムコールを禁止しないといけないです。）</p>
+<ul>
+<li><code>name_to_handle_at</code></li>
+<li><code>open_by_handle_at</code></li>
+</ul>
+<p>DoSなどの悪さを禁止するなら、他にも</p>
+<ul>
+<li><code>clone</code></li>
+<li><code>fork</code> / <code>vfork</code></li>
+<li><code>kill</code> / <code>tkill</code> / <code>tgkill</code></li>
+<li><code>prlimit64</code></li>
+</ul>
+<p>などさまざまなシステムコールを禁止する必要があります。<br>
+このように、seccompをブラックリスト方式で使うのは非常に大変です。そのため、特別な理由がない限りはプログラムが使う安全なシステムコールのみを許可するホワイトリスト方式で使用しましょう。</p>
+<h2><span id="ブラックリストの不備">ブラックリストの不備</span></h2>
+<p>ここからはseccompの回避方法について説明します。まず、ブラックリスト方式を利用した際の不備を悪用する方法を紹介します。</p>
+<h3><span id="openatとexecveat">openatとexecveat</span></h3>
+<h3><span id="creatとprocfs">creatとprocfs</span></h3>
+<h3><span id="process_vm_readv-process_vm_writev">process_vm_readv, process_vm_writev</span></h3>
+<h3><span id="open_by_handle_at-name_to_handle_at">open_by_handle_at, name_to_handle_at</span></h3>
+<h2><span id="サイドチャネル攻撃">サイドチャネル攻撃</span></h2>
+<p>メモリ上の情報漏洩が目的で、コマンド実行などが不要な場合もあります。このような場合はシステムコールを利用せずに情報漏洩が可能かもしれません。</p>
+<h3><span id="エラーの観測">エラーの観測</span></h3>
+<h3><span id="処理時間の計測">処理時間の計測</span></h3>
+<h2><span id="その他の回避手法">その他の回避手法</span></h2>
+<h3><span id="他プロセスの悪用">他プロセスの悪用</span></h3>
+<h4><span id="kill-tkill-tgkill">kill, tkill, tgkill</span></h4>
+<h4><span id="prlimit64">prlimit64</span></h4>
+<h3><span id="カーネルやライブラリの欠陥の利用">カーネルやライブラリの欠陥の利用</span></h3>
+
+</div> 
+
+<div style="margin-top: 1em">
+    <div class="h-line-primary"></div>
+    
+</div>
+
+<script>
+    window.onload = detectors();
+</script>
+
+  
+</article>
+        </div>
+      </div>
+      
+      <div class="footer">
+    <div class="flex-container">
+        <div class="footer-text">
+            
+                © 2022 ptr-yudai 🐈
+                <br>
+            
+            
+                
+        </div>
+    </div>
+</div>
+
+    </div>
+
+  </body>
+</html>

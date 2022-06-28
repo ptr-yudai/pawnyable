@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+    <meta name="author" content="ptr-yudai">
+
+
+
+
+
+
+
+<title>カーネルexploitへの導入 | PAWNYABLE!</title>
+
+
+
+    <link rel="icon" href="/favicon.ico">
+
+
+
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=Roboto+Mono&display=swap');
+</style>
+
+
+
+    <!-- stylesheets list from _config.yml -->
+    
+    <link rel="stylesheet" href="/css/style.css">
+    
+
+
+
+
+    <!-- scripts list from _config.yml -->
+    
+    <script src="/js/frame.js"></script>
+    
+
+
+
+
+
+
+
+  <style type="text/css">
+.spoiler {
+  display: inline-flex;
+}
+p.spoiler {
+  display: flex;
+}
+.spoiler a {
+  pointer-events: none;
+}
+.spoiler-blur, .spoiler-blur > * {
+  transition: text-shadow .5s ease;
+}
+.spoiler .spoiler-blur, .spoiler .spoiler-blur > * {
+  color: rgba(0, 0, 0, 0);
+  background-color: rgba(0, 0, 0, 0);
+  text-shadow: 0 0 10px grey;
+  cursor: pointer;
+}
+.spoiler .spoiler-blur:hover, .spoiler .spoiler-blur:hover > * {
+  text-shadow: 0 0 5px grey;
+}
+.spoiler-box, .spoiler-box > * {
+  transition: color .5s ease,
+  background-color .5s ease;
+}
+.spoiler .spoiler-box, .spoiler .spoiler-box > * {
+  color: black;
+  background-color: black;
+  text-shadow: none;
+}</style><meta name="generator" content="Hexo 5.4.0"></head>
+  <body>
+    <div class="mask-border">
+    </div>
+
+    <div class="wrapper">
+
+      <div class="header">
+  <div class="flex-container">
+    <div class="header-inner">
+      <div class="site-brand-container">
+        <a href="/">PAWNYABLE</a>
+      </div>
+      <div id="menu-btn" class="menu-btn" onclick="toggleMenu()">
+        Menu
+      </div>
+      <nav class="site-nav">
+        <ul class="menu-list">
+          
+            
+              <li class="menu-item">
+                <a href="/practice/">Practice</a>
+              </li> 
+                   
+          
+            
+              <li class="menu-item">
+                <a href="/about/">About</a>
+              </li> 
+                   
+          
+        </ul>
+      </nav>
+    </div>
+  </div>
+</div>
+
+
+      <div class="main">
+        <div class="flex-container">
+          <article id="post">
+
+  
+    <div class="post-head">
+    <div class="post-info">
+        <div class="post-title">
+            
+            
+                カーネルexploitへの導入
+            
+            
+        </div>
+    </div>
+    <div class="h-line-primary"></div>
+    
+        <div class="pagination">
+            <div class="pagination-bk"><span></span></div>
+            <div class="pagination-index"><a href="../index.html">目次へ</a></div>
+            <div class="pagination-fd"><a href="debugging.html">次のページへ</a></div>
+        </div>
+    
+</div>
+
+    <div class="post-content">
+    <p>「ユーザーランドのpwnは一通り勉強したけど、カーネルからは難しそうで手が出ない」という方は多いでしょう。しかし実はカーネルexploitは場合によっては非常に攻撃が簡単です。<br>
+この節では、ユーザーランドexploitとカーネルexploitとの違い、環境構築などについて説明します。</p>
+<div class="column" title="目次">
+<!-- toc -->
+<ul>
+<li><a href="#%E3%82%AB%E3%83%BC%E3%83%8D%E3%83%ABexploit%E3%81%AE%E7%89%B9%E5%BE%B4">カーネルexploitの特徴</a>
+<ul>
+<li><a href="#%E6%94%BB%E6%92%83%E5%AF%BE%E8%B1%A1">攻撃対象</a></li>
+<li><a href="#%E6%94%BB%E6%92%83%E6%96%B9%E6%B3%95">攻撃方法</a></li>
+<li><a href="#%E3%83%AA%E3%82%BD%E3%83%BC%E3%82%B9%E3%81%AE%E5%85%B1%E6%9C%89">リソースの共有</a></li>
+<li><a href="#%E3%83%92%E3%83%BC%E3%83%97%E9%A0%98%E5%9F%9F%E3%81%AE%E5%85%B1%E6%9C%89">ヒープ領域の共有</a></li>
+</ul>
+</li>
+<li><a href="#qemu%E3%81%AE%E5%88%A9%E7%94%A8">qemuの利用</a></li>
+<li><a href="#%E3%83%87%E3%82%A3%E3%82%B9%E3%82%AF%E3%82%A4%E3%83%A1%E3%83%BC%E3%82%B8">ディスクイメージ</a></li>
+</ul>
+<!-- tocstop -->
+<br>
+</div>
+<h2><span id="カーネルexploitの特徴">カーネルexploitの特徴</span></h2>
+<p>まず始めにユーザーランドと比べてカーネル空間の脆弱性にはどんな特徴があるかを知っておきましょう。</p>
+<h3><span id="攻撃対象">攻撃対象</span></h3>
+<p>ユーザーランドexploitとカーネルexploitの最も大きな違いはその目的にあります。<br>
+これまで説明したユーザーランドexploitでは多くの場合「任意コマンド実行」という目標に向けてexploitを書きました。一方で、カーネルexploitでは「権限昇格」に向けてexploitを書きます。カーネルexploitは、何らかの手段で攻撃対象のマシンに侵入できた仮定で、さらにroot権限を取得するための攻撃です。この権限昇格のことを<strong>LPE</strong>(Local Privilege Escalation)と呼びます。</p>
+<p>ユーザーランドexploitでももちろん権限昇格できる脆弱性もありますが、それは攻撃対象のプログラムが特権ユーザーで動作しているからです。カーネルexploitの場合、攻撃対象は主に2つあります。</p>
+<ol>
+<li>Linuxカーネル</li>
+<li>カーネルモジュール</li>
+</ol>
+<p>Linuxカーネル中のコードは必ずroot権限で動作しているため、カーネルそのものにバグがある場合LPEに繋がる可能性があります。<br>
+もう1つはデバイスドライバなどのカーネルモジュールに含まれる脆弱性です。デバイスドライバは、ユーザー空間から主に外部機器（プリンタなど）とのやりとりを簡単にするためのインタフェースです。デバイスドライバも必ずroot権限で動作している<sup class="footnote-ref"><a href="#fn1" id="fnref1">[1]</a></sup>ので、バグがある場合LPEに繋がります。</p>
+<h3><span id="攻撃方法">攻撃方法</span></h3>
+<p>通常ユーザーランドexploitの場合、特定のサービスに対して入力を与えることでexploitしました。そのためPythonなどの言語でexploitを書くのが主流です。<br>
+一方カーネルexploitの場合、対象はOSやドライバです。これらは低レイヤのため、C言語などでexploitを書くのが主流です。もちろんPythonなどでも書けますが、そもそも攻撃対象のマシン（特にCTFや実験環境で用意されるような小さいLinux）の上にPythonが存在することが少ないため、動かない可能性が高いです。</p>
+<p>このサイトでもexploitをC言語で記述します。詳しい話は別の節で出てきますが、<a target="_blank" rel="noopener" href="https://www.musl-libc.org/">musl-gcc</a>というコンパイラを使います。</p>
+<h3><span id="リソースの共有">リソースの共有</span></h3>
+<p>もう1つの特徴は、リソースが共有されているという点です。<br>
+ユーザーランドでは通常、攻撃対象のプロセスが1つ存在し、そのプロセスをexploitすることでシェルを取るなどしました。一方で、Linuxカーネルやデバイスドライバといったプログラムはユーザー全員に共有されています。システムコールは誰でも自由なタイミングで使うことが可能ですし、デバイスドライバも誰がいつ操作するかわかりません。つまり、ドライバを書く際は常にマルチスレッドのつもりでプログラミングしなければ簡単に脆弱性を埋め込んでしまいます。</p>
+<div class="balloon_l">
+  <div class="faceicon"><img src="../img/wolf_atamawaru.png" alt="オオカミくん"></div>
+  <p class="says">
+    グローバル変数のように競合する可能性のあるデータを使うときはロックを取らないといけないってことだね。<br>カーネル空間のプログラミングって大変だ〜。
+  </p>
+</div>
+<h3><span id="ヒープ領域の共有">ヒープ領域の共有</span></h3>
+<p>さらに、カーネルのヒープは全ドライバやカーネルで共有されているという大きな特徴があります。<br>
+これまでユーザーランドのexploitでは、プログラムごとにヒープがあるため、そのプログラムでHeap Overflowが起きたからといってexploitableかはプログラム依存でした。しかし、例えばデバイスドライバで1回ヒープオーバーフローが起きると、他のデバイスドライバやLinuxカーネルがヒープに確保した周辺のデータまで汚染されてしまいます。<br>
+攻撃者の観点からすると、この特徴には長所と短所があります。長所は、ヒープ周りの小さな脆弱性でもLPEに繋がる可能性が非常に高いという点です。例えば関数ポインタを持つオブジェクトはLinuxカーネルにたくさん存在するので、そのどれかを利用してRIPが簡単に取れるわけです。一方で短所は、全プログラムの影響を受けるためヒープの状態が予測できないという点です。ユーザーランドのプログラムは簡単なものであれば、入力に対してヒープの状態が決定的だったので、複雑なヒープexploit（俗に言うHouse of XXXなど）が可能でした。一方カーネルではHeap Overflowが発生するチャンクの後ろにどんなデータが来るかや、Use-after-Freeでfreeされた後に誰がそのアドレスを使うかはわかりません。</p>
+<div class="balloon_l">
+  <div class="faceicon"><img src="../img/wolf_normal.png" alt="オオカミくん"></div>
+  <p class="says">
+    ということは、カーネルexploitではHeap Sprayが重要なんだね。
+  </p>
+</div>
+<p>脆弱性自体はユーザーランドのものと大きく変わりません。Stack OverflowやUse-after-Freeなどはカーネルランドにも存在し得ます。また、デバイスドライバのスタックにもセキュリティ機構としてStack Canaryを置くことができます。ただし、カーネル空間特有の脆弱性というのもあるので、それは後の節で登場します。</p>
+<h2><span id="qemuの利用">qemuの利用</span></h2>
+<p>Linuxカーネルexploitを書くときはデバッグのためにエミュレータの上でカーネルを動かします。VMなら何でも構いませんが、qemuが一般的なのでこのサイトでもqemuを利用します。</p>
+<p>読者の方は自分の環境に合わせてqemu-systemをインストールしておいてください。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># apt install qemu-system</span><br></pre></td></tr></table></figure>
+<h2><span id="ディスクイメージ">ディスクイメージ</span></h2>
+<p>qemuでマシンを起動する際、Linuxカーネルとは別にルートディレクトリとしてマウントされるディスクイメージが必要です。<br>
+ディスクイメージは一般的にext等のファイルシステムの生バイナリか、cpioと呼ばれる形式で作成・配布されます。<br>
+ファイルシステムの場合はmountコマンドでマウントすれば中のファイルを編集できます。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"># mkdir root</span><br><span class="line"># mount rootfs.img root</span><br></pre></td></tr></table></figure>
+<p>このサイトで扱う演習では、CTFで一般的であり、また軽量であるcpio形式を使います。<br>
+cpioコマンドを使って次のようにファイルを展開します。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"># mkdir root</span><br><span class="line"># cd root; cpio -idv &lt; ../rootfs.cpio</span><br></pre></td></tr></table></figure>
+<p>ファイルを追加したり編集したら、次のように再びcpioファイルにまとめます。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># find . -print0 | cpio -o --format=newc --null &gt; ../rootfs_updated.cpio</span><br></pre></td></tr></table></figure>
+<p>cpioがさらにgzで圧縮されている場合もあるので、そのような際は適宜展開・再圧縮してください。</p>
+<hr>
+<div class="column" title="例題">
+  <a href="../LK01/distfiles/LK01.tar.gz">練習問題LK01</a>のファイルをダウンロードして以下の操作を実行しましょう。<br>
+  (1) <code>run.sh</code>を実行して、Linuxが立ち上がることを確認してください。<br>
+  (2) 起動時にシェルがroot権限になるように<code>rootfs.cpio</code>を編集してください。（ヒント：起動時のメッセージを表示しているスクリプトを探しましょう。）
+</div>
+<hr class="footnotes-sep">
+<section class="footnotes">
+<ol class="footnotes-list">
+<li id="fn1" class="footnote-item"><p>ファイルシステムやキャラクタデバイスは通常カーネルモジュールで実装されますが、<a target="_blank" rel="noopener" href="https://lwn.net/Articles/796674/">FUSE</a>や<a target="_blank" rel="noopener" href="https://lwn.net/Articles/308445/">CUSE</a>といった機能の登場により、ユーザー空間からも実装できるようになりました。 <a href="#fnref1" class="footnote-backref">↩︎</a></p>
+</li>
+</ol>
+</section>
+
+</div> 
+
+<div style="margin-top: 1em">
+    <div class="h-line-primary"></div>
+    
+        <div class="pagination">
+            <div class="pagination-bk"><span></span></div>
+            <div class="pagination-index"><a href="../index.html">目次へ</a></div>
+            <div class="pagination-fd"><a href="debugging.html">次のページへ</a></div>
+        </div>
+    
+</div>
+
+<script>
+    window.onload = detectors();
+</script>
+
+  
+</article>
+        </div>
+      </div>
+      
+      <div class="footer">
+    <div class="flex-container">
+        <div class="footer-text">
+            
+                © 2022 ptr-yudai 🐈
+                <br>
+            
+            
+                
+        </div>
+    </div>
+</div>
+
+    </div>
+
+  </body>
+</html>

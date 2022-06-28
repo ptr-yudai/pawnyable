@@ -1,0 +1,70 @@
+.post-content {
+  margin-top: $margin-l-1;
+}
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  margin-top: $margin-l-0;
+  margin-bottom: $margin-m-1;
+}
+blockquote {
+  margin-left: 0;
+  margin-right: 0;
+  margin-top: $margin-m-2;
+  border-left: $margin-s-2 solid $color-text-secondary;
+}
+blockquote p {
+  margin-left: $margin-m-2;
+  margin-top: 0;
+  margin-bottom: 0;
+  margin-right: $margin-m-2;
+  padding-top: $margin-m-0;
+  padding-bottom: $margin-m-0;
+}
+blockquote blockquote {
+  margin-left: $margin-m-2;
+  margin-top: 0;
+  margin-bottom: 0;
+}
+.post-content li {
+  margin-top: $margin-m-0;
+}
+.post-content ol {
+  padding-left: $margin-l-0;
+  margin-left: $margin-m-1;
+  margin-right: $margin-m-1;
+  margin-top: $margin-m-2;
+}
+.post-content ol ol {
+  margin-top: $margin-m-0;
+}
+.post-content ul {
+  padding-left: $margin-l-0;
+  margin-left: $margin-m-1;
+  margin-right: $margin-m-1;
+  margin-top: $margin-m-2;
+}
+.post-content ul ul {
+  margin-top: $margin-m-0;
+}
+.post-content ul li {
+  list-style-type: disc;
+}
+.post-content .task-list {
+  padding-left: 0;
+}
+.post-content .task-list .task-list-item {
+  list-style: none;
+}
+dl dt {
+  padding: $margin-m-0 0;
+}
+dl dt::after {
+  content: " :";
+}
+dl dd {
+  margin: 0;
+}

@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+    <meta name="author" content="ptr-yudai">
+
+
+
+
+
+
+
+<title>Linux Kernel Exploitation | PAWNYABLE!</title>
+
+
+
+    <link rel="icon" href="/favicon.ico">
+
+
+
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=Roboto+Mono&display=swap');
+</style>
+
+
+
+    <!-- stylesheets list from _config.yml -->
+    
+    <link rel="stylesheet" href="/css/style.css">
+    
+
+
+
+
+    <!-- scripts list from _config.yml -->
+    
+    <script src="/js/frame.js"></script>
+    
+
+
+
+
+
+
+
+  <style type="text/css">
+.spoiler {
+  display: inline-flex;
+}
+p.spoiler {
+  display: flex;
+}
+.spoiler a {
+  pointer-events: none;
+}
+.spoiler-blur, .spoiler-blur > * {
+  transition: text-shadow .5s ease;
+}
+.spoiler .spoiler-blur, .spoiler .spoiler-blur > * {
+  color: rgba(0, 0, 0, 0);
+  background-color: rgba(0, 0, 0, 0);
+  text-shadow: 0 0 10px grey;
+  cursor: pointer;
+}
+.spoiler .spoiler-blur:hover, .spoiler .spoiler-blur:hover > * {
+  text-shadow: 0 0 5px grey;
+}
+.spoiler-box, .spoiler-box > * {
+  transition: color .5s ease,
+  background-color .5s ease;
+}
+.spoiler .spoiler-box, .spoiler .spoiler-box > * {
+  color: black;
+  background-color: black;
+  text-shadow: none;
+}</style><meta name="generator" content="Hexo 5.4.0"></head>
+  <body>
+    <div class="mask-border">
+    </div>
+
+    <div class="wrapper">
+
+      <div class="header">
+  <div class="flex-container">
+    <div class="header-inner">
+      <div class="site-brand-container">
+        <a href="/">PAWNYABLE</a>
+      </div>
+      <div id="menu-btn" class="menu-btn" onclick="toggleMenu()">
+        Menu
+      </div>
+      <nav class="site-nav">
+        <ul class="menu-list">
+          
+            
+              <li class="menu-item">
+                <a href="/practice/">Practice</a>
+              </li> 
+                   
+          
+            
+              <li class="menu-item">
+                <a href="/about/">About</a>
+              </li> 
+                   
+          
+        </ul>
+      </nav>
+    </div>
+  </div>
+</div>
+
+
+      <div class="main">
+        <div class="flex-container">
+          <article id="post">
+
+  
+    <div class="post-head">
+    <div class="post-info">
+        <div class="post-title">
+            
+            
+                Linux Kernel Exploitation
+            
+            
+        </div>
+    </div>
+    <div class="h-line-primary"></div>
+    
+</div>
+
+    <div class="post-content">
+    <div class="balloon_l">
+  <div class="faceicon"><img src="img/wolf_normal.png" alt="オオカミくん"></div>
+  <p class="says">
+  この章ではカーネル空間におけるExploit手法、いわゆる権限昇格について勉強します。<br>
+  WindowsのKernel Exploitでも共通のハードウェアセキュリティ機構や権限昇格の手法が登場するから、この章の知識はLinuxに限らず使えるよ。
+  </p>
+</div>
+<ul>
+<li>実行環境とデバッグ方法
+<ul>
+<li><a href="introduction/introduction.html">カーネルexploitへの導入</a></li>
+<li><a href="introduction/debugging.html">gdbによるカーネルのデバッグ</a></li>
+<li><a href="introduction/security.html">セキュリティ機構</a></li>
+<li><a href="introduction/compile-and-transfer.html">コンパイルとexploitの転送</a></li>
+</ul>
+</li>
+<li>カーネルエクスプロイトの基礎（LK01: Holstein）
+<ul>
+<li><a href="LK01/welcome-to-holstein.html">Holsteinモジュールの解析と脆弱性の発火</a></li>
+<li><a href="LK01/stack_overflow.html">Holstein v1: Stack Overflowの悪用</a></li>
+<li><a href="LK01/heap_overflow.html">Holstein v2: Heap Overflowの悪用</a></li>
+<li><a href="LK01/use_after_free.html">Holstein v3: Use-after-Freeの悪用</a></li>
+<li><a href="LK01/race_condition.html">Holstein v4: Race Conditionの悪用</a></li>
+</ul>
+</li>
+<li>カーネル空間特有の攻撃
+<ul>
+<li><a href="LK02/null_ptr_deref.html">NULL Pointer Dereference (LK02: Angus)</a></li>
+<li><a href="LK03/double_fetch.html">Double Fetch (LK03: Dexter)</a></li>
+<li><a href="LK04/uffd.html">userfaultfdの利用 (LK04: Fleckvieh)</a></li>
+<li><a href="LK04/fuse.html">FUSEの利用 (LK04: Fleckvieh) (工事中)</a></li>
+<li><a href="#">脆弱なmmap実装の悪用 (LK0?: Highland) (工事中)</a></li>
+<li><a href="#">eBPFとJIT (LK0?: Brahman) (工事中)</a></li>
+</ul>
+</li>
+<li>その他の脆弱性
+<ul>
+<li><a href="#">参照カウンタ (LK0?: Simmental) (工事中)</a></li>
+<li><a href="#">サイドチャネル攻撃 (LK0?: Charolai) (工事中)</a></li>
+</ul>
+</li>
+<li>付録
+<ul>
+<li><a href="appendix/buildroot.html">buildrootによるカーネルのビルド (工事中)</a></li>
+</ul>
+</li>
+</ul>
+<div class="column" title="講師プロフィール">
+  <div style="overflow: hidden">
+    <div style="float: left; margin-right: 1em;" class="faceicon">
+      <img src="img/wolf_suyasuya.png" alt="オオカミくん">
+    </div>
+    <div style="float: left;">
+      <b>オオカミくん</b><br>
+      動物界ではOS開発の第一人者。基本寝ている。<br>
+      好きなもの：牛 / Linux<br>
+      苦手なもの：ハイエナ / Windows
+    </div>
+  </div>
+</div>
+
+</div> 
+
+<div style="margin-top: 1em">
+    <div class="h-line-primary"></div>
+    
+</div>
+
+<script>
+    window.onload = detectors();
+</script>
+
+  
+</article>
+        </div>
+      </div>
+      
+      <div class="footer">
+    <div class="flex-container">
+        <div class="footer-text">
+            
+                © 2022 ptr-yudai 🐈
+                <br>
+            
+            
+                
+        </div>
+    </div>
+</div>
+
+    </div>
+
+  </body>
+</html>

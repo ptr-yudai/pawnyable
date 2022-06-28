@@ -1,0 +1,64 @@
+/*
+   
+   Orginal Style from ethanschoonover.com/solarized (c) Jeremy Hull <sourdrums@gmail.com>
+   
+*/
+.highlight {
+  background: #002b36;
+  color: #839496;
+}
+.highlight .code .comment,
+.highlight .code .quote {
+  color: #586e75;
+}
+.highlight .code .keyword,
+.highlight .code .selector-tag,
+.highlight .code .addition {
+  color: #859900;
+}
+.highlight .code .number,
+.highlight .code .string,
+.highlight .code .meta .meta-string,
+.highlight .code .literal,
+.highlight .code .doctag,
+.highlight .code .regexp {
+  color: #2aa198;
+}
+.highlight .code .title,
+.highlight .code .section,
+.highlight .code .name,
+.highlight .code .selector-id,
+.highlight .code .selector-class {
+  color: #268bd2;
+}
+.highlight .code .attribute,
+.highlight .code .attr,
+.highlight .code .variable,
+.highlight .code .template-variable,
+.highlight .code .class .title,
+.highlight .code .type {
+  color: #b58900;
+}
+.highlight .code .symbol,
+.highlight .code .bullet,
+.highlight .code .subst,
+.highlight .code .meta,
+.highlight .code .meta .keyword,
+.highlight .code .selector-attr,
+.highlight .code .selector-pseudo,
+.highlight .code .link {
+  color: #cb4b16;
+}
+.highlight .code .built_in,
+.highlight .code .deletion {
+  color: #dc322f;
+}
+.highlight .code .formula {
+  background: #073642;
+}
+.highlight .code .emphasis {
+  font-style: italic;
+}
+.highlight .code .strong {
+  font-weight: bold;
+}

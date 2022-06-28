@@ -1,0 +1,51 @@
+.highlight {
+  color: #4d4d4c;
+  background: #fff;
+}
+.highlight .code .comment,
+.highlight .code .quote {
+  color: #8e908c;
+}
+.highlight .code .variable,
+.highlight .code .template-variable,
+.highlight .code .tag,
+.highlight .code .name,
+.highlight .code .selector-id,
+.highlight .code .selector-class,
+.highlight .code .regexp,
+.highlight .code .deletion {
+  color: #c82829;
+}
+.highlight .code .number,
+.highlight .code .built_in,
+.highlight .code .builtin-name,
+.highlight .code .literal,
+.highlight .code .type,
+.highlight .code .params,
+.highlight .code .meta,
+.highlight .code .link {
+  color: #f5871f;
+}
+.highlight .code .attribute {
+  color: #eab700;
+}
+.highlight .code .string,
+.highlight .code .symbol,
+.highlight .code .bullet,
+.highlight .code .addition {
+  color: #718c00;
+}
+.highlight .code .title,
+.highlight .code .section {
+  color: #4271ae;
+}
+.highlight .code .keyword,
+.highlight .code .selector-tag {
+  color: #8959a8;
+}
+.highlight .code .emphasis {
+  font-style: italic;
+}
+.highlight .code .strong {
+  font-weight: bold;
+}

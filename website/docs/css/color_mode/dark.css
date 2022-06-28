@@ -1,0 +1,63 @@
+.highlight {
+  background: #474949;
+  color: #d1d9e1;
+}
+.highlight .code .comment,
+.highlight .code .quote {
+  color: #969896;
+  font-style: italic;
+}
+.highlight .code .keyword,
+.highlight .code .selector-tag,
+.highlight .code .literal,
+.highlight .code .type,
+.highlight .code .addition {
+  color: #c9c;
+}
+.highlight .code .number,
+.highlight .code .selector-attr,
+.highlight .code .selector-pseudo {
+  color: #f99157;
+}
+.highlight .code .string,
+.highlight .code .doctag,
+.highlight .code .regexp {
+  color: #8abeb7;
+}
+.highlight .code .title,
+.highlight .code .name,
+.highlight .code .section,
+.highlight .code .built_in {
+  color: #b5bd68;
+}
+.highlight .code .variable,
+.highlight .code .template-variable,
+.highlight .code .selector-id,
+.highlight .code .class .title {
+  color: #fc6;
+}
+.highlight .code .section,
+.highlight .code .name,
+.highlight .code .strong {
+  font-weight: bold;
+}
+.highlight .code .symbol,
+.highlight .code .bullet,
+.highlight .code .subst,
+.highlight .code .meta,
+.highlight .code .link {
+  color: #f99157;
+}
+.highlight .code .deletion {
+  color: #dc322f;
+}
+.highlight .code .formula {
+  background: #eee8d5;
+}
+.highlight .code .attr,
+.highlight .code .attribute {
+  color: #81a2be;
+}
+.highlight .code .emphasis {
+  font-style: italic;
+}
