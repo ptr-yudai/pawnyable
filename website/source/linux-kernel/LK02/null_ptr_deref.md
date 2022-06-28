@@ -5,6 +5,10 @@ tags:
     - [Kernel]
     - [NULL Pointer Dereference]
 lang: ja
+
+pagination: true
+bk: ../LK01/race_condition.html
+fd: ../LK03/double_fetch.html
 ---
 Kernel Exploitに必要な知識のほとんどはLK01で既に説明が完了しているので、ここからはカーネル空間特有の攻撃手法やLinuxカーネルに搭載された機能に対する攻撃などの細かい内容になります。
 LK02(Angus)ではカーネル空間におけるNULL Pointer Dereferenceの悪用方法について学びます。まず[練習問題LK02](distfiles/LK02.tar.gz)のファイルをダウンロードしてください。

@@ -5,6 +5,9 @@ tags:
     - [Linux]
     - [Kernel]
 lang: ja
+
+pagination: true
+fd: debugging.html
 ---
 「ユーザーランドのpwnは一通り勉強したけど、カーネルからは難しそうで手が出ない」という方は多いでしょう。しかし実はカーネルexploitは場合によっては非常に攻撃が簡単です。
 この節では、ユーザーランドexploitとカーネルexploitとの違い、環境構築などについて説明します。

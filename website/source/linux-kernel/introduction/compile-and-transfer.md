@@ -5,6 +5,10 @@ tags:
     - [Linux]
     - [Kernel]
 lang: ja
+
+pagination: true
+bk: security.html
+fd: ../LK01/welcome-to-holstein.html
 ---
 カーネルの起動方法、デバッグ方法、そしてセキュリティなど、Kernel Exploitを始めるのに必要な知識は完璧に習得しました。ここからは、実際にexploitをどのように書いていくのかと、書いたexploitをどうやってqemu上で動かすかを学びます。
 

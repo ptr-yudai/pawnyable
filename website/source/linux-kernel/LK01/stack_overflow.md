@@ -11,6 +11,10 @@ tags:
     - [KPTI]
     - [KASLR]
 lang: ja
+
+pagination: true
+bk: welcome-to-holstein.html
+fd: heap_overflow.html
 ---
 前節ではHolsteinモジュールにStack Overflowを見つけ、脆弱性を利用してRIPを取れることを確認しました。この節ではこれをLPEに繋げる方法と、さまざまなセキュリティ機構を回避する方法を学びます。
 

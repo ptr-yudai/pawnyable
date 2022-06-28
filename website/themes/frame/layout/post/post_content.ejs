@@ -2,6 +2,17 @@
     <%-page.content%>
 </div> 
 
+<div style="margin-top: 1em">
+    <div class="h-line-primary"></div>
+    <% if (page.pagination) { %>
+        <div class="pagination">
+            <div class="pagination-bk"><% if (page.bk) { %><a href="<%= page.bk %>">前のページへ</a><% } else { %><span></span><% } %></div>
+            <div class="pagination-index"><a href="../index.html">目次へ</a></div>
+            <div class="pagination-fd"><% if (page.fd) { %><a href="<%= page.fd %>">次のページへ</a><% } %></div>
+        </div>
+    <% } %>
+</div>
+
 <script>
     window.onload = detectors();
 </script>

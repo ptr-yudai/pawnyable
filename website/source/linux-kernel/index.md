@@ -5,7 +5,7 @@ title: Linux Kernel Exploitation
 <div class="balloon_l">
   <div class="faceicon"><img src="img/wolf_normal.png" alt="オオカミくん" ></div>
   <p class="says">
-  この章を担当するオオカミです。この章ではカーネル空間におけるExploit手法、いわゆる権限昇格について勉強していきましょう。<br>
+  この章ではカーネル空間におけるExploit手法、いわゆる権限昇格について勉強します。<br>
   WindowsのKernel Exploitでも共通のハードウェアセキュリティ機構や権限昇格の手法が登場するから、この章の知識はLinuxに限らず使えるよ。
   </p>
 </div>
@@ -25,14 +25,14 @@ title: Linux Kernel Exploitation
   - [NULL Pointer Dereference (LK02: Angus)](LK02/null_ptr_deref.html)
   - [Double Fetch (LK03: Dexter)](LK03/double_fetch.html)
   - [userfaultfdの利用 (LK04: Fleckvieh)](LK04/uffd.html)
-  - [FUSEの利用 (LK04: Fleckvieh)](LK04/fuse.html)
+  - [FUSEの利用 (LK04: Fleckvieh) (工事中)](LK04/fuse.html)
   - [脆弱なmmap実装の悪用 (LK0?: Highland) (工事中)](#)
   - [eBPFとJIT (LK0?: Brahman) (工事中)](#)
 - その他の脆弱性
   - [参照カウンタ (LK0?: Simmental) (工事中)](#)
   - [サイドチャネル攻撃 (LK0?: Charolai) (工事中)](#)
 - 付録
-  - [buildrootによるカーネルのビルド](appendix/buildroot.html)
+  - [buildrootによるカーネルのビルド (工事中)](appendix/buildroot.html)
 
 <div class="column" title="講師プロフィール">
   <div style="overflow: hidden">

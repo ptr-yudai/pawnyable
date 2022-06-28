@@ -13,6 +13,10 @@ tags:
     - [current_task]
     - [cred]
 lang: ja
+
+pagination: true
+bk: stack_overflow.html
+fd: use_after_free.html
 ---
 前章ではHolsteinモジュールのStack Overflowを悪用して権限昇格をしました。Holsteinモジュールの開発者はすぐさま脆弱性を修正し、Holstein v2を公開しました。本章では、改善されたHolsteinモジュールv2をexploitしていきます。
 

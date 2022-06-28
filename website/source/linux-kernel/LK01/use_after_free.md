@@ -5,6 +5,10 @@ tags:
     - [Kernel]
     - [Use-after-Free]
 lang: ja
+
+pagination: true
+bk: heap_overflow.html
+fd: race_condition.html
 ---
 前章ではHolsteinモジュールのHeap Overflowを悪用して権限昇格をしました。またもやHolsteinモジュールの開発者は脆弱性を修正し、Holstein v3を公開しました。本章では、改善されたHolsteinモジュールv3をexploitしていきます。
 

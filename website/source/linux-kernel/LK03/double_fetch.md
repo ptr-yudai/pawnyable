@@ -8,6 +8,10 @@ tags:
     - [seq_operations]
     - [Stack Pivot]
 lang: ja
+
+pagination: true
+bk: ../LK02/null_ptr_deref.html
+fd: ../LK04/uffd.html
 ---
 LK03(Dexter)ではDouble Fetchと呼ばれる脆弱性について学びます。まず[練習問題LK03](distfiles/LK03.tar.gz)のファイルをダウンロードしてください。
 

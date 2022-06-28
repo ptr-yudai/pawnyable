@@ -7,6 +7,9 @@ tags:
     - [Data Race]
     - [userfaultfd]
 lang: ja
+
+pagination: true
+bk: ../LK03/double_fetch.html
 ---
 LK04(Fleckvieh)では、LK01-4(Holstein v4)で学んだものと同様のRace Conditionを、より厳しい条件で扱います。まず[練習問題LK04](distfiles/LK04.tar.gz)のファイルをダウンロードしてください。
 

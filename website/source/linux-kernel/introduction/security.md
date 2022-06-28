@@ -11,6 +11,10 @@ tags:
     - [KPTI]
     - [KAISER]
 lang: ja
+
+pagination: true
+bk: debugging.html
+fd: compile-and-transfer.html
 ---
 カーネルexploitへの緩和策として、Linuxカーネルにはセキュリティ機構がいくつか存在します。ユーザーランドで登場したNXのように、ハードウェアレベルでのセキュリティ機構も存在するため、いくつかの知識はWindowsのカーネルexploitにもそのまま適用できます。
 

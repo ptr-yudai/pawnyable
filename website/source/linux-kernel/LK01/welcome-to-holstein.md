@@ -5,6 +5,10 @@ tags:
     - [Kernel]
     - [Stack Overflow]
 lang: ja
+
+pagination: true
+bk: ../introduction/compile-and-transfer.html
+fd: stack_overflow.html
 ---
 LK01(Holstein)の章ではKernel Exploitの基礎的な攻撃手法について学びます。導入の章でLK01をダウンロードしていない方は、まず[練習問題LK01](distfiles/LK01.tar.gz)のファイルをダウンロードしてください。
 

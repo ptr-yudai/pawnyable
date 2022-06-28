@@ -5,6 +5,10 @@ tags:
     - [Linux]
     - [Kernel]
 lang: ja
+
+pagination: true
+bk: introduction.html
+fd: security.html
 ---
 カーネルexploitに入門しにくい大きな原因が、デバッグ方法がよく分からないという点です。
 この節ではgdbを使ってqemu上で動くLinuxカーネルをデバッグする方法を学びます。
