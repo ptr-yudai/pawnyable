@@ -2,7 +2,7 @@
 
 <p align="center"><img src="/docs/pawnyable.png" width="480px" alt="Pawnyable"></p>
 
-[Pawnyable](https://pwnyable.cafe/) is a practical text-book of Binary Exploitation for intermediate/professional pwners.
+[Pawnyable](https://pawnyable.cafe/) is a practical text-book of Binary Exploitation for intermediate/professional pwners.
 
 ## Chapters
 Only few part of the website is finished. This will be a digital Sagrada Família.
