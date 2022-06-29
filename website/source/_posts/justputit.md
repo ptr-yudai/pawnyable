@@ -1,4 +1,5 @@
 ---
-title: Hello World
+title: Easter Egg!
 ---
-Just put this file here and then Hexo will work fine.
+You found me!
+(Just put this file here and then Hexo will work fine somehow.)
