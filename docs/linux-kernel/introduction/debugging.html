@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
 <meta name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+<meta name="og:url" content="https://pawnyable.cafe/">
+<meta name="og:title" content="PAWNYABLE!">
+<meta name="og:image" content="/pawnyable.png">
+<meta name="og:description" content="もふもふpwn">
+<meta name="og:type" content="website">
+
 <meta http-equiv="X-UA-Compatible" content="ie=edge">
 
     <meta name="author" content="ptr-yudai">
@@ -157,7 +163,7 @@ p.spoiler {
 </div>
 <h2><span id="root権限の取得">root権限の取得</span></h2>
 <p>手元でKernel Exploitをデバッグする際、一般ユーザー権限だと不自由なことが多いです。特にカーネルやカーネルドライバの処理にブレークポイントを設定したり、リークしたアドレスが何の関数のアドレスかを調べたりする際、root権限がないとカーネル空間のアドレス情報を取得できません。<br>
-Kernel Exploitをデバッグする際はまずroot権限を取得しましょう。この節の内容は前章の例題の(2)と同じですので、既に解いた方は確認程度に読み流してください。</p>
+Kernel Exploitをデバッグする際は、まずroot権限を取得しましょう。この節の内容は前章の例題の(2)と同じですので、既に解いた方は確認程度に読み流してください。</p>
 <p>カーネルが起動すると最初に1つのプログラムが実行されます。このプログラムは設定によりパスは様々ですが、多くの場合<code>/init</code>や<code>/sbin/init</code>等に存在します。LK01の<code>rootfs.cpio</code>を展開すると、<code>/init</code>が存在します。</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#!/bin/sh</span></span><br><span class="line"><span class="comment"># devtmpfs does not get automounted for initramfs</span></span><br><span class="line">/bin/mount -t devtmpfs devtmpfs /dev</span><br><span class="line"></span><br><span class="line"><span class="comment"># use the /dev/console device node from devtmpfs if possible to not</span></span><br><span class="line"><span class="comment"># confuse glibc&#x27;s ttyname_r().</span></span><br><span class="line"><span class="comment"># This may fail (E.G. booted with console=), and errors from exec will</span></span><br><span class="line"><span class="comment"># terminate the shell, so use a subshell for the test</span></span><br><span class="line"><span class="keyword">if</span> (<span class="built_in">exec</span> 0&lt;/dev/console) 2&gt;/dev/null; <span class="keyword">then</span></span><br><span class="line">    <span class="built_in">exec</span> 0&lt;/dev/console</span><br><span class="line">    <span class="built_in">exec</span> 1&gt;/dev/console</span><br><span class="line">    <span class="built_in">exec</span> 2&gt;/dev/console</span><br><span class="line"><span class="keyword">fi</span></span><br><span class="line"></span><br><span class="line"><span class="built_in">exec</span> /sbin/init <span class="string">&quot;<span class="variable">$@</span>&quot;</span></span><br></pre></td></tr></table></figure>
 <p>ここには特に重要な処理は書かれていませんが、<code>/sbin/init</code>を実行しています。なお、CTFなどで配布されるような小さい環境では<code>/init</code>に直接、ドライバをインストールしたりシェルを起動したりといった処理が書かれている場合があります。実際、最後の<code>exec</code>の行の前に<code>/bin/sh</code>と書けばカーネル起動時にroot権限でシェルを起動できます。ただし、ドライバのインストールなど他の必要な初期化処理が実行されませんので、今回はこのファイルは書き換えません。<br>
@@ -184,7 +190,7 @@ Kernel Exploitをデバッグする際はまずroot権限を取得しましょ�
 <p><code>/proc/kallsyms</code>というprocfsを通して、Linuxカーネル中で定義されたアドレスとシンボルの一覧を見られます。<a href="security.html#kadr-kernel-address-display-restriction">次章のKADRの節</a>でも説明しますが、セキュリティ機構によりカーネルのアドレスはroot権限でも見えないことがあります。<br>
 <a href="#root%E6%A8%A9%E9%99%90%E3%81%AE%E5%8F%96%E5%BE%97">root権限取得の節</a>で既にやりましたが、初期化スクリプトの以下の行をコメントアウトするのを忘れないでください。これをしないとカーネル空間のポインタが見えなくなります。</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">echo</span> 2 &gt; /proc/sys/kernel/kptr_restrict     <span class="comment"># 変更前</span></span><br><span class="line"><span class="comment">#echo 2 &gt; /proc/sys/kernel/kptr_restrict    # 変更後</span></span><br></pre></td></tr></table></figure>
-<p>さて、では実際に<code>kallsyms</code>を見てみましょう。量が膨大なのでheadなどで先頭だけ見てみます。</p>
+<p>さて、実際に<code>kallsyms</code>を見てみましょう。量が膨大なのでheadなどで先頭だけ見てみます。</p>
 <center>
   <img src="img/kallsyms_head.png" alt="/proc/kallsymsの先頭" style="width:480px;">
 </center>
@@ -200,7 +206,7 @@ Kernel Exploitをデバッグする際はまずroot権限を取得しましょ�
 <center>
   <img src="img/commit_creds_rdi.png" alt="commit_credsでのメモリの確認" style="width:620px;">
 </center>
-<p>このように、カーネル空間でもユーザー空間と同じようにgdbのコマンドが利用可能です。pwndbg等の拡張機能も使えますが、もちろんカーネル空間向けに書かれた拡張機能でなければうまく動かないので注意してください。<br>
+<p>このように、カーネル空間でもユーザー空間と同じようにgdbのコマンドが利用可能です。pwndbg等の拡張機能も使えますが、もちろんカーネル空間向けに書かれた拡張機能でなければ動かないので注意してください。<br>
 カーネルのデバッグ用の機能が<a target="_blank" rel="noopener" href="https://github.com/bata24/gef">搭載されたデバッガ</a>などもあるので、みなさんが好みのデバッガを使ってください。</p>
 <h2><span id="ドライバのデバッグ">ドライバのデバッグ</span></h2>
 <p>次にカーネルモジュールをデバッグしてみましょう。<br>

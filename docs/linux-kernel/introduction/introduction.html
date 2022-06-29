@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
 <meta name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+<meta name="og:url" content="https://pawnyable.cafe/">
+<meta name="og:title" content="PAWNYABLE!">
+<meta name="og:image" content="/pawnyable.png">
+<meta name="og:description" content="もふもふpwn">
+<meta name="og:type" content="website">
+
 <meta http-equiv="X-UA-Compatible" content="ie=edge">
 
     <meta name="author" content="ptr-yudai">
@@ -141,7 +147,7 @@ p.spoiler {
 </div>
 
     <div class="post-content">
-    <p>「ユーザーランドのpwnは一通り勉強したけど、カーネルからは難しそうで手が出ない」という方は多いでしょう。しかし実はカーネルexploitは場合によっては非常に攻撃が簡単です。<br>
+    <p>「ユーザーランドのpwnは一通り勉強したけど、カーネルからは難しそうで手が出ない」という方は多いでしょう。しかし、実はカーネルexploitでは、場合によってはとても攻撃が簡単です。<br>
 この節では、ユーザーランドexploitとカーネルexploitとの違い、環境構築などについて説明します。</p>
 <div class="column" title="目次">
 <!-- toc -->
@@ -164,21 +170,21 @@ p.spoiler {
 <p>まず始めにユーザーランドと比べてカーネル空間の脆弱性にはどんな特徴があるかを知っておきましょう。</p>
 <h3><span id="攻撃対象">攻撃対象</span></h3>
 <p>ユーザーランドexploitとカーネルexploitの最も大きな違いはその目的にあります。<br>
-これまで説明したユーザーランドexploitでは多くの場合「任意コマンド実行」という目標に向けてexploitを書きました。一方で、カーネルexploitでは「権限昇格」に向けてexploitを書きます。カーネルexploitは、何らかの手段で攻撃対象のマシンに侵入できた仮定で、さらにroot権限を取得するための攻撃です。この権限昇格のことを<strong>LPE</strong>(Local Privilege Escalation)と呼びます。</p>
-<p>ユーザーランドexploitでももちろん権限昇格できる脆弱性もありますが、それは攻撃対象のプログラムが特権ユーザーで動作しているからです。カーネルexploitの場合、攻撃対象は主に2つあります。</p>
+これまで説明したユーザーランドexploitでは多くの場合「任意コマンド実行」という目標に向けてexploitを書きました。一方で、カーネルexploitでは一般的に「権限昇格」に向けてexploitを書きます。何らかの手段で攻撃対象のマシンに侵入できた仮定で、攻撃者はカーネルexploitを利用してさらにroot権限を取得します<sup class="footnote-ref"><a href="#fn1" id="fnref1">[1]</a></sup>。このように、ローカルマシンでの権限昇格を<strong>LPE</strong>(Local Privilege Escalation)と呼びます。<br>
+もちろん、ユーザーランドで権限昇格できる脆弱性もありますが、それは攻撃対象のプログラムが特権ユーザーで動作しているからです。カーネルexploitの場合、攻撃対象は主に次の2つがあります。</p>
 <ol>
 <li>Linuxカーネル</li>
 <li>カーネルモジュール</li>
 </ol>
-<p>Linuxカーネル中のコードは必ずroot権限で動作しているため、カーネルそのものにバグがある場合LPEに繋がる可能性があります。<br>
-もう1つはデバイスドライバなどのカーネルモジュールに含まれる脆弱性です。デバイスドライバは、ユーザー空間から主に外部機器（プリンタなど）とのやりとりを簡単にするためのインタフェースです。デバイスドライバも必ずroot権限で動作している<sup class="footnote-ref"><a href="#fn1" id="fnref1">[1]</a></sup>ので、バグがある場合LPEに繋がります。</p>
+<p>Linuxカーネル中のコード（システムコールやファイルシステム）はroot権限で動作しているため、カーネルそのものにバグがある場合LPEに繋がる可能性があります。<br>
+もう1つはデバイスドライバなどのカーネルモジュールに含まれる脆弱性です。デバイスドライバは、ユーザー空間から、主に外部機器（プリンタなど）とのやりとりを簡単にするためのインタフェースです。デバイスドライバも必ずroot権限で動作している<sup class="footnote-ref"><a href="#fn2" id="fnref2">[2]</a></sup>ので、バグがある場合LPEに繋がります。</p>
 <h3><span id="攻撃方法">攻撃方法</span></h3>
-<p>通常ユーザーランドexploitの場合、特定のサービスに対して入力を与えることでexploitしました。そのためPythonなどの言語でexploitを書くのが主流です。<br>
-一方カーネルexploitの場合、対象はOSやドライバです。これらは低レイヤのため、C言語などでexploitを書くのが主流です。もちろんPythonなどでも書けますが、そもそも攻撃対象のマシン（特にCTFや実験環境で用意されるような小さいLinux）の上にPythonが存在することが少ないため、動かない可能性が高いです。</p>
+<p>ユーザーランドexploitの場合、通常は攻撃対象のサービスに入力を与えることでexploitしました。そのため、Pythonなどの言語でexploitを書くのが主流です。<br>
+一方で、カーネルexploitの場合は対象がOSやドライバです。これらの操作は低レイヤのため、C言語などでexploitを書くのが主流です。もちろんPythonなどでも書けますが、そもそも攻撃対象のマシン（特にCTFや実験環境で用意されるような小さいLinux）の上にPythonが存在することが少ないため、動かない可能性が高いです。</p>
 <p>このサイトでもexploitをC言語で記述します。詳しい話は別の節で出てきますが、<a target="_blank" rel="noopener" href="https://www.musl-libc.org/">musl-gcc</a>というコンパイラを使います。</p>
 <h3><span id="リソースの共有">リソースの共有</span></h3>
-<p>もう1つの特徴は、リソースが共有されているという点です。<br>
-ユーザーランドでは通常、攻撃対象のプロセスが1つ存在し、そのプロセスをexploitすることでシェルを取るなどしました。一方で、Linuxカーネルやデバイスドライバといったプログラムはユーザー全員に共有されています。システムコールは誰でも自由なタイミングで使うことが可能ですし、デバイスドライバも誰がいつ操作するかわかりません。つまり、ドライバを書く際は常にマルチスレッドのつもりでプログラミングしなければ簡単に脆弱性を埋め込んでしまいます。</p>
+<p>カーネルexploitのもう1つの特徴は、リソースが共有されているという点です。<br>
+ユーザーランドでは通常、攻撃対象のプロセスが1つ存在し、そのプロセスをexploitすることで、シェルを取るなどの攻撃をしました。一方で、Linuxカーネルやデバイスドライバといったプログラムは、OSを利用するすべてのプロセスに共有されています。システムコールは誰でも自由なタイミングで使うことが可能ですし、デバイスドライバも誰がいつ操作するかわかりません。つまり、カーネル空間で動くコードを書く際は、常にマルチスレッドのつもりでプログラミングしなければ簡単に脆弱性を埋め込んでしまいます。</p>
 <div class="balloon_l">
   <div class="faceicon"><img src="../img/wolf_atamawaru.png" alt="オオカミくん"></div>
   <p class="says">
@@ -186,9 +192,9 @@ p.spoiler {
   </p>
 </div>
 <h3><span id="ヒープ領域の共有">ヒープ領域の共有</span></h3>
-<p>さらに、カーネルのヒープは全ドライバやカーネルで共有されているという大きな特徴があります。<br>
-これまでユーザーランドのexploitでは、プログラムごとにヒープがあるため、そのプログラムでHeap Overflowが起きたからといってexploitableかはプログラム依存でした。しかし、例えばデバイスドライバで1回ヒープオーバーフローが起きると、他のデバイスドライバやLinuxカーネルがヒープに確保した周辺のデータまで汚染されてしまいます。<br>
-攻撃者の観点からすると、この特徴には長所と短所があります。長所は、ヒープ周りの小さな脆弱性でもLPEに繋がる可能性が非常に高いという点です。例えば関数ポインタを持つオブジェクトはLinuxカーネルにたくさん存在するので、そのどれかを利用してRIPが簡単に取れるわけです。一方で短所は、全プログラムの影響を受けるためヒープの状態が予測できないという点です。ユーザーランドのプログラムは簡単なものであれば、入力に対してヒープの状態が決定的だったので、複雑なヒープexploit（俗に言うHouse of XXXなど）が可能でした。一方カーネルではHeap Overflowが発生するチャンクの後ろにどんなデータが来るかや、Use-after-Freeでfreeされた後に誰がそのアドレスを使うかはわかりません。</p>
+<p>さらに、カーネルのヒープ領域は全ドライバやカーネルで共有されているという大きな特徴があります。<br>
+これまでユーザーランドのexploitでは、プログラムごとにヒープがあるため、そのプログラムでHeap Overflowが起きたからといってexploitableかはプログラム依存でした。しかし、例えばデバイスドライバで1回ヒープオーバーフローが起きると、他のデバイスドライバやLinuxカーネルがヒープに確保した周辺のデータまで汚染されてしまいます。</p>
+<p>攻撃者の観点からすると、この特徴には長所と短所があります。長所は、ヒープ周りの小さな脆弱性でもLPEに繋がる可能性が非常に高いという点です。例えば関数ポインタを持つオブジェクトはLinuxカーネルにたくさん存在するので、そのどれかを利用してRIPが簡単に取れるわけです。短所は、全プログラムの影響を受けるためヒープの状態が予測できないという点です。ユーザーランドのプログラムは簡単なものであれば、入力に対してヒープの状態が決定的だったので、複雑なヒープexploit（俗に言うHouse of XXXなど）が可能でした。一方で、カーネルではHeap Overflowが発生するチャンクの後ろにどんなデータが存在するかや、Use-after-Freeでfreeされた後に誰がそのアドレスを使うかはわかりません。</p>
 <div class="balloon_l">
   <div class="faceicon"><img src="../img/wolf_normal.png" alt="オオカミくん"></div>
   <p class="says">
@@ -197,7 +203,7 @@ p.spoiler {
 </div>
 <p>脆弱性自体はユーザーランドのものと大きく変わりません。Stack OverflowやUse-after-Freeなどはカーネルランドにも存在し得ます。また、デバイスドライバのスタックにもセキュリティ機構としてStack Canaryを置くことができます。ただし、カーネル空間特有の脆弱性というのもあるので、それは後の節で登場します。</p>
 <h2><span id="qemuの利用">qemuの利用</span></h2>
-<p>Linuxカーネルexploitを書くときはデバッグのためにエミュレータの上でカーネルを動かします。VMなら何でも構いませんが、qemuが一般的なのでこのサイトでもqemuを利用します。</p>
+<p>Linuxカーネルexploitを書くときは、デバッグのためにエミュレータの上でカーネルを動かします。VMなら何でも構いませんが、qemuが一般的なのでこのサイトでもqemuを利用します。</p>
 <p>読者の方は自分の環境に合わせてqemu-systemをインストールしておいてください。</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># apt install qemu-system</span><br></pre></td></tr></table></figure>
 <h2><span id="ディスクイメージ">ディスクイメージ</span></h2>
@@ -210,7 +216,7 @@ cpioコマンドを使って次のようにファイルを展開します。</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"># mkdir root</span><br><span class="line"># cd root; cpio -idv &lt; ../rootfs.cpio</span><br></pre></td></tr></table></figure>
 <p>ファイルを追加したり編集したら、次のように再びcpioファイルにまとめます。</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># find . -print0 | cpio -o --format=newc --null &gt; ../rootfs_updated.cpio</span><br></pre></td></tr></table></figure>
-<p>cpioがさらにgzで圧縮されている場合もあるので、そのような際は適宜展開・再圧縮してください。</p>
+<p>cpioがさらにgzで圧縮されている場合もあるので、その際は適宜展開・再圧縮してください。</p>
 <hr>
 <div class="column" title="例題">
   <a href="../LK01/distfiles/LK01.tar.gz">練習問題LK01</a>のファイルをダウンロードして以下の操作を実行しましょう。<br>
@@ -220,7 +226,9 @@ cpioコマンドを使って次のようにファイルを展開します。</p>
 <hr class="footnotes-sep">
 <section class="footnotes">
 <ol class="footnotes-list">
-<li id="fn1" class="footnote-item"><p>ファイルシステムやキャラクタデバイスは通常カーネルモジュールで実装されますが、<a target="_blank" rel="noopener" href="https://lwn.net/Articles/796674/">FUSE</a>や<a target="_blank" rel="noopener" href="https://lwn.net/Articles/308445/">CUSE</a>といった機能の登場により、ユーザー空間からも実装できるようになりました。 <a href="#fnref1" class="footnote-backref">↩︎</a></p>
+<li id="fn1" class="footnote-item"><p>SMBGhostのように、プロトコル・スタックの実装不備などを利用して、マシン外部からカーネルexploitをする非常に高度な攻撃もあります。 <a href="#fnref1" class="footnote-backref">↩︎</a></p>
+</li>
+<li id="fn2" class="footnote-item"><p>ファイルシステムやキャラクタデバイスは通常カーネルモジュールで実装されますが、<a target="_blank" rel="noopener" href="https://lwn.net/Articles/796674/">FUSE</a>や<a target="_blank" rel="noopener" href="https://lwn.net/Articles/308445/">CUSE</a>といった機能の登場により、ユーザー空間からも実装できるようになりました。 <a href="#fnref2" class="footnote-backref">↩︎</a></p>
 </li>
 </ol>
 </section>

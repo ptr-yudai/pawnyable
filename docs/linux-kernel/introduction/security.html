@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
 <meta name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+<meta name="og:url" content="https://pawnyable.cafe/">
+<meta name="og:title" content="PAWNYABLE!">
+<meta name="og:image" content="/pawnyable.png">
+<meta name="og:description" content="もふもふpwn">
+<meta name="og:type" content="website">
+
 <meta http-equiv="X-UA-Compatible" content="ie=edge">
 
     <meta name="author" content="ptr-yudai">
@@ -177,18 +183,19 @@ SMEPはカーネル空間のコードを実行中に、突然ユーザー空間�
 <h2><span id="smap-supervisor-mode-access-prevention">SMAP (Supervisor Mode Access Prevention)</span></h2>
 <p>ユーザー空間からカーネル空間のメモリを読み書きできないのはセキュリティ上当たり前ですが、実はカーネル空間からユーザー空間のメモリを読み書きできなくする<strong>SMAP</strong>(Supervisor Mode Access Prevention)というセキュリティ機構が存在します。カーネル空間からユーザー空間のデータを読み書きするには、<a target="_blank" rel="noopener" href="https://www.kernel.org/doc/htmldocs/kernel-api/API---copy-from-user.html"><code>copy_from_user</code></a>, <a target="_blank" rel="noopener" href="https://www.kernel.org/doc/htmldocs/kernel-api/API---copy-to-user.html"><code>copy_to_user</code></a>という関数を使う必要があります。<br>
 しかし、なぜ高い権限のカーネル空間から低い権限のユーザー空間のデータを読み書きできなくするのでしょうか。</p>
-<p>私は歴史的な経緯については知りませんが、SMAPによる恩恵は主に2つあると考えます。</p>
+<p>歴史的な経緯については知りませんが、SMAPによる恩恵は主に2つあると考えられます。</p>
 <p>まず1つ目が、Stack Pivotの防止です。<br>
 SMEPで出した例ではRIPを制御できてもシェルコードは実行できなくなりました。しかし、Linuxカーネルは非常に膨大な量の機械語を持っているため、次のようなROP gadgetが必ず存在します。</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mov esp, 0x12345678; ret;</span><br></pre></td></tr></table></figure>
-<p>ESPに入る値が何であれ、このROP gadgetが呼ばれるとRSPはその値に変更されます<sup class="footnote-ref"><a href="#fn1" id="fnref1">[1]</a></sup>。一方、このような低いアドレスはユーザーランドから<code>mmap</code>で確保可能ですので、SMEPが有効でも攻撃者はRIPを取るだけで次のようにROP chainを実行できます。</p>
+<p>ESPに入る値が何であれ、このROP gadgetが呼ばれるとRSPはその値に変更されます<sup class="footnote-ref"><a href="#fn1" id="fnref1">[1]</a></sup>。一方、このような低いアドレスはユーザーランドから<code>mmap</code>で確保可能ですので、SMEPが有効でも攻撃者はRIPを取るだけで、次のようにROP chainを実行できます。</p>
 <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">void</span> *p = mmap(<span class="number">0x12340000</span>, <span class="number">0x10000</span>, ...);</span><br><span class="line"><span class="keyword">unsigned</span> <span class="keyword">long</span> *chain = (<span class="keyword">unsigned</span> <span class="keyword">long</span>*)(p + <span class="number">0x5678</span>);</span><br><span class="line">*chain++ = rop_pop_rdi;</span><br><span class="line">*chain++ = <span class="number">0</span>;</span><br><span class="line">*chain++ = ...;</span><br><span class="line">...</span><br><span class="line"></span><br><span class="line">control_rip(rop_mov_esp_12345678h);</span><br></pre></td></tr></table></figure>
-<p>もしSMAPが有効なら、ユーザー空間でmmapしたデータはカーネル空間から見えませんので、stack pivotの後のretの瞬間にカーネルパニックを起こします。<br>
-このように、SMEPに加えてSMAPが有効になることで攻撃者がROPを実行するのを困難にできます。</p>
-<p>SMAPによる2つ目の恩恵が、カーネルプログラミングで頻出するバグの防止です。<br>
-これにはデバイスドライバなどのプログラマが頻繁に起こしてしまうカーネル特有のバグが関係します。<code>ioctl</code>というシステムコールでユーザー空間からデバイスドライバとデータをやり取りできるのですが、ドライバが次のようなコードを書いたとしましょう。</p>
+<p>もしSMAPが有効なら、ユーザー空間でmmapしたデータ（ROP chain）はカーネル空間から見られないので、stack pivotの<code>ret</code>命令でカーネルパニックを起こします。<br>
+このように、SMEPに加えてSMAPが有効になることで、ROPによる攻撃を緩和できます。</p>
+<p>SMAPによる2つ目の恩恵が、カーネルプログラミングで起こしやすいバグの防止です。<br>
+これにはデバイスドライバなどのプログラマが起こしてしまうカーネル特有のバグが関係します。ドライバが次のようなコードを書いたとしましょう。（今は関数定義の意味は分からなくて構いません。）</p>
 <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">char</span> buffer[<span class="number">0x10</span>];</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">long</span> <span class="title">mydevice_ioctl</span><span class="params">(struct file *filp, <span class="keyword">unsigned</span> <span class="keyword">int</span> cmd, <span class="keyword">unsigned</span> <span class="keyword">long</span> arg)</span> </span>&#123;</span><br><span class="line">  <span class="keyword">if</span> (cmd == <span class="number">0xdead</span>) &#123;</span><br><span class="line">    <span class="built_in">memcpy</span>(buffer, arg, <span class="number">0x10</span>);</span><br><span class="line">  &#125; <span class="keyword">else</span> <span class="keyword">if</span> (cmd == <span class="number">0xcafe</span>) &#123;</span><br><span class="line">    <span class="built_in">memcpy</span>(arg, buffer, <span class="number">0x10</span>);</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">return</span> </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>このデバイスドライバはユーザー空間から次のように利用すると、0x10バイトのデータを記憶してくれます。</p>
+<p><code>memcpy</code>で<code>buffer</code>というグローバル変数にデータを読み書きしていることがイメージできるかと思います。</p>
+<p>このモジュールはユーザー空間から次のように利用すると、0x10バイトのデータを記憶してくれます。</p>
 <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">int</span> fd = open(<span class="string">&quot;/dev/mydevice&quot;</span>, O_RDWR);</span><br><span class="line"></span><br><span class="line"><span class="keyword">char</span> src[<span class="number">0x10</span>] = <span class="string">&quot;Hello, World!&quot;</span>;</span><br><span class="line"><span class="keyword">char</span> dst[<span class="number">0x10</span>];</span><br><span class="line"></span><br><span class="line">ioctl(fd, <span class="number">0xdead</span>, src);</span><br><span class="line">ioctl(fd, <span class="number">0xcafe</span>, dst);</span><br><span class="line"></span><br><span class="line"><span class="built_in">printf</span>(<span class="string">&quot;%s\n&quot;</span>, dst); <span class="comment">// --&gt; Hello, World!</span></span><br></pre></td></tr></table></figure>
 <p>ユーザー空間のプログラミングに慣れていると何ということはありません。<code>memcpy</code>のサイズも固定で、特に問題は無いように思えます。</p>
 <p>しかし、もしSMAPが無効だと、次のような呼び出しも許されてしまいます。</p>
@@ -211,9 +218,9 @@ SMEPで出した例ではRIPを制御できてもシェルコードは実行で�
 <h2><span id="kaslr-fgkaslr">KASLR / FGKASLR</span></h2>
 <p>ユーザー空間ではアドレスをランダム化するASLR(Address Space Layout Randomization)が存在しました。これと同様に、Linuxカーネルやデバイスドライバのコード・データ領域のアドレスをランダム化する<strong>KASLR</strong>(Kernel ASLR)という緩和機構も存在します。<br>
 カーネルは一度ロードされたら移動しませんので、KASLRは起動時に1度だけ働きます。何か1つでもLinuxカーネル中の関数やデータのアドレスをリークできれば、ベースアドレスが求まります。</p>
-<p><a target="_blank" rel="noopener" href="https://lwn.net/Articles/824307/">2020年に入ってから</a><strong>FGKASLR</strong>(Function Granular KASLR)と呼ばれるさらに強いKASLRが登場しました。2021年現在はデフォルトで無効なようですが、これはLinuxカーネルの関数ごとにアドレスをランダム化するという技術です。たとえLinuxカーネル中の関数のアドレスがリークできても、ベースアドレスは求まりません。<br>
+<p><a target="_blank" rel="noopener" href="https://lwn.net/Articles/824307/">2020年に入ってから</a><strong>FGKASLR</strong>(Function Granular KASLR)と呼ばれるさらに強いKASLRが登場しました。2022年現在はデフォルトで無効なようですが、これはLinuxカーネルの関数ごとにアドレスをランダム化するという技術です。たとえLinuxカーネル中の関数のアドレスがリークできても、ベースアドレスは求まりません。<br>
 しかし、FGKASLRはデータセクションなどはランダム化しませんので、データのアドレスをリークできればベースアドレスが求まります。もっともベースアドレスから特定の関数のアドレスを求めることもできませんが、後々登場する特殊な攻撃ベクタには利用可能です。</p>
-<p>アドレスはカーネル空間で共通という点に注意してください。たとえあるデバイスドライバがKASLRのおかげでexploit不可能だとしても、何か別のデバイスドライバがカーネルのアドレスをリークしてしまうと、そのアドレスはすべてに適用できます。</p>
+<p>アドレスはカーネル空間で共通という点に注意してください。たとえあるデバイスドライバがKASLRのおかげでexploit不可能だとしても、別のドライバがカーネルのアドレスをリークしてしまうと、アドレスは共通なのでexploit可能になります。</p>
 <p>KASLRはカーネルの起動時引数で無効化できます。qemuの<code>-append</code>オプションに<code>nokaslr</code>と付いていればKASLRは無効化されています</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">-append &quot;... nokaslr ...&quot;</span><br></pre></td></tr></table></figure>
 <h2><span id="kpti-kernel-page-table-isolation">KPTI (Kernel Page-Table Isolation)</span></h2>

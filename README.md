@@ -16,7 +16,7 @@ Only few part of the website is finished. This will be a digital Sagrada Famíli
 
 ## Local Test
 Pawnyable works on Hexo.
-Run the following command in [/website](website) and open http://localhost:4444/ to see the website on your local machine.
+Run the following command in [/website](website) and open http://localhost:4000/ to see the website on your local machine.
 ```
 $ hexo serve
 ```
