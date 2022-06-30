@@ -18,11 +18,12 @@ Only few part of the website is finished. This will be a digital Sagrada Famíli
 Pawnyable works on Hexo.
 Run the following command in [/website](website) and open http://localhost:4000/ to see the website on your local machine.
 ```
-$ hexo serve
+$ npm i
+$ hexo s
 ```
 You can generate the static files by the following command:
 ```
-$ hexo generate
+$ hexo g
 ```
 
 ## Contribution
