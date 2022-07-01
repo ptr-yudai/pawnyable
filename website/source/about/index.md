@@ -26,5 +26,5 @@ PawnyableはBinary Exploitation (pwnable)を学習するための中級者向け
   - Linux Userland章の追加（ひよこ）
   - 多言語対応
 
-記事はGitHubでオープンソースにしています。
+記事は[GitHub](https://github.com/ptr-yudai/pawnyable)でオープンソースにしています。
 細かい文章の校正から章・例題の追加まで、PRを受け付けています。

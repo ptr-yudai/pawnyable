@@ -159,6 +159,8 @@ FUSEで実装したファイルを`mmap`で`MAP_POPULATE`なしでメモリに�
   <img src="img/fuse_uafr.png" alt="FUSEによるUse-after-Free" style="width:720px;">
 </center>
 
+userfaultfdのときとの違いは、ページフォルト発生時にFUSE経由でハンドラが呼ばれるという点だけです。実際に、これを使ってRaceを安定化させてみましょう。
+
 
 
 ---
