@@ -9,6 +9,7 @@ tags:
 lang: ja
 
 pagination: true
+fd: fuse.html
 bk: ../LK03/double_fetch.html
 ---
 LK04(Fleckvieh)では、LK01-4(Holstein v4)で学んだものと同様のRace Conditionを、より厳しい条件で扱います。まず[練習問題LK04](distfiles/LK04.tar.gz)のファイルをダウンロードしてください。
@@ -38,7 +39,7 @@ static int module_open(struct inode *inode, struct file *filp) {
 ほとんどの場合片方しか通らない条件分岐（セキュリティチェックやメモリ不足の確認）などにおいて、どちらの分岐に通りやすいかをコンパイラに教えられます。正しい予測で`likely`, `unlikely`マクロを使えば、何度も通るような条件分岐では実行速度の向上に繋がります。
 
 <div class="balloon_l">
-  <div class="faceicon"><img src="../img/wolf_suyasua.png" alt="オオカミくん" ></div>
+  <div class="faceicon"><img src="../img/wolf_suyasuya.png" alt="オオカミくん" ></div>
   <p class="says">
     コンパイラにヒントを与えると、よく通るパスほど命令数や分岐回数を減らしてくれるよ。
     このあたりの話はCPUの分岐予測とも関わるから、気になる人は調べてみてね。
@@ -316,6 +317,11 @@ Use-after-Freeが目的なので、上記のような関数で処理を止めて
 同じ原理で`blob_set`を呼べばUAFによるオブジェクトの書き換えも可能です。コードを書いてUAFを確認してみましょう。
 
 ```c
+cpu_set_t pwn_cpu;
+
+int victim;
+char *buf;
+
 static void* fault_handler_thread(void *arg) {
   static struct uffd_msg msg;
   struct uffdio_copy copy;
@@ -385,7 +391,7 @@ int main() {
   CPU_SET(0, &pwn_cpu);
   if (sched_setaffinity(0, sizeof(cpu_set_t), &pwn_cpu))
     fatal("sched_setaffinity");
-
+    
   fd = open("/dev/fleckvieh", O_RDWR);
   if (fd == -1) fatal("/dev/fleckvieh");
 
@@ -479,6 +485,12 @@ RIPが制御できていれば成功です。あとは各自で権限昇格ま�
 サンプルのexploitコードは[ここ](exploit/fleckvieh_uffd.c)からダウンロードできます。
 
 ---
+
+<div class="column" title="例題">
+  今回はRaceを安定化させる目的のみでuserfaultfdを使いました。
+  一方で、ページをまたいでデータを配置すると、構造体の特定のメンバの読み書きで処理を止めることができます。
+  この手法を利用してexploitできるような状況について考察してみましょう。
+</div>
 
 [^1]: 初回アクセス時にページフォルトを発生させたいので`MAP_POPULATE`を付けていません。
 [^2]: 直接`printf`すると、`printf`関数内でフォルトが発生してハンドラ中の`puts`や`printf`とバッファリングのデッドロックが発生してプログラムが停止するので注意しましょう。カーネルexploitの文脈では、カーネル空間からフォルトを発生されるので気にする必要はありません。
