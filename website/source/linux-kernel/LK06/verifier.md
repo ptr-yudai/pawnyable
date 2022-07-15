@@ -8,10 +8,10 @@ tags:
 lang: ja
 
 pagination: true
-fd: verifier.html
-bk: jit_bug.html
+fd: jit_bug.html
+bk: ebpf.html
 ---
-LK06(Brahman)では、Linuxカーネルの機能の1つである、eBPFに含まれるJITのバグを攻撃します。この章では、まずBPFという機能と、その使い方について学びます。
+LK06(Brahman)では、Linuxカーネルの機能の1つである、eBPFに含まれる検証器のバグを攻撃します。この章では、まずBPFという機能と、その使い方について学びます。
 
 <div class="column" title="目次">
 <!-- toc --><br>
@@ -24,10 +24,12 @@ LK06(Brahman)では、Linuxカーネルの機能の1つである、eBPFに含ま
 一段階目のチェックでは、深さ優先探索によってプログラムが有向非巡回グラフ（DAG; Directed Acyclic Graph）であることを保証します。DAGとはループを持たない有向グラフのことです。
 このチェックにより、次のようなプログラムは拒否されます。
 
-- `BPF_MAXINSNS`を超える命令が存在する場合
+- `BPF_MAXINSNS`を超える命令が存在する場合[^1]
 - ループフローが存在する場合
 - 到達不可能な命令が存在する場合
 - 範囲外、あるいは不正なジャンプが存在する場合
+
+[^1]: 命令数については、他のチェックがある`check_cfg`以前にチェックされています。
 
 二段階目のチェックでは、あらためてすべてのパスを探索します。このとき、レジスタの値に対して型や範囲を追跡します。
 このチェックにより、例えば次のようなプログラムは拒否されます。
@@ -37,10 +39,98 @@ LK06(Brahman)では、Linuxカーネルの機能の1つである、eBPFに含ま
 - 不正なポインタの読み書き
 
 ### 一段階目のチェック
+DAGのチェックは[`check_cfg`](https://elixir.bootlin.com/linux/v5.18.11/source/kernel/bpf/verifier.c#L10186)関数に実装されています。アルゴリズム自体は、再帰呼出を使わない深さ優先探索です。
+`check_cfg`はプログラムの先頭から深さ優先探索の要領で命令を見ていきます。現在見ている命令に対して[`visit_insn`](https://elixir.bootlin.com/linux/v5.18.11/source/kernel/bpf/verifier.c#L10121)が呼ばれ、この関数で分岐先がスタックにpushされます。探索用スタックへのpushは[`push_insn`](https://elixir.bootlin.com/linux/v5.18.11/source/kernel/bpf/verifier.c#L10044)で定義されており、この中に範囲外へのジャンプと閉路検出が含まれています。
+```c
+	if (w < 0 || w >= env->prog->len) {
+		verbose_linfo(env, t, "%d: ", t);
+		verbose(env, "jump out of range from insn %d to %d\n", t, w);
+		return -EINVAL;
+	}
+...
 
+	} else if ((insn_state[w] & 0xF0) == DISCOVERED) {
+		if (loop_ok && env->bpf_capable)
+			return DONE_EXPLORING;
+		verbose_linfo(env, t, "%d: ", t);
+		verbose_linfo(env, w, "%d: ", w);
+		verbose(env, "back-edge from insn %d to %d\n", t, w);
+		return -EINVAL;
+```
+なお、`visit_insn`は1回につき、必ず1つのパスしかpushしません。（あるいは`DONE_EXPLORING`でその命令の分岐先がすべて探索終了したことを知らせます。）例えば`BPF_JEQ`のように条件分岐がある場合、`visit_insn`は最初の分岐先のみをpushします。深さ優先探索なので、その分岐先の探索がすべて終了すると、また`BPF_JEQ`に戻ってきます。すると`BPF_JEQ`に対して再度`visit_insn`が呼ばれ、今度はもう一方の分岐先がpushされます。さらにそちらの探索が終了すると、`BPF_JEQ`に対して3回目の`visit_insn`が呼ばれ、そこで`DONE_EXPLORING`が返され、`BPF_JEQ`がスタックからpopされます。
+
+<div class="balloon_l">
+  <div class="faceicon"><img src="../img/wolf_normal.png" alt="オオカミくん" ></div>
+  <p class="says">
+    条件分岐で一度に両方のパスをpushしなかったり、命令を取り出すときにpopしなかったり、一見非効率的に見えるけど、異常を検知したときに綺麗なスタックトレースを出力するための工夫なんだね。
+  </p>
+</div>
+
+例えば次のようなプログラムはすべて一段階目のチェック機構により拒否されます。
+```c
+// 到達不能な命令がある
+struct bpf_insn insns[] = {
+  BPF_EXIT_INSN(),
+  BPF_MOV64_IMM(BPF_REG_0, 0),
+  BPF_EXIT_INSN(),
+};
+```
+
+```c
+// 範囲外へのジャンプがある
+struct bpf_insn insns[] = {
+  BPF_JMP_IMM(BPF_JA, 0, 0, 2),
+  BPF_MOV64_IMM(BPF_REG_0, 0),
+  BPF_EXIT_INSN(),
+};
+```
+
+```c
+// ループがある
+struct bpf_insn insns[] = {
+  BPF_JMP_IMM(BPF_JEQ, BPF_REG_0, 123, -1), // jmp if r0 != 123
+  BPF_MOV64_IMM(BPF_REG_0, 0),
+  BPF_EXIT_INSN(),
+};
+```
+
+たとえ負の方向へのジャンプがあっても、ループしていなければ問題ありません。
+```c
+struct bpf_insn insns[] = {
+  BPF_MOV64_IMM(BPF_REG_0, 0),
+  BPF_JMP_IMM(BPF_JA, 0, 0, 1), // jmp to JEQ
+  BPF_JMP_IMM(BPF_JA, 0, 0, 1), // jmp to MOV64
+  BPF_JMP_IMM(BPF_JEQ, BPF_REG_0, 0, -2), // jmp to JA(1) if R0==0
+  BPF_EXIT_INSN(),
+};
+```
 
 ### 二段階目のチェック
-二段階目のチェックではレジスタに型をつけ、また定数の範囲を追跡します。
+eBPFにおける検証器のバグでもっとも重要になるのは、二段階目のチェックです。
+二段階目のチェックは主に[`do_check`](https://elixir.bootlin.com/linux/v5.18.11/source/kernel/bpf/verifier.c#L11450)関数で定義されており、レジスタの型、値の範囲、具体的な値やオフセットを追跡します。
+
+#### 型の追跡
+検証器はレジスタの値がどのような種類の値かを[`bpf_reg_state`構造体](https://elixir.bootlin.com/linux/v5.18.11/source/include/linux/bpf_verifier.h#L46)で保持しています。例えば次のような命令を考えましょう。
+```
+BPF_MOV64_REG(BPF_REG_0, BPF_REG_10)
+BPF_ALU64_IMM(BPF_ADD, BPF_REG_0, -8)
+```
+最初の命令ではスタックポインタを`R0`に代入しています。このとき、`R0`は`PTR_TO_STACK`という型になります。次の命令では`R0`から8だけ引かれますが、まだスタックの範囲内を指しているため、`PTR_TO_STACK`のままです。他にも、ポインタとポインタの足し算は定数扱いになるなど、命令の種類とレジスタの型、値の範囲などに応じて、新しい型は変わります。
+レジスタの型（[`enum bpf_reg_type`](https://elixir.bootlin.com/linux/v5.18.11/source/include/linux/bpf.h#L493)）としては、例えば以下のような型が定義されています。
+
+| 型 | 意味 |
+|:-:|:-:|
+| `NOT_INIT` | 未初期化 |
+| `SCALAR_VALUE` | 定数など一般的な値 |
+| `PTR_TO_CTX` | コンテキスト（BPFプログラムの呼出引数）へのポインタ |
+| `CONST_PTR_TO_MAP` | BPFマップへのポインタ |
+| `PTR_TO_MAP_VALUE` | BPFマップの値へのポインタ |
+| `PTR_TO_MAP_KEY` | | BPFマップのキーへのポインタ |
+| `PTR_TO_STACK` | BPFスタックへのポインタ |
+| `PTR_TO_MEM` | 有効なメモリ領域へのポインタ |
+| `PTR_TO_FUNC` | BPF関数へのポインタ |
+
+レジスタの初期状態は[`init_reg_state`](https://elixir.bootlin.com/linux/v5.18.11/source/kernel/bpf/verifier.c#L1570)関数で定義されます。
 
 #### 定数の追跡
 検証器ではレジスタの定数を追跡しています。値は区間を使った抽象化で追跡されます。つまり、各レジスタについて、その時点でレジスタが取り得る「最小値」と「最大値」を記録しています。
@@ -56,16 +146,6 @@ LK06(Brahman)では、Linuxカーネルの機能の1つである、eBPFに含ま
   </p>
 </div>
 
-
-
-#### 型の変化
-検証器はレジスタの値がどのような種類の値かを保持しています。例えば次のような命令を考えましょう。
-```
-BPF_MOV64_REG(BPF_REG_0, BPF_REG_10)
-BPF_ALU64_IMM(BPF_ADD, BPF_REG_0, -8)
-```
-最初の命令ではスタックポインタを`R0`に代入しています。このとき、`R0`は`FRAME_PTR`という型になります。次の命令では`R0`から8だけ引かれますが、まだスタックの範囲内を指しているため、`PTR_TO_STACK`となります。
-他にもポインタとポインタの足し算は定数扱いになったり、命令の種類とレジスタの型、値の範囲などに応じて、新しい型は変わります。
 
 
 ## JIT
