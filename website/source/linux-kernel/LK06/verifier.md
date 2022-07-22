@@ -66,7 +66,7 @@ DAGのチェックは[`check_cfg`](https://elixir.bootlin.com/linux/v5.18.11/sou
   </p>
 </div>
 
-例えば次のようなプログラムはすべて一段階目のチェック機構により拒否されます。
+例えば、次のようなプログラムはすべて一段階目のチェック機構により拒否されます。
 ```c
 // 到達不能な命令がある
 struct bpf_insn insns[] = {
@@ -125,7 +125,7 @@ BPF_ALU64_IMM(BPF_ADD, BPF_REG_0, -8)
 | `PTR_TO_CTX` | コンテキスト（BPFプログラムの呼出引数）へのポインタ |
 | `CONST_PTR_TO_MAP` | BPFマップへのポインタ |
 | `PTR_TO_MAP_VALUE` | BPFマップの値へのポインタ |
-| `PTR_TO_MAP_KEY` | | BPFマップのキーへのポインタ |
+| `PTR_TO_MAP_KEY` | BPFマップのキーへのポインタ |
 | `PTR_TO_STACK` | BPFスタックへのポインタ |
 | `PTR_TO_MEM` | 有効なメモリ領域へのポインタ |
 | `PTR_TO_FUNC` | BPF関数へのポインタ |
@@ -134,9 +134,8 @@ BPF_ALU64_IMM(BPF_ADD, BPF_REG_0, -8)
 
 #### 定数の追跡
 検証器ではレジスタの定数を追跡しています。値は区間を使った抽象化で追跡されます。つまり、各レジスタについて、その時点でレジスタが取り得る「最小値」と「最大値」を記録しています。
-
-
-
+例えば、`R0 += R1 (BPF_ADD)`の時点で`R0`と`R1`がそれぞれ`[10, 20]`,`[-2, 2]`を取り得る場合、演算（抽象解釈）後の`R0`の値は`[8, 22]`になります。
+演算に関するこの挙動は[`adjust_reg_min_max_vals`関数](https://elixir.bootlin.com/linux/v5.18.11/source/kernel/bpf/verifier.c#L8438)と[`adjust_scalar_min_max_vals`関数](https://elixir.bootlin.com/linux/v5.18.11/source/kernel/bpf/verifier.c#L8277)で定義されています。
 
 <div class="balloon_l">
   <div class="faceicon"><img src="../img/wolf_atamawaru.png" alt="オオカミくん" ></div>
@@ -146,7 +145,109 @@ BPF_ALU64_IMM(BPF_ADD, BPF_REG_0, -8)
   </p>
 </div>
 
+例えば`BPF_ADD`の場合、次のようにレジスタが更新されます。
+```c
+	case BPF_ADD:
+		scalar32_min_max_add(dst_reg, &src_reg);
+		scalar_min_max_add(dst_reg, &src_reg);
+		dst_reg->var_off = tnum_add(dst_reg->var_off, src_reg.var_off);
+		break;
+```
+`scalar_min_max_add`では、次のように整数オーバーフローなども考慮した範囲計算が実装されています。
+```c
+static void scalar_min_max_add(struct bpf_reg_state *dst_reg,
+			       struct bpf_reg_state *src_reg)
+{
+	s64 smin_val = src_reg->smin_value;
+	s64 smax_val = src_reg->smax_value;
+	u64 umin_val = src_reg->umin_value;
+	u64 umax_val = src_reg->umax_value;
 
+	if (signed_add_overflows(dst_reg->smin_value, smin_val) ||
+	    signed_add_overflows(dst_reg->smax_value, smax_val)) {
+		dst_reg->smin_value = S64_MIN;
+		dst_reg->smax_value = S64_MAX;
+	} else {
+		dst_reg->smin_value += smin_val;
+		dst_reg->smax_value += smax_val;
+	}
+	if (dst_reg->umin_value + umin_val < umin_val ||
+	    dst_reg->umax_value + umax_val < umax_val) {
+		dst_reg->umin_value = 0;
+		dst_reg->umax_value = U64_MAX;
+	} else {
+		dst_reg->umin_value += umin_val;
+		dst_reg->umax_value += umax_val;
+	}
+}
+```
+乗除や論理・算術シフトなど、すべての演算に対してこのような更新処理が実装されています。計算した値の範囲は、スタックやコンテキストなどのメモリアクセスにおいて、オフセットが範囲内に収まっているかを確認するのに使われます。
+例えば、スタックの範囲チェックは[`check_stack_access_within_bounds`](https://elixir.bootlin.com/linux/v5.18.11/source/kernel/bpf/verifier.c#L4315)で定義されています。即値の場合など、値が定数と分かっている場合は通常のオフセットチェックをします。
+```c
+	if (tnum_is_const(reg->var_off)) {
+		min_off = reg->var_off.value + off;
+		if (access_size > 0)
+			max_off = min_off + access_size - 1;
+		else
+			max_off = min_off;
+```
+一方で具体的な値がわからない場合は、オフセットが取り得る最小・最大値を確認します。
+```c
+	} else {
+		if (reg->smax_value >= BPF_MAX_VAR_OFF ||
+		    reg->smin_value <= -BPF_MAX_VAR_OFF) {
+			verbose(env, "invalid unbounded variable-offset%s stack R%d\n",
+				err_extra, regno);
+			return -EACCES;
+		}
+		min_off = reg->smin_value + off;
+		if (access_size > 0)
+			max_off = reg->smax_value + off + access_size - 1;
+		else
+			max_off = min_off;
+	}
+```
+そして、それらの値を使って範囲チェックをしています。
+```c
+	err = check_stack_slot_within_bounds(min_off, state, type);
+	if (!err)
+		err = check_stack_slot_within_bounds(max_off, state, type);
+```
+このように、レジスタや変数の値の範囲を追跡する手法は、BPF以外でも、最適化・高速化が要求されるJITで頻繁に使われます。
+
+<div class="balloon_l">
+  <div class="faceicon"><img src="../img/wolf_suyasuya.png" alt="オオカミくん" ></div>
+  <p class="says">
+    実行速度向上のために、できるだけ事前にセキュリティチェックを終わらせているんだね。
+  </p>
+</div>
+
+次のようなプログラムはすべて二段階目のチェック機構により拒否されます。
+```c
+// 未初期化のレジスタの利用
+struct bpf_insn insns[] = {
+  BPF_MOV64_REG(BPF_REG_0, BPF_REG_5),
+  BPF_EXIT_INSN(),
+};
+```
+
+```c
+// カーネル空間のポインタのリーク
+struct bpf_insn insns[] = {
+  BPF_MOV64_REG(BPF_REG_0, BPF_REG_1),
+  BPF_EXIT_INSN(),
+};
+```
+
+```c
+// 範囲外参照の可能性
+struct bpf_insn insns[] = {
+  BPF_MOV64_REG(BPF_REG_0, BPF_REG_1),
+  BPF_EXIT_INSN(),
+};
+```
+
+ここまでの説明の通り、二段階目のチェックではレジスタを追って、メモリアクセスやレジスタ利用時に未定義動作が起きないことを保証しています。逆に言えば、この**チェックが間違っていると、メモリアクセスで範囲外参照を起こせてしまう**わけです。具体的な手法は次の章で説明します。
 
 ## JIT
 

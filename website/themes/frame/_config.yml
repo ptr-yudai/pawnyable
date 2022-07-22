@@ -46,6 +46,8 @@ profile:
     "🐻 Windows Kernel [工事中]": #/windows-kernel/
     "🐼 Browser Exploit [工事中]": #/browser/
     "🐰 VM Escape [工事中]": #/vm-escape/
+    "🦝 Android/iOS Exploit [工事中]": #/phone/
+    "🐯 and more...? [工事中]": #/misc/
 
 # footer
 footer:
