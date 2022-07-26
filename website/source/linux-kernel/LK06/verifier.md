@@ -11,7 +11,7 @@ pagination: true
 fd: jit_bug.html
 bk: ebpf.html
 ---
-LK06(Brahman)では、Linuxカーネルの機能の1つである、eBPFに含まれる検証器のバグを攻撃します。この章では、まずBPFという機能と、その使い方について学びます。
+[前章](ebpf.html)ではeBPFについて学びました。本章では、ユーザーから渡されたBPFプログラムを安全かつ高速に動かすための、検証器とJITについて説明します。
 
 <div class="column" title="目次">
 <!-- toc --><br>
@@ -249,5 +249,27 @@ struct bpf_insn insns[] = {
 
 ここまでの説明の通り、二段階目のチェックではレジスタを追って、メモリアクセスやレジスタ利用時に未定義動作が起きないことを保証しています。逆に言えば、この**チェックが間違っていると、メモリアクセスで範囲外参照を起こせてしまう**わけです。具体的な手法は次の章で説明します。
 
-## JIT
+## JIT (Just-In-Time compiler)
+検証器を通過したBPFプログラムは、どのような入力で実行しても安全であることが（検証器が正しいという仮定の下で）保証されています。したがって、JITコンパイラは与えられた命令をCPUに合った機械語に直接変換することになります。
+CPUごとに機械語は異なるため、JITのコードは`arch`ディレクトリ以下に書かれています。x86-64の場合、[`arch/x86/net/bpf_jit_comp.c`](https://elixir.bootlin.com/linux/v5.18.11/source/arch/x86/net/bpf_jit_comp.c)中の[`do_jit`関数](https://elixir.bootlin.com/linux/v5.18.11/source/arch/x86/net/bpf_jit_comp.c#L875)に記述されています。
+例えば、乗算（`BPF_MUL`）を機械語に変換するコードは以下のようになっています。
+```c
+		case BPF_ALU | BPF_MUL | BPF_X:
+		case BPF_ALU64 | BPF_MUL | BPF_X:
+			maybe_emit_mod(&prog, src_reg, dst_reg,
+				       BPF_CLASS(insn->code) == BPF_ALU64);
 
+			/* imul dst_reg, src_reg */
+			EMIT3(0x0F, 0xAF, add_2reg(0xC0, src_reg, dst_reg));
+			break;
+```
+`0x0F, 0xAF`が`imul`命令に対応する命令コードになります。
+
+<div class="balloon_l">
+  <div class="faceicon"><img src="../img/wolf_atamawaru.png" alt="オオカミくん" ></div>
+  <p class="says">
+    検証器が正しくても、JITで生成されるコードが検証器と違う挙動をしたら、それもexploitableになりそうだね。
+  </p>
+</div>
+
+ここまででexploitに必要なeBPF内部の仕組みを概ね説明しました。次章では、実際に検証器のバグを利用して権限昇格していきます。
