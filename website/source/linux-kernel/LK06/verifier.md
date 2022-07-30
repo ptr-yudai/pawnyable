@@ -8,7 +8,7 @@ tags:
 lang: ja
 
 pagination: true
-fd: jit_bug.html
+fd: exploit.html
 bk: ebpf.html
 ---
 [前章](ebpf.html)ではeBPFについて学びました。本章では、ユーザーから渡されたBPFプログラムを安全かつ高速に動かすための、検証器とJITについて説明します。
@@ -249,15 +249,59 @@ struct bpf_insn insns[] = {
 };
 ```
 
+抽象化された値が定数にならない例を考えてみましょう。
 ```c
-// 範囲外参照の可能性
+int mapfd = map_create(0x10, 1);
+
 struct bpf_insn insns[] = {
-  BPF_MOV64_REG(BPF_REG_0, BPF_REG_1),
+  BPF_ST_MEM(BPF_DW, BPF_REG_FP, -0x08, 0),      // key=0
+  // arg1: mapfd
+  BPF_LD_MAP_FD(BPF_REG_ARG1, mapfd),
+  // arg2: key pointer
+  BPF_MOV64_REG(BPF_REG_ARG2, BPF_REG_FP),
+  BPF_ALU64_IMM(BPF_ADD, BPF_REG_ARG2, -8),
+  // map_lookup_elem(mapfd, &key)
+  BPF_EMIT_CALL(BPF_FUNC_map_lookup_elem),
+  // jmp if success (R0 != NULL)
+  BPF_JMP_IMM(BPF_JNE, BPF_REG_0, 0, 1),
+  BPF_EXIT_INSN(), // exit on failure
+
+  BPF_LDX_MEM(BPF_DW, BPF_REG_6, BPF_REG_0, 0),   // R6 = arr[0]
+  BPF_MOV64_REG(BPF_REG_7, BPF_REG_0),            // R7 = &arr[0]
+
+  BPF_ALU64_IMM(BPF_AND, BPF_REG_6, 0b0111),    // R6 &= 0b0111
+  BPF_ALU64_REG(BPF_ADD, BPF_REG_7, BPF_REG_6), // R7 += R6
+  BPF_LDX_MEM(BPF_DW, BPF_REG_0, BPF_REG_7, 0), // R0 = [R7]
   BPF_EXIT_INSN(),
 };
 ```
+まず、値のサイズが0x10のBPFマップを用意しています。BPFプログラムの最初のブロックでは、BPFマップの先頭の値と、そのポインタをそれぞれ`R6`, `R7`に代入します。（`map_lookup_elem`の戻り値`R0`は、第二引数のインデックスで指定した要素へのポインタです。NULLを返す可能性があるため、条件分岐でNULLを除去しています。）
+最後のブロックでポインタ`R7`に`R6`の値を加算しています。`R6`はBPFマップから取ってきた値なので任意の値を取れます。しかし、`BPF_AND`で0b0111とandを取っているため、この時点で`R6`の取り得る値は[0, 7]になります。今回BPFマップ値のサイズは0x10にしてあるため、値のポインタの先頭から7足して、そこから`BPF_LDX_MEM(BPF_DW)`で8バイト取得しても問題ありません。そのため、このBPFプログラムは検証器を通過できます。
+しかし、`BPF_AND`の値を0b1111などにすると、検証器がプログラムを拒否することが分かります。
+```
+...
+11: (0f) r7 += r6
+ R0=map_value(id=0,off=0,ks=4,vs=16,imm=0) R6_w=invP(id=0,umax_value=15,var_off=(0x0; 0xf)) R7_w=map_value(id=0,off=0,ks=4,vs=16,umax_value=15,var_off=(0x0; 0xf)) R10=fp0 fp-8=mmmmmmmm
+12: R0=map_value(id=0,off=0,ks=4,vs=16,imm=0) R6_w=invP(id=0,umax_value=15,var_off=(0x0; 0xf)) R7_w=map_value(id=0,off=0,ks=4,vs=16,umax_value=15,var_off=(0x0; 0xf)) R10=fp0 fp-8=mmmmmmmm
+12: (79) r0 = *(u64 *)(r7 +0)
+ R0_w=map_value(id=0,off=0,ks=4,vs=16,imm=0) R6_w=invP(id=0,umax_value=15,var_off=(0x0; 0xf)) R7_w=map_value(id=0,off=0,ks=4,vs=16,umax_value=15,var_off=(0x0; 0xf)) R10=fp0 fp-8=mmmmmmmm
+invalid access to map value, value_size=16 off=15 size=8
+R7 max value is outside of the allowed memory range
+processed 12 insns (limit 1000000) max_states_per_insn 0 total_states 1 peak_states 1 mark_read 1
 
-ここまでの説明の通り、二段階目のチェックではレジスタを追って、メモリアクセスやレジスタ利用時に未定義動作が起きないことを保証しています。逆に言えば、この**チェックが間違っていると、メモリアクセスで範囲外参照を起こせてしまう**わけです。具体的な手法は次の章で説明します。
+bpf(BPF_PROG_LOAD): Permission denied
+```
+値のサイズが16なのに、最大オフセットは15で、そこから8バイト取得しようとしているため、範囲外参照が起きるためです。
+また、一部の命令は値の追跡をサポートしていません。例えば`BPF_NEG`を通ると必ずunboundになるため、次のプログラムは（実際には問題ないですが）検証器に拒否されます。
+```
+  BPF_ALU64_IMM(BPF_AND, BPF_REG_6, 0b0111),    // R6 &= 0b0111
+  BPF_ALU64_IMM(BPF_NEG, BPF_REG_6, 0),         // R6 = -R6 (追加)
+  BPF_ALU64_IMM(BPF_NEG, BPF_REG_6, 0),         // R6 = -R6 (追加)
+  BPF_ALU64_REG(BPF_ADD, BPF_REG_7, BPF_REG_6), // R7 += R6
+  BPF_LDX_MEM(BPF_DW, BPF_REG_0, BPF_REG_7, 0), // R0 = [R7]
+```
+
+このように、二段階目のチェックではレジスタを追って、メモリアクセスやレジスタ利用時に未定義動作が起きないことを保証しています。逆に言えば、この**チェックが間違っていると、メモリアクセスで範囲外参照を起こせてしまう**わけです。具体的な手法は次の章で説明します。
 
 ## JIT (Just-In-Time compiler)
 検証器を通過したBPFプログラムは、どのような入力で実行しても安全であることが（検証器が正しいという仮定の下で）保証されています。したがって、JITコンパイラは与えられた命令をCPUに合った機械語に直接変換することになります。
