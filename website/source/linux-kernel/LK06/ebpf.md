@@ -312,7 +312,7 @@ int map_lookup(int mapfd, int key, void *pval) {
     // arg4: flags
     BPF_MOV64_IMM(BPF_REG_ARG4, 0),
 
-    BPF_EMIT_CALL(BPF_FUNC_map_update_elem), // map_lookup_elem(mapfd, &k, &v)
+    BPF_EMIT_CALL(BPF_FUNC_map_update_elem), // map_update_elem(mapfd, &k, &v)
 
     BPF_MOV64_IMM(BPF_REG_0, 0),
     BPF_EXIT_INSN(),
