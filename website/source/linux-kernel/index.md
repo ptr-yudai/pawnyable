@@ -26,14 +26,13 @@ title: Linux Kernel Exploitation
   - [Double Fetch (LK03: Dexter)](LK03/double_fetch.html)
   - [userfaultfdの利用 (LK04: Fleckvieh)](LK04/uffd.html)
   - [FUSEの利用 (LK04: Fleckvieh)](LK04/fuse.html)
-  - [脆弱なmmap実装の悪用 (LK0?: Highland) (工事中)](#)
+  - [脆弱なmmap実装の悪用 (LK05: Highland) (工事中)](#)
 - eBPFとJITコンパイラ (LK06: Brahman)
   - [BPFの導入](LK06/ebpf.html)
-  - [検証器とJITコンパイラ (工事中)](LK06/verifier.html)
-  - [JITのバグの悪用 (工事中)](LK06/jit_bug.html)
-- その他の脆弱性
-  - [参照カウンタ (LK0?: Simmental) (工事中)](#)
-  - [サイドチャネル攻撃 (LK0?: Charolai) (工事中)](#)
+  - [検証器とJITコンパイラ](LK06/verifier.html)
+  - [eBPFのバグの悪用 (工事中)](LK06/exploit.html)
+- UEFIアプリケーション（LK07: ???）
+- TrustZoneとTEE（LK08: ???）
 - 付録
   - [buildrootによるカーネルのビルド (工事中)](appendix/buildroot.html)
 
