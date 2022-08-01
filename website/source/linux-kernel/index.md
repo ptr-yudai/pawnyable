@@ -30,7 +30,7 @@ title: Linux Kernel Exploitation
 - eBPFとJITコンパイラ (LK06: Brahman)
   - [BPFの導入](LK06/ebpf.html)
   - [検証器とJITコンパイラ](LK06/verifier.html)
-  - [eBPFのバグの悪用 (工事中)](LK06/exploit.html)
+  - [eBPFのバグの悪用](LK06/exploit.html)
 - UEFIアプリケーション（LK07: ???）
 - TrustZoneとTEE（LK08: ???）
 - 付録

@@ -403,7 +403,7 @@ R14: 00000000cafebabe
 では、カーネル空間で任意アドレス読み書きがあるとき、何ができるのでしょうか？
 
 ### modprobe\_pathとcore\_pattern
-Linuxカーネルに何かしらの処理の以来があったとき、カーネルからユーザー空間のプログラムを起動させたいことがあります。このようなとき、Linuxでは[`call_usermodehelper`](https://elixir.bootlin.com/linux/v5.15/source/kernel/umh.c#L474)という関数が使われます。`call_usermodehelper`が使われる処理はいくつかありますが、ユーザー空間から特権なしで呼び出せる代表的なパスとして、`modprobe_path`と`core_pattern`があります。
+Linuxカーネルに何かしらの処理の依頼があったとき、カーネルからユーザー空間のプログラムを起動させたいことがあります。このようなとき、Linuxでは[`call_usermodehelper`](https://elixir.bootlin.com/linux/v5.15/source/kernel/umh.c#L474)という関数が使われます。`call_usermodehelper`が使われる処理はいくつかありますが、ユーザー空間から特権なしで呼び出せる代表的なパスとして、`modprobe_path`と`core_pattern`があります。
 
 [`modprobe_path`](https://elixir.bootlin.com/linux/v5.15/source/kernel/kmod.c#L61)は[`__request_module`](https://elixir.bootlin.com/linux/v5.15/source/kernel/kmod.c#L170)という関数から呼び出されるコマンド文字列で、書き換え可能領域に存在します。
 Linuxには実行ファイル形式が複数共存しており、実行権限のあるファイルが実行されるとファイルの先頭のバイト列などから形式を判別します。標準ではELFファイルとshebangが登録されているのですが、このように登録されている形式にマッチしない不明な実行ファイルが呼び出されようとしたとき、`__request_module`が使われます。`modprobe_path`には標準で`/sbin/modprobe`が書かれており、これを書き換えた上で不正な形式の実行ファイルを起動しようとすると、任意のコマンドが実行できます。

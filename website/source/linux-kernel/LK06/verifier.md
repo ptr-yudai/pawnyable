@@ -35,7 +35,8 @@ bk: ebpf.html
 このチェックにより、例えば次のようなプログラムは拒否されます。
 
 - 未初期化レジスタの利用
-- スタックやMAPへのポインタのreturn
+- カーネル空間のポインタのreturn
+- カーネル空間のポインタをBPFマップへ書込
 - 不正なポインタの読み書き
 
 ### 一段階目のチェック
@@ -116,6 +117,7 @@ BPF_MOV64_REG(BPF_REG_0, BPF_REG_10)
 BPF_ALU64_IMM(BPF_ADD, BPF_REG_0, -8)
 ```
 最初の命令ではスタックポインタを`R0`に代入しています。このとき、`R0`は`PTR_TO_STACK`という型になります。次の命令では`R0`から8だけ引かれますが、まだスタックの範囲内を指しているため、`PTR_TO_STACK`のままです。他にも、ポインタとポインタの足し算は定数扱いになるなど、命令の種類とレジスタの型、値の範囲などに応じて、新しい型は変わります。
+型の追跡は、不正なプログラムを調べる上で必須です。例えばスカラー値をポインタとしてメモリからデータをロード・ストアできてしまうと、任意アドレス読み書きになってしまいます。また、コンテキストを受け取るヘルパー関数にBPFマップなど自由に操作できるポインタを指定できてしまうと、偽のコンテキストを使わせることができます。
 レジスタの型（[`enum bpf_reg_type`](https://elixir.bootlin.com/linux/v5.18.11/source/include/linux/bpf.h#L493)）としては、例えば以下のような型が定義されています。
 
 | 型 | 意味 |
@@ -155,7 +157,23 @@ BPF_ALU64_IMM(BPF_ADD, BPF_REG_0, -8)
 | `s32_min_value`, `s32_max_value` | 32-bitの符号付き整数として解釈したときの最小・最大値 |
 | `var_off` | レジスタ中の各ビットの情報（具体的な値が判明しているビット） |
 
-例えば`BPF_ADD`の場合、次のようにレジスタが更新されます。
+`var_off`は`tnum`と呼ばれる構造体で、`mask`と`value`を持ちます。`mask`は値が不明なビットの場所が1になっています。`value`は判明している場所の値です。
+例えば、BPFマップから取得した64ビットの値は、最初すべてのビットが不明なので、`var_off`は
+```
+(mask=0xffffffffffffffff; value=0x0)
+```
+になります。このレジスタに対して0xffff0000をANDすると、0とANDした箇所は0になることが分かるので、
+```
+(mask=0xffff0000; value=0x0)
+```
+になります。更に0x12345を足すと、下位16ビットは分かるので
+```
+(mask=0x1ffff0000; value=0x2345)
+```
+となります。繰り上がりの可能性を考慮して`mask`のビットが1つ増えていることに注意してください。この時点での`umin_value`, `umax_value`, `u32_min_value`, `u32_max_value`はそれぞれ、0x1ffff0000, 0x1ffff2345, 0xffff0000, 0xffff2345です。
+
+
+では、具体的な実装を見てみましょう。`BPF_ADD`の場合、次のようにレジスタが更新されます。
 ```c
 	case BPF_ADD:
 		scalar32_min_max_add(dst_reg, &src_reg);
@@ -302,6 +320,56 @@ bpf(BPF_PROG_LOAD): Permission denied
 ```
 
 このように、二段階目のチェックではレジスタを追って、メモリアクセスやレジスタ利用時に未定義動作が起きないことを保証しています。逆に言えば、この**チェックが間違っていると、メモリアクセスで範囲外参照を起こせてしまう**わけです。具体的な手法は次の章で説明します。
+
+#### ALU sanitation
+ここまで説明した型チェック・範囲追跡が検証器の仕事なのですが、eBPFを悪用する攻撃が増えたため、近年では新たにALU sanitationという緩和機構が導入されています。
+検証器のミスにより攻撃が発生する原因は、範囲外参照を起こせるためです。例えば下図のように、検証器が0と推測しているのに実際の値が32の「壊れた」レジスタができたとします。攻撃者は図のように、サイズ8の値を4つ持つマップのポインタに壊れた値を足します。検証器は値を0だと思っているので、加算後もマップの先頭を指したままだと思っていますが、実際には範囲外を指しています。この状態でR1から値をロードすると、検証器に検知されることなく範囲外参照ができます。
+
+<center>
+  <img src="img/simple_oob.png" alt="推測値の誤りによる範囲外参照" style="width:640px;">
+</center>
+
+このような検証器の誤りによる範囲外参照を解決するため、ALU sanitationという緩和機構が[2019年に導入](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=979d63d50c0c0f7bc537bf821e056cc9fe5abd38)されました。[^2]
+
+[^2]: ALU sanitationは実装にバグがあったため、[2021年に修正](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=10d2bb2e6b1d8c4576c56a748f697dbeb8388899)されました。
+
+eBPFでは、ポインタに対してはスカラー値の足し引きだけが演算として許可されています。ALU sanitationでは、ポインタとスカラー値の足し引きにおいて、スカラー値側が定数であると分かっているとき、それを定数演算`BPF_ALUxx_IMM`に書き換えます。例えば、R1がマップのポインタで、R2が推測値0、実際値1のスカラー値を持つレジスタだとします。このとき
+```
+BPF_ALU64_REG(BPF_ADD, BPF_REG_1, BPF_REG_2)
+```
+は、検証器がR2を定数0だと思っているため、
+```
+BPF_ALU64_IMM(BPF_ADD, BPF_REG_1, 0)
+```
+に[変更されます](https://elixir.bootlin.com/linux/v5.18.14/source/kernel/bpf/verifier.c#L13348)。このパッチはもともとSpectreというサイドチャネル攻撃を防ぐために導入されたものですが、検証器のバグを悪用する攻撃にも効果があります。
+
+さらに、スカラー側が定数でない場合は、`alu_limit`という値を用いて命令がパッチされます。
+`alu_limit`は「そのポインタから最大でどれだけの値を足し引きできるか」を示す数値です。例えばサイズ0x10のマップ要素の先頭から2バイト目を指していて、`BPF_ADD`によるスカラー値との加算が発生する場合、`alu_limit`は0xeになります。先ほどと同じように
+```
+BPF_ALU64_REG(BPF_ADD, BPF_REG_1, BPF_REG2)
+```
+という命令を考えます。ALU sanitationでは、この命令が次のように[パッチされます](https://elixir.bootlin.com/linux/v5.18.14/source/kernel/bpf/verifier.c#L13350)。（`BPF_REG_AX`は補助レジスタです。）
+```
+BPF_MOV32_IMM(BPF_REG_AX, aux->alu_limit),
+BPF_ALU64_REG(BPF_SUB, BPF_REG_AX, off_reg),
+BPF_ALU64_REG(BPF_OR, BPF_REG_AX, off_reg),
+BPF_ALU64_IMM(BPF_NEG, BPF_REG_AX, 0),
+BPF_ALU64_IMM(BPF_ARSH, BPF_REG_AX, 63),
+BPF_ALU64_REG(BPF_AND, BPF_REG_AX, off_reg),
+```
+先ほどと同じく、サイズ0x10のマップ要素の先頭から2バイト目を指しているレジスタR1に対するスカラー値R2の加算を考えます。スカラー値R2が`alu_limit`である0xeを超えているにも関わらず、何かしらのバグで検証器が検知できていないとします。例えば、次のような命令列が生成されます。
+```
+BPF_MOV32_IMM(BPF_REG_AX, 0xe),
+BPF_ALU64_REG(BPF_SUB, BPF_REG_AX, BPF_REG_R2),
+BPF_ALU64_REG(BPF_OR, BPF_REG_AX, BPF_REG_R2),
+BPF_ALU64_IMM(BPF_NEG, BPF_REG_AX, 0),
+BPF_ALU64_IMM(BPF_ARSH, BPF_REG_AX, 63),
+BPF_ALU64_REG(BPF_AND, BPF_REG_AX, BPF_REG_R2),
+```
+まず、最初の2命令で0xe-R2を計算します。R2が範囲内の場合は正の値あるいはゼロになりますが、範囲外の場合は負の値になります。次のOR命令では、AXとR2が異なる符号を持つ場合に、最上位ビットが1になります。つまり、範囲外参照が起きる時は、この時点で最上位ビットが1になっているはずです。
+その後NEGで符号を反転させ、算術シフトで64ビットシフトます。範囲外参照が起きる場合はAXに0が、そうでなければAXに0xffffffffffffffffが入ります。最後にR2とAXのANDを取り、これが最終的に使われるオフセットとなります。
+
+この操作により、万が一範囲外参照が発生する状況になったら、ポインタに0が加算されるようになります。
 
 ## JIT (Just-In-Time compiler)
 検証器を通過したBPFプログラムは、どのような入力で実行しても安全であることが（検証器が正しいという仮定の下で）保証されています。したがって、JITコンパイラは与えられた命令をCPUに合った機械語に直接変換することになります。
