@@ -31,10 +31,12 @@ title: Linux Kernel Exploitation
   - [BPFの導入](LK06/ebpf.html)
   - [検証器とJITコンパイラ](LK06/verifier.html)
   - [eBPFのバグの悪用](LK06/exploit.html)
+<!--
 - UEFIアプリケーション（LK07: ???）
 - TrustZoneとTEE（LK08: ???）
 - 付録
   - [buildrootによるカーネルのビルド (工事中)](appendix/buildroot.html)
+-->
 
 <div class="column" title="講師プロフィール">
   <div style="overflow: hidden">
@@ -43,6 +45,7 @@ title: Linux Kernel Exploitation
     </div>
     <div style="float: left;">
       <b>オオカミくん</b><br>
+      オオカミの群れで権限昇格してリーダーになったという伝説がある。<br>
       動物界ではOS開発の第一人者。基本寝ている。<br>
       好きなもの：牛 / Linux<br>
       苦手なもの：ハイエナ / Windows
