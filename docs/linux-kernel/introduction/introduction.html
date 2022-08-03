@@ -220,6 +220,8 @@ cpioコマンドを使って次のようにファイルを展開します。</p>
 <p>ファイルを追加したり編集したら、次のように再びcpioファイルにまとめます。</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># find . -print0 | cpio -o --format=newc --null &gt; ../rootfs_updated.cpio</span><br></pre></td></tr></table></figure>
 <p>cpioがさらにgzで圧縮されている場合もあるので、その際は適宜展開・再圧縮してください。</p>
+<p>なお、cpioは権限情報も付与するため、ファイルシステムの編集では適切にファイルの所有者をrootに割り当てる必要があります。上記コマンドはすべてroot権限で実行しているため問題ありませんが、面倒な場合は<code>--owner=root</code>オプションを与えてパックしても構いません。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">$ mkdir root</span><br><span class="line">$ cd root; cpio -idv &lt; ../rootfs.cpio</span><br><span class="line">...</span><br><span class="line">$ find . -print0 | cpio -o --format=newc --null --owner=root &gt; ../rootfs_updated.cpio</span><br></pre></td></tr></table></figure>
 <hr>
 <div class="column" title="例題">
   <a href="../LK01/distfiles/LK01.tar.gz">練習問題LK01</a>のファイルをダウンロードして以下の操作を実行しましょう。<br>

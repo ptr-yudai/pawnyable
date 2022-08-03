@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+<meta name="og:url" content="https://pawnyable.cafe/linux-kernel/LK06/verifier.html">
+
+    <meta name="og:title" content="検証器とJITコンパイラ - PAWNYABLE!">
+
+<meta name="og:image" content="https://pawnyable.cafe/pawnyable.ogp.png">
+<meta name="og:description" content="もふもふpwnワールド">
+<meta name="og:type" content="website">
+<meta name="og:site_name" content="PAWNYABLE!">
+
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+    <meta name="author" content="ptr-yudai">
+
+
+
+
+
+
+
+<title>検証器とJITコンパイラ | PAWNYABLE!</title>
+
+
+
+    <link rel="icon" href="/favicon.png">
+
+
+
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=Roboto+Mono&display=swap');
+</style>
+
+
+
+    <!-- stylesheets list from _config.yml -->
+    
+    <link rel="stylesheet" href="/css/style.css">
+    
+
+
+
+
+    <!-- scripts list from _config.yml -->
+    
+    <script src="/js/frame.js"></script>
+    
+
+
+
+
+
+
+
+  <style type="text/css">
+.spoiler {
+  display: inline-flex;
+}
+p.spoiler {
+  display: flex;
+}
+.spoiler a {
+  pointer-events: none;
+}
+.spoiler-blur, .spoiler-blur > * {
+  transition: text-shadow .5s ease;
+}
+.spoiler .spoiler-blur, .spoiler .spoiler-blur > * {
+  color: rgba(0, 0, 0, 0);
+  background-color: rgba(0, 0, 0, 0);
+  text-shadow: 0 0 10px grey;
+  cursor: pointer;
+}
+.spoiler .spoiler-blur:hover, .spoiler .spoiler-blur:hover > * {
+  text-shadow: 0 0 5px grey;
+}
+.spoiler-box, .spoiler-box > * {
+  transition: color .5s ease,
+  background-color .5s ease;
+}
+.spoiler .spoiler-box, .spoiler .spoiler-box > * {
+  color: black;
+  background-color: black;
+  text-shadow: none;
+}</style><meta name="generator" content="Hexo 5.4.0"></head>
+  <body>
+    <div class="mask-border">
+    </div>
+
+    <div class="wrapper">
+
+      <div class="header">
+  <div class="flex-container">
+    <div class="header-inner">
+      <div class="site-brand-container">
+        <a href="/">PAWNYABLE</a>
+      </div>
+      <div id="menu-btn" class="menu-btn" onclick="toggleMenu()">
+        Menu
+      </div>
+      <nav class="site-nav">
+        <ul class="menu-list">
+          
+            
+              <li class="menu-item">
+                <a href="/practice/">Practice</a>
+              </li> 
+                   
+          
+            
+              <li class="menu-item">
+                <a href="/about/">About</a>
+              </li> 
+                   
+          
+        </ul>
+      </nav>
+    </div>
+  </div>
+</div>
+
+
+      <div class="main">
+        <div class="flex-container">
+          <article id="post">
+
+  
+    <div class="post-head">
+    <div class="post-info">
+        <div class="post-title">
+            
+            
+                検証器とJITコンパイラ
+            
+            
+        </div>
+    </div>
+    <div class="h-line-primary"></div>
+    
+        <div class="pagination">
+            <div class="pagination-bk"><a href="ebpf.html">前のページへ</a></div>
+            <div class="pagination-index"><a href="../index.html">目次へ</a></div>
+            <div class="pagination-fd"><a href="exploit.html">次のページへ</a></div>
+        </div>
+    
+</div>
+
+    <div class="post-content">
+    <p><a href="ebpf.html">前章</a>ではeBPFについて学びました。本章では、ユーザーから渡されたBPFプログラムを安全かつ高速に動かすための、検証器とJITについて説明します。</p>
+<div class="column" title="目次">
+<!-- toc -->
+<ul>
+<li><a href="#%E6%A4%9C%E8%A8%BC%E5%99%A8">検証器</a>
+<ul>
+<li><a href="#%E4%B8%80%E6%AE%B5%E9%9A%8E%E7%9B%AE%E3%81%AE%E3%83%81%E3%82%A7%E3%83%83%E3%82%AF">一段階目のチェック</a></li>
+<li><a href="#%E4%BA%8C%E6%AE%B5%E9%9A%8E%E7%9B%AE%E3%81%AE%E3%83%81%E3%82%A7%E3%83%83%E3%82%AF">二段階目のチェック</a>
+<ul>
+<li><a href="#%E5%9E%8B%E3%81%AE%E8%BF%BD%E8%B7%A1">型の追跡</a></li>
+<li><a href="#%E5%AE%9A%E6%95%B0%E3%81%AE%E8%BF%BD%E8%B7%A1">定数の追跡</a></li>
+<li><a href="#alu-sanitation">ALU sanitation</a></li>
+<li><a href="#%E5%90%84%E6%93%8D%E4%BD%9C%E3%81%AE%E5%8F%AF%E5%90%A6">各操作の可否</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#jit-just-in-time-compiler">JIT (Just-In-Time compiler)</a></li>
+</ul>
+<!-- tocstop -->
+<br>
+</div>
+<h2><span id="検証器">検証器</span></h2>
+<p>まずは、eBPFの検証器について学びましょう。検証器のソースコードはLinuxカーネルの<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v5.18.11/source/kernel/bpf/verifier.c"><code>kernel/bpf/verifier.c</code></a>に書かれています。。<br>
+検証器は命令を1つずつチェックし、すべての分岐先をexit命令までトレースします。検証は大きく二段階（First Pass, Second Pass）に分けられます。</p>
+<p>一段階目のチェックでは、深さ優先探索によってプログラムが有向非巡回グラフ（DAG; Directed Acyclic Graph）であることを保証します。DAGとはループを持たない有向グラフのことです。<br>
+このチェックにより、次のようなプログラムは拒否されます。</p>
+<ul>
+<li><code>BPF_MAXINSNS</code>を超える命令が存在する場合<sup class="footnote-ref"><a href="#fn1" id="fnref1">[1]</a></sup></li>
+<li>ループフローが存在する場合</li>
+<li>到達不可能な命令が存在する場合</li>
+<li>範囲外、あるいは不正なジャンプが存在する場合</li>
+</ul>
+<p>二段階目のチェックでは、あらためてすべてのパスを探索します。このとき、レジスタの値に対して型や範囲を追跡します。<br>
+このチェックにより、例えば次のようなプログラムは拒否されます。</p>
+<ul>
+<li>未初期化レジスタの利用</li>
+<li>カーネル空間のポインタのreturn</li>
+<li>カーネル空間のポインタをBPFマップへ書込</li>
+<li>不正なポインタの読み書き</li>
+</ul>
+<h3><span id="一段階目のチェック">一段階目のチェック</span></h3>
+<p>DAGのチェックは<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v5.18.11/source/kernel/bpf/verifier.c#L10186"><code>check_cfg</code></a>関数に実装されています。アルゴリズム自体は、再帰呼出を使わない深さ優先探索です。<br>
+<code>check_cfg</code>はプログラムの先頭から深さ優先探索の要領で命令を見ていきます。現在見ている命令に対して<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v5.18.11/source/kernel/bpf/verifier.c#L10121"><code>visit_insn</code></a>が呼ばれ、この関数で分岐先がスタックにpushされます。探索用スタックへのpushは<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v5.18.11/source/kernel/bpf/verifier.c#L10044"><code>push_insn</code></a>で定義されており、この中に範囲外へのジャンプと閉路検出が含まれています。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">	<span class="keyword">if</span> (w &lt; <span class="number">0</span> || w &gt;= env-&gt;prog-&gt;len) &#123;</span><br><span class="line">		verbose_linfo(env, t, <span class="string">&quot;%d: &quot;</span>, t);</span><br><span class="line">		verbose(env, <span class="string">&quot;jump out of range from insn %d to %d\n&quot;</span>, t, w);</span><br><span class="line">		<span class="keyword">return</span> -EINVAL;</span><br><span class="line">	&#125;</span><br><span class="line">...</span><br><span class="line"></span><br><span class="line">	&#125; <span class="keyword">else</span> <span class="keyword">if</span> ((insn_state[w] &amp; <span class="number">0xF0</span>) == DISCOVERED) &#123;</span><br><span class="line">		<span class="keyword">if</span> (loop_ok &amp;&amp; env-&gt;bpf_capable)</span><br><span class="line">			<span class="keyword">return</span> DONE_EXPLORING;</span><br><span class="line">		verbose_linfo(env, t, <span class="string">&quot;%d: &quot;</span>, t);</span><br><span class="line">		verbose_linfo(env, w, <span class="string">&quot;%d: &quot;</span>, w);</span><br><span class="line">		verbose(env, <span class="string">&quot;back-edge from insn %d to %d\n&quot;</span>, t, w);</span><br><span class="line">		<span class="keyword">return</span> -EINVAL;</span><br></pre></td></tr></table></figure>
+<p>なお、<code>visit_insn</code>は1回につき、必ず1つのパスしかpushしません。（あるいは<code>DONE_EXPLORING</code>でその命令の分岐先がすべて探索終了したことを知らせます。）例えば<code>BPF_JEQ</code>のように条件分岐がある場合、<code>visit_insn</code>は最初の分岐先のみをpushします。深さ優先探索なので、その分岐先の探索がすべて終了すると、また<code>BPF_JEQ</code>に戻ってきます。すると<code>BPF_JEQ</code>に対して再度<code>visit_insn</code>が呼ばれ、今度はもう一方の分岐先がpushされます。さらにそちらの探索が終了すると、<code>BPF_JEQ</code>に対して3回目の<code>visit_insn</code>が呼ばれ、そこで<code>DONE_EXPLORING</code>が返され、<code>BPF_JEQ</code>がスタックからpopされます。</p>
+<div class="balloon_l">
+  <div class="faceicon"><img src="../img/wolf_normal.png" alt="オオカミくん"></div>
+  <p class="says">
+    条件分岐で一度に両方のパスをpushしなかったり、命令を取り出すときにpopしなかったり、一見非効率的に見えるけど、異常を検知したときに綺麗なスタックトレースを出力するための工夫なんだね。
+  </p>
+</div>
+<p>例えば、次のようなプログラムはすべて一段階目のチェック機構により拒否されます。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 到達不能な命令がある</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">bpf_insn</span> <span class="title">insns</span>[] =</span> &#123;</span><br><span class="line">  BPF_EXIT_INSN(),</span><br><span class="line">  BPF_MOV64_IMM(BPF_REG_0, <span class="number">0</span>),</span><br><span class="line">  BPF_EXIT_INSN(),</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 範囲外へのジャンプがある</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">bpf_insn</span> <span class="title">insns</span>[] =</span> &#123;</span><br><span class="line">  BPF_JMP_IMM(BPF_JA, <span class="number">0</span>, <span class="number">0</span>, <span class="number">2</span>),</span><br><span class="line">  BPF_MOV64_IMM(BPF_REG_0, <span class="number">0</span>),</span><br><span class="line">  BPF_EXIT_INSN(),</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// ループがある</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">bpf_insn</span> <span class="title">insns</span>[] =</span> &#123;</span><br><span class="line">  BPF_JMP_IMM(BPF_JEQ, BPF_REG_0, <span class="number">123</span>, <span class="number">-1</span>), <span class="comment">// jmp if r0 != 123</span></span><br><span class="line">  BPF_MOV64_IMM(BPF_REG_0, <span class="number">0</span>),</span><br><span class="line">  BPF_EXIT_INSN(),</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>たとえ負の方向へのジャンプがあっても、ループしていなければ問題ありません。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">bpf_insn</span> <span class="title">insns</span>[] =</span> &#123;</span><br><span class="line">  BPF_MOV64_IMM(BPF_REG_0, <span class="number">0</span>),</span><br><span class="line">  BPF_JMP_IMM(BPF_JA, <span class="number">0</span>, <span class="number">0</span>, <span class="number">1</span>), <span class="comment">// jmp to JEQ</span></span><br><span class="line">  BPF_JMP_IMM(BPF_JA, <span class="number">0</span>, <span class="number">0</span>, <span class="number">1</span>), <span class="comment">// jmp to MOV64</span></span><br><span class="line">  BPF_JMP_IMM(BPF_JEQ, BPF_REG_0, <span class="number">0</span>, <span class="number">-2</span>), <span class="comment">// jmp to JA(1) if R0==0</span></span><br><span class="line">  BPF_EXIT_INSN(),</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<h3><span id="二段階目のチェック">二段階目のチェック</span></h3>
+<p>eBPFにおける検証器のバグでもっとも重要になるのは、二段階目のチェックです。<br>
+二段階目のチェックは主に<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v5.18.11/source/kernel/bpf/verifier.c#L11450"><code>do_check</code></a>関数で定義されており、レジスタの型、値の範囲、具体的な値やオフセットを追跡します。</p>
+<h4><span id="型の追跡">型の追跡</span></h4>
+<p>検証器はレジスタの値がどのような種類の値かを<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v5.18.11/source/include/linux/bpf_verifier.h#L46"><code>bpf_reg_state</code>構造体</a>で保持しています。例えば次のような命令を考えましょう。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">BPF_MOV64_REG(BPF_REG_0, BPF_REG_10)</span><br><span class="line">BPF_ALU64_IMM(BPF_ADD, BPF_REG_0, -8)</span><br></pre></td></tr></table></figure>
+<p>最初の命令ではスタックポインタを<code>R0</code>に代入しています。このとき、<code>R0</code>は<code>PTR_TO_STACK</code>という型になります。次の命令では<code>R0</code>から8だけ引かれますが、まだスタックの範囲内を指しているため、<code>PTR_TO_STACK</code>のままです。他にも、ポインタとポインタの足し算は定数扱いになるなど、命令の種類とレジスタの型、値の範囲などに応じて、新しい型は変わります。<br>
+型の追跡は、不正なプログラムを調べる上で必須です。例えばスカラー値をポインタとしてメモリからデータをロード・ストアできてしまうと、任意アドレス読み書きになってしまいます。また、コンテキストを受け取るヘルパー関数にBPFマップなど自由に操作できるポインタを指定できてしまうと、偽のコンテキストを使わせることができます。<br>
+レジスタの型（<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v5.18.11/source/include/linux/bpf.h#L493"><code>enum bpf_reg_type</code></a>）としては、例えば以下のような型が定義されています。</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">型</th>
+<th style="text-align:center">意味</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center"><code>NOT_INIT</code></td>
+<td style="text-align:center">未初期化</td>
+</tr>
+<tr>
+<td style="text-align:center"><code>SCALAR_VALUE</code></td>
+<td style="text-align:center">定数など一般的な値</td>
+</tr>
+<tr>
+<td style="text-align:center"><code>PTR_TO_CTX</code></td>
+<td style="text-align:center">コンテキスト（BPFプログラムの呼出引数）へのポインタ</td>
+</tr>
+<tr>
+<td style="text-align:center"><code>CONST_PTR_TO_MAP</code></td>
+<td style="text-align:center">BPFマップへのポインタ</td>
+</tr>
+<tr>
+<td style="text-align:center"><code>PTR_TO_MAP_VALUE</code></td>
+<td style="text-align:center">BPFマップの値へのポインタ</td>
+</tr>
+<tr>
+<td style="text-align:center"><code>PTR_TO_MAP_KEY</code></td>
+<td style="text-align:center">BPFマップのキーへのポインタ</td>
+</tr>
+<tr>
+<td style="text-align:center"><code>PTR_TO_STACK</code></td>
+<td style="text-align:center">BPFスタックへのポインタ</td>
+</tr>
+<tr>
+<td style="text-align:center"><code>PTR_TO_MEM</code></td>
+<td style="text-align:center">有効なメモリ領域へのポインタ</td>
+</tr>
+<tr>
+<td style="text-align:center"><code>PTR_TO_FUNC</code></td>
+<td style="text-align:center">BPF関数へのポインタ</td>
+</tr>
+</tbody>
+</table>
+<p>レジスタの初期状態は<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v5.18.11/source/kernel/bpf/verifier.c#L1570"><code>init_reg_state</code></a>関数で定義されます。</p>
+<h4><span id="定数の追跡">定数の追跡</span></h4>
+<p>検証器ではレジスタの定数を追跡しています。値は区間を使った抽象化で追跡されます。つまり、各レジスタについて、その時点でレジスタが取り得る「最小値」と「最大値」を記録しています。<br>
+例えば、<code>R0 += R1 (BPF_ADD)</code>の時点で<code>R0</code>と<code>R1</code>がそれぞれ<code>[10, 20]</code>,<code>[-2, 2]</code>を取り得る場合、演算（抽象解釈）後の<code>R0</code>の値は<code>[8, 22]</code>になります。<br>
+演算に関するこの挙動は<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v5.18.11/source/kernel/bpf/verifier.c#L8438"><code>adjust_reg_min_max_vals</code>関数</a>と<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v5.18.11/source/kernel/bpf/verifier.c#L8277"><code>adjust_scalar_min_max_vals</code>関数</a>で定義されています。</p>
+<div class="balloon_l">
+  <div class="faceicon"><img src="../img/wolf_atamawaru.png" alt="オオカミくん"></div>
+  <p class="says">
+    具体的な値が分からない解析過程では、値を抽象的な範囲で推測することが多いね。
+    健全（sound）な手法で抽象化しないと、解釈結果が間違うことがあるよ。
+  </p>
+</div>
+<p>値の範囲追跡のため、検証器は各レジスタについて次のような値を保持・追跡しています。</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">変数</th>
+<th style="text-align:left">意味</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center"><code>umin_value</code>, <code>umax_value</code></td>
+<td style="text-align:left">64-bitの符号なし整数として解釈したときの最小・最大値</td>
+</tr>
+<tr>
+<td style="text-align:center"><code>smin_value</code>, <code>smax_value</code></td>
+<td style="text-align:left">64-bitの符号付き整数として解釈したときの最小・最大値</td>
+</tr>
+<tr>
+<td style="text-align:center"><code>u32_min_value</code>, <code>u32_max_value</code></td>
+<td style="text-align:left">32-bitの符号なし整数として解釈したときの最小・最大値</td>
+</tr>
+<tr>
+<td style="text-align:center"><code>s32_min_value</code>, <code>s32_max_value</code></td>
+<td style="text-align:left">32-bitの符号付き整数として解釈したときの最小・最大値</td>
+</tr>
+<tr>
+<td style="text-align:center"><code>var_off</code></td>
+<td style="text-align:left">レジスタ中の各ビットの情報（具体的な値が判明しているビット）</td>
+</tr>
+</tbody>
+</table>
+<p><code>var_off</code>は<code>tnum</code>と呼ばれる構造体で、<code>mask</code>と<code>value</code>を持ちます。<code>mask</code>は値が不明なビットの場所が1になっています。<code>value</code>は判明している場所の値です。<br>
+例えば、BPFマップから取得した64ビットの値は、最初すべてのビットが不明なので、<code>var_off</code>は</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">(mask=0xffffffffffffffff; value=0x0)</span><br></pre></td></tr></table></figure>
+<p>になります。このレジスタに対して0xffff0000をANDすると、0とANDした箇所は0になることが分かるので、</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">(mask=0xffff0000; value=0x0)</span><br></pre></td></tr></table></figure>
+<p>になります。更に0x12345を足すと、下位16ビットは分かるので</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">(mask=0x1ffff0000; value=0x2345)</span><br></pre></td></tr></table></figure>
+<p>となります。繰り上がりの可能性を考慮して<code>mask</code>のビットが1つ増えていることに注意してください。この時点での<code>umin_value</code>, <code>umax_value</code>, <code>u32_min_value</code>, <code>u32_max_value</code>はそれぞれ、0x1ffff0000, 0x1ffff2345, 0xffff0000, 0xffff2345です。</p>
+<p>では、具体的な実装を見てみましょう。<code>BPF_ADD</code>の場合、次のようにレジスタが更新されます。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">case</span> BPF_ADD:</span><br><span class="line">	scalar32_min_max_add(dst_reg, &amp;src_reg);</span><br><span class="line">	scalar_min_max_add(dst_reg, &amp;src_reg);</span><br><span class="line">	dst_reg-&gt;var_off = tnum_add(dst_reg-&gt;var_off, src_reg.var_off);</span><br><span class="line">	<span class="keyword">break</span>;</span><br></pre></td></tr></table></figure>
+<p><code>scalar_min_max_add</code>では、次のように整数オーバーフローなども考慮した範囲計算が実装されています。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">scalar_min_max_add</span><span class="params">(struct bpf_reg_state *dst_reg,</span></span></span><br><span class="line"><span class="params"><span class="function">			       struct bpf_reg_state *src_reg)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	s64 smin_val = src_reg-&gt;smin_value;</span><br><span class="line">	s64 smax_val = src_reg-&gt;smax_value;</span><br><span class="line">	u64 umin_val = src_reg-&gt;umin_value;</span><br><span class="line">	u64 umax_val = src_reg-&gt;umax_value;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (signed_add_overflows(dst_reg-&gt;smin_value, smin_val) ||</span><br><span class="line">	    signed_add_overflows(dst_reg-&gt;smax_value, smax_val)) &#123;</span><br><span class="line">		dst_reg-&gt;smin_value = S64_MIN;</span><br><span class="line">		dst_reg-&gt;smax_value = S64_MAX;</span><br><span class="line">	&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">		dst_reg-&gt;smin_value += smin_val;</span><br><span class="line">		dst_reg-&gt;smax_value += smax_val;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> (dst_reg-&gt;umin_value + umin_val &lt; umin_val ||</span><br><span class="line">	    dst_reg-&gt;umax_value + umax_val &lt; umax_val) &#123;</span><br><span class="line">		dst_reg-&gt;umin_value = <span class="number">0</span>;</span><br><span class="line">		dst_reg-&gt;umax_value = U64_MAX;</span><br><span class="line">	&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">		dst_reg-&gt;umin_value += umin_val;</span><br><span class="line">		dst_reg-&gt;umax_value += umax_val;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>乗除や論理・算術シフトなど、すべての演算に対してこのような更新処理が実装されています。計算した値の範囲は、スタックやコンテキストなどのメモリアクセスにおいて、オフセットが範囲内に収まっているかを確認するのに使われます。<br>
+例えば、スタックの範囲チェックは<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v5.18.11/source/kernel/bpf/verifier.c#L4315"><code>check_stack_access_within_bounds</code></a>で定義されています。即値の場合など、値が定数と分かっている場合は通常のオフセットチェックをします。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (tnum_is_const(reg-&gt;var_off)) &#123;</span><br><span class="line">	min_off = reg-&gt;var_off.value + off;</span><br><span class="line">	<span class="keyword">if</span> (access_size &gt; <span class="number">0</span>)</span><br><span class="line">		max_off = min_off + access_size - <span class="number">1</span>;</span><br><span class="line">	<span class="keyword">else</span></span><br><span class="line">		max_off = min_off;</span><br></pre></td></tr></table></figure>
+<p>一方で具体的な値がわからない場合は、オフセットが取り得る最小・最大値を確認します。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">	<span class="keyword">if</span> (reg-&gt;smax_value &gt;= BPF_MAX_VAR_OFF ||</span><br><span class="line">	    reg-&gt;smin_value &lt;= -BPF_MAX_VAR_OFF) &#123;</span><br><span class="line">		verbose(env, <span class="string">&quot;invalid unbounded variable-offset%s stack R%d\n&quot;</span>,</span><br><span class="line">			err_extra, regno);</span><br><span class="line">		<span class="keyword">return</span> -EACCES;</span><br><span class="line">	&#125;</span><br><span class="line">	min_off = reg-&gt;smin_value + off;</span><br><span class="line">	<span class="keyword">if</span> (access_size &gt; <span class="number">0</span>)</span><br><span class="line">		max_off = reg-&gt;smax_value + off + access_size - <span class="number">1</span>;</span><br><span class="line">	<span class="keyword">else</span></span><br><span class="line">		max_off = min_off;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>そして、それらの値を使って範囲チェックをしています。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">err = check_stack_slot_within_bounds(min_off, state, type);</span><br><span class="line"><span class="keyword">if</span> (!err)</span><br><span class="line">	err = check_stack_slot_within_bounds(max_off, state, type);</span><br></pre></td></tr></table></figure>
+<p>このように、レジスタや変数の値の範囲を追跡する手法は、BPF以外でも、最適化・高速化が要求されるJITで頻繁に使われます。</p>
+<div class="balloon_l">
+  <div class="faceicon"><img src="../img/wolf_suyasuya.png" alt="オオカミくん"></div>
+  <p class="says">
+    実行速度向上のために、できるだけ事前にセキュリティチェックを終わらせているんだね。
+  </p>
+</div>
+<p>次のようなプログラムはすべて二段階目のチェック機構により拒否されます。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 未初期化のレジスタの利用</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">bpf_insn</span> <span class="title">insns</span>[] =</span> &#123;</span><br><span class="line">  BPF_MOV64_REG(BPF_REG_0, BPF_REG_5),</span><br><span class="line">  BPF_EXIT_INSN(),</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// カーネル空間のポインタのリーク</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">bpf_insn</span> <span class="title">insns</span>[] =</span> &#123;</span><br><span class="line">  BPF_MOV64_REG(BPF_REG_0, BPF_REG_1),</span><br><span class="line">  BPF_EXIT_INSN(),</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>抽象化された値が定数にならない例を考えてみましょう。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">int</span> mapfd = map_create(<span class="number">0x10</span>, <span class="number">1</span>);</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">bpf_insn</span> <span class="title">insns</span>[] =</span> &#123;</span><br><span class="line">  BPF_ST_MEM(BPF_DW, BPF_REG_FP, <span class="number">-0x08</span>, <span class="number">0</span>),      <span class="comment">// key=0</span></span><br><span class="line">  <span class="comment">// arg1: mapfd</span></span><br><span class="line">  BPF_LD_MAP_FD(BPF_REG_ARG1, mapfd),</span><br><span class="line">  <span class="comment">// arg2: key pointer</span></span><br><span class="line">  BPF_MOV64_REG(BPF_REG_ARG2, BPF_REG_FP),</span><br><span class="line">  BPF_ALU64_IMM(BPF_ADD, BPF_REG_ARG2, <span class="number">-8</span>),</span><br><span class="line">  <span class="comment">// map_lookup_elem(mapfd, &amp;key)</span></span><br><span class="line">  BPF_EMIT_CALL(BPF_FUNC_map_lookup_elem),</span><br><span class="line">  <span class="comment">// jmp if success (R0 != NULL)</span></span><br><span class="line">  BPF_JMP_IMM(BPF_JNE, BPF_REG_0, <span class="number">0</span>, <span class="number">1</span>),</span><br><span class="line">  BPF_EXIT_INSN(), <span class="comment">// exit on failure</span></span><br><span class="line"></span><br><span class="line">  BPF_LDX_MEM(BPF_DW, BPF_REG_6, BPF_REG_0, <span class="number">0</span>),   <span class="comment">// R6 = arr[0]</span></span><br><span class="line">  BPF_MOV64_REG(BPF_REG_7, BPF_REG_0),            <span class="comment">// R7 = &amp;arr[0]</span></span><br><span class="line"></span><br><span class="line">  BPF_ALU64_IMM(BPF_AND, BPF_REG_6, <span class="number">0b0111</span>),    <span class="comment">// R6 &amp;= 0b0111</span></span><br><span class="line">  BPF_ALU64_REG(BPF_ADD, BPF_REG_7, BPF_REG_6), <span class="comment">// R7 += R6</span></span><br><span class="line">  BPF_LDX_MEM(BPF_DW, BPF_REG_0, BPF_REG_7, <span class="number">0</span>), <span class="comment">// R0 = [R7]</span></span><br><span class="line">  BPF_EXIT_INSN(),</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>まず、値のサイズが0x10のBPFマップを用意しています。BPFプログラムの最初のブロックでは、BPFマップの先頭の値と、そのポインタをそれぞれ<code>R6</code>, <code>R7</code>に代入します。（<code>map_lookup_elem</code>の戻り値<code>R0</code>は、第二引数のインデックスで指定した要素へのポインタです。NULLを返す可能性があるため、条件分岐でNULLを除去しています。）<br>
+最後のブロックでポインタ<code>R7</code>に<code>R6</code>の値を加算しています。<code>R6</code>はBPFマップから取ってきた値なので任意の値を取れます。しかし、<code>BPF_AND</code>で0b0111とandを取っているため、この時点で<code>R6</code>の取り得る値は[0, 7]になります。今回BPFマップ値のサイズは0x10にしてあるため、値のポインタの先頭から7足して、そこから<code>BPF_LDX_MEM(BPF_DW)</code>で8バイト取得しても問題ありません。そのため、このBPFプログラムは検証器を通過できます。<br>
+しかし、<code>BPF_AND</code>の値を0b1111などにすると、検証器がプログラムを拒否することが分かります。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">...</span><br><span class="line">11: (0f) r7 += r6</span><br><span class="line"> R0=map_value(id=0,off=0,ks=4,vs=16,imm=0) R6_w=invP(id=0,umax_value=15,var_off=(0x0; 0xf)) R7_w=map_value(id=0,off=0,ks=4,vs=16,umax_value=15,var_off=(0x0; 0xf)) R10=fp0 fp-8=mmmmmmmm</span><br><span class="line">12: R0=map_value(id=0,off=0,ks=4,vs=16,imm=0) R6_w=invP(id=0,umax_value=15,var_off=(0x0; 0xf)) R7_w=map_value(id=0,off=0,ks=4,vs=16,umax_value=15,var_off=(0x0; 0xf)) R10=fp0 fp-8=mmmmmmmm</span><br><span class="line">12: (79) r0 = *(u64 *)(r7 +0)</span><br><span class="line"> R0_w=map_value(id=0,off=0,ks=4,vs=16,imm=0) R6_w=invP(id=0,umax_value=15,var_off=(0x0; 0xf)) R7_w=map_value(id=0,off=0,ks=4,vs=16,umax_value=15,var_off=(0x0; 0xf)) R10=fp0 fp-8=mmmmmmmm</span><br><span class="line">invalid access to map value, value_size=16 off=15 size=8</span><br><span class="line">R7 max value is outside of the allowed memory range</span><br><span class="line">processed 12 insns (limit 1000000) max_states_per_insn 0 total_states 1 peak_states 1 mark_read 1</span><br><span class="line"></span><br><span class="line">bpf(BPF_PROG_LOAD): Permission denied</span><br></pre></td></tr></table></figure>
+<p>値のサイズが16なのに、最大オフセットは15で、そこから8バイト取得しようとしているため、範囲外参照が起きるためです。<br>
+また、一部の命令は値の追跡をサポートしていません。例えば<code>BPF_NEG</code>を通ると必ずunboundになるため、次のプログラムは（実際には問題ないですが）検証器に拒否されます。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">BPF_ALU64_IMM(BPF_AND, BPF_REG_6, 0b0111),    // R6 &amp;= 0b0111</span><br><span class="line">BPF_ALU64_IMM(BPF_NEG, BPF_REG_6, 0),         // R6 = -R6 (追加)</span><br><span class="line">BPF_ALU64_IMM(BPF_NEG, BPF_REG_6, 0),         // R6 = -R6 (追加)</span><br><span class="line">BPF_ALU64_REG(BPF_ADD, BPF_REG_7, BPF_REG_6), // R7 += R6</span><br><span class="line">BPF_LDX_MEM(BPF_DW, BPF_REG_0, BPF_REG_7, 0), // R0 = [R7]</span><br></pre></td></tr></table></figure>
+<p>このように、二段階目のチェックではレジスタを追って、メモリアクセスやレジスタ利用時に未定義動作が起きないことを保証しています。逆に言えば、この<strong>チェックが間違っていると、メモリアクセスで範囲外参照を起こせてしまう</strong>わけです。具体的な手法は次の章で説明します。</p>
+<h4><span id="alu-sanitation">ALU sanitation</span></h4>
+<p>ここまで説明した型チェック・範囲追跡が検証器の仕事なのですが、eBPFを悪用する攻撃が増えたため、近年では新たにALU sanitationという緩和機構が導入されています。<br>
+検証器のミスにより攻撃が発生する原因は、範囲外参照を起こせるためです。例えば下図のように、検証器が0と推測しているのに実際の値が32の「壊れた」レジスタができたとします。攻撃者は図のように、サイズ8の値を4つ持つマップのポインタに壊れた値を足します。検証器は値を0だと思っているので、加算後もマップの先頭を指したままだと思っていますが、実際には範囲外を指しています。この状態でR1から値をロードすると、検証器に検知されることなく範囲外参照ができます。</p>
+<center>
+  <img src="img/simple_oob.png" alt="推測値の誤りによる範囲外参照" style="width:640px;">
+</center>
+<p>このような検証器の誤りによる範囲外参照を解決するため、ALU sanitationという緩和機構が<a target="_blank" rel="noopener" href="https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=979d63d50c0c0f7bc537bf821e056cc9fe5abd38">2019年に導入</a>されました。<sup class="footnote-ref"><a href="#fn2" id="fnref2">[2]</a></sup></p>
+<p>eBPFでは、ポインタに対してはスカラー値の足し引きだけが演算として許可されています。ALU sanitationでは、ポインタとスカラー値の足し引きにおいて、スカラー値側が定数であると分かっているとき、それを定数演算<code>BPF_ALUxx_IMM</code>に書き換えます。例えば、R1がマップのポインタで、R2が推測値0、実際値1のスカラー値を持つレジスタだとします。このとき</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">BPF_ALU64_REG(BPF_ADD, BPF_REG_1, BPF_REG_2)</span><br></pre></td></tr></table></figure>
+<p>は、検証器がR2を定数0だと思っているため、</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">BPF_ALU64_IMM(BPF_ADD, BPF_REG_1, 0)</span><br></pre></td></tr></table></figure>
+<p>に<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v5.18.14/source/kernel/bpf/verifier.c#L13348">変更されます</a>。このパッチはもともとSpectreというサイドチャネル攻撃を防ぐために導入されたものですが、検証器のバグを悪用する攻撃にも効果があります。</p>
+<p>さらに、スカラー側が定数でない場合は、<code>alu_limit</code>という値を用いて命令がパッチされます。<br>
+<code>alu_limit</code>は「そのポインタから最大でどれだけの値を足し引きできるか」を示す数値です。例えばサイズ0x10のマップ要素の先頭から2バイト目を指していて、<code>BPF_ADD</code>によるスカラー値との加算が発生する場合、<code>alu_limit</code>は0xeになります。先ほどと同じように</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">BPF_ALU64_REG(BPF_ADD, BPF_REG_1, BPF_REG2)</span><br></pre></td></tr></table></figure>
+<p>という命令を考えます。ALU sanitationでは、この命令が次のように<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v5.18.14/source/kernel/bpf/verifier.c#L13350">パッチされます</a>。（<code>BPF_REG_AX</code>は補助レジスタです。）</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">BPF_MOV32_IMM(BPF_REG_AX, aux-&gt;alu_limit),</span><br><span class="line">BPF_ALU64_REG(BPF_SUB, BPF_REG_AX, off_reg),</span><br><span class="line">BPF_ALU64_REG(BPF_OR, BPF_REG_AX, off_reg),</span><br><span class="line">BPF_ALU64_IMM(BPF_NEG, BPF_REG_AX, 0),</span><br><span class="line">BPF_ALU64_IMM(BPF_ARSH, BPF_REG_AX, 63),</span><br><span class="line">BPF_ALU64_REG(BPF_AND, BPF_REG_AX, off_reg),</span><br></pre></td></tr></table></figure>
+<p>先ほどと同じく、サイズ0x10のマップ要素の先頭から2バイト目を指しているレジスタR1に対するスカラー値R2の加算を考えます。スカラー値R2が<code>alu_limit</code>である0xeを超えているにも関わらず、何かしらのバグで検証器が検知できていないとします。例えば、次のような命令列が生成されます。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">BPF_MOV32_IMM(BPF_REG_AX, 0xe),</span><br><span class="line">BPF_ALU64_REG(BPF_SUB, BPF_REG_AX, BPF_REG_R2),</span><br><span class="line">BPF_ALU64_REG(BPF_OR, BPF_REG_AX, BPF_REG_R2),</span><br><span class="line">BPF_ALU64_IMM(BPF_NEG, BPF_REG_AX, 0),</span><br><span class="line">BPF_ALU64_IMM(BPF_ARSH, BPF_REG_AX, 63),</span><br><span class="line">BPF_ALU64_REG(BPF_AND, BPF_REG_AX, BPF_REG_R2),</span><br></pre></td></tr></table></figure>
+<p>まず、最初の2命令で0xe-R2を計算します。R2が範囲内の場合は正の値あるいはゼロになりますが、範囲外の場合は負の値になります。次のOR命令では、AXとR2が異なる符号を持つ場合に、最上位ビットが1になります。つまり、範囲外参照が起きる時は、この時点で最上位ビットが1になっているはずです。<br>
+その後NEGで符号を反転させ、算術シフトで64ビットシフトます。範囲外参照が起きる場合はAXに0が、そうでなければAXに0xffffffffffffffffが入ります。最後にR2とAXのANDを取り、これが最終的に使われるオフセットとなります。</p>
+<p>この操作により、万が一範囲外参照が発生する状況になったら、ポインタに0が加算されるようになります。</p>
+<h4><span id="各操作の可否">各操作の可否</span></h4>
+<p>第二段階のチェックにより禁止されている処理を大まかに整理すると、次のようになります。</p>
+<ul>
+<li>レジスタ
+<ul>
+<li>R10(FP)への書き込み</li>
+<li>未初期化レジスタの読み込み</li>
+</ul>
+</li>
+<li>コンテキスト
+<ul>
+<li>コンテキストの範囲外の読み書き</li>
+<li><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v5.18.14/source/kernel/bpf/verifier.c#L12754"><code>check_ctx_accesses</code></a>中のコンテキストに対応するコードが許可しない読み書き</li>
+</ul>
+</li>
+<li>BPFマップ
+<ul>
+<li>データの範囲外の読み書き</li>
+<li>ポインタの書き込み</li>
+</ul>
+</li>
+<li>スタック
+<ul>
+<li>スタックの範囲外の読み書き</li>
+<li>未初期化領域の読み込み</li>
+<li>8バイト(32-bitなら4バイト)でアラインされていない（可能性がある）読み書き</li>
+<li>ポインタの下位32ビット（<code>BPF_W</code>）など部分的な読み書き</li>
+</ul>
+</li>
+<li>メモリ全般
+<ul>
+<li>NULLポインタ持つ可能性があるポインタの読み書き</li>
+</ul>
+</li>
+<li>関数
+<ul>
+<li>定義と異なる型・値の引数渡し</li>
+</ul>
+</li>
+</ul>
+<p>マップに値を書き込むと、書き込み先の追跡範囲は消滅します。一方で、スタックにはポインタが書き込める上、書き込んだ値の範囲や型を記憶してくれます。その代償として、スタックには512バイトのサイズ制限があり、アラインされていないオフセットへの書き込みや、ユーザー空間からの読み書きはできません。</p>
+<h2><span id="jit-just-in-time-compiler">JIT (Just-In-Time compiler)</span></h2>
+<p>検証器を通過したBPFプログラムは、どのような入力で実行しても安全であることが（検証器が正しいという仮定の下で）保証されています。したがって、JITコンパイラは与えられた命令をCPUに合った機械語に直接変換することになります。<br>
+CPUごとに機械語は異なるため、JITのコードは<code>arch</code>ディレクトリ以下に書かれています。x86-64の場合、<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v5.18.11/source/arch/x86/net/bpf_jit_comp.c"><code>arch/x86/net/bpf_jit_comp.c</code></a>中の<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v5.18.11/source/arch/x86/net/bpf_jit_comp.c#L875"><code>do_jit</code>関数</a>に記述されています。<br>
+例えば、乗算（<code>BPF_MUL</code>）を機械語に変換するコードは以下のようになっています。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">case</span> BPF_ALU | BPF_MUL | BPF_X:</span><br><span class="line"><span class="keyword">case</span> BPF_ALU64 | BPF_MUL | BPF_X:</span><br><span class="line">	maybe_emit_mod(&amp;prog, src_reg, dst_reg,</span><br><span class="line">		       BPF_CLASS(insn-&gt;code) == BPF_ALU64);</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* imul dst_reg, src_reg */</span></span><br><span class="line">	EMIT3(<span class="number">0x0F</span>, <span class="number">0xAF</span>, add_2reg(<span class="number">0xC0</span>, src_reg, dst_reg));</span><br><span class="line">	<span class="keyword">break</span>;</span><br></pre></td></tr></table></figure>
+<p><code>0x0F, 0xAF</code>が<code>imul</code>命令に対応する命令コードになります。</p>
+<div class="balloon_l">
+  <div class="faceicon"><img src="../img/wolf_atamawaru.png" alt="オオカミくん"></div>
+  <p class="says">
+    検証器が正しくても、JITで生成されるコードが検証器と違う挙動をしたら、それもexploitableになりそうだね。
+  </p>
+</div>
+<p>ここまででexploitに必要なeBPF内部の仕組みを概ね説明しました。次章では、実際に検証器のバグを利用して権限昇格していきます。</p>
+<hr>
+<div class="column" title="例題">
+  次の処理が検証器に許可されるかを調べてください。拒否される場合、それができるとセキュリティ上何が問題になるかを説明してください。<br>
+  (1) ポインタどうしの比較<br>
+  (2) ポインタとポインタの減算<br>
+  (3) スタックへのポインタ値の書き込み<br>
+  (4) BPFマップへのポインタ値の書き込み<br>
+  (5) 範囲内だがアラインされていないスタックアドレスの読み書き<br>
+</div>
+<hr class="footnotes-sep">
+<section class="footnotes">
+<ol class="footnotes-list">
+<li id="fn1" class="footnote-item"><p>命令数については、他のチェックがある<code>check_cfg</code>以前にチェックされています。 <a href="#fnref1" class="footnote-backref">↩︎</a></p>
+</li>
+<li id="fn2" class="footnote-item"><p>ALU sanitationは実装にバグがあったため、<a target="_blank" rel="noopener" href="https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=10d2bb2e6b1d8c4576c56a748f697dbeb8388899">2021年に修正</a>されました。 <a href="#fnref2" class="footnote-backref">↩︎</a></p>
+</li>
+</ol>
+</section>
+
+</div> 
+
+<div style="margin-top: 1em">
+    <div class="h-line-primary"></div>
+    
+        <div class="pagination">
+            <div class="pagination-bk"><a href="ebpf.html">前のページへ</a></div>
+            <div class="pagination-index"><a href="../index.html">目次へ</a></div>
+            <div class="pagination-fd"><a href="exploit.html">次のページへ</a></div>
+        </div>
+    
+</div>
+
+<script>
+    window.onload = detectors();
+</script>
+
+  
+</article>
+        </div>
+      </div>
+      
+      <div class="footer">
+    <div class="flex-container">
+        <div class="footer-text">
+            
+                © 2022 ptr-yudai 🐈
+                <br>
+            
+            
+                
+        </div>
+    </div>
+</div>
+
+    </div>
+
+  </body>
+</html>
