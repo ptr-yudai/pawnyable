@@ -310,7 +310,7 @@ unsigned long kbase;
   <img src="img/crash_ioctl.png" alt="tty_structの書き換えでRIPが制御できている" style="width:720px;">
 </center>
 
-また、今回は`ioctl`を使いましたが、0xffffffffdead00c0でクラッシュしているので、`ioctl`に対応する関数ポインタは0xC(=12)番目にあることも分かりました。
+また、今回は`ioctl`を使いましたが、0xffffffffdead0c00でクラッシュしているので、`ioctl`に対応する関数ポインタは0xC(=12)番目にあることも分かりました。
 
 ### SMEPの回避：Stack Pivot
 前回Stack Overflowの時と同様に、RIPが取れたらROPでSMEPが回避できます。SMEPが無い場合は当然ret2usrで良いですが、SMEPを回避するだけなら例えば次のようなgadgetが使えます。
