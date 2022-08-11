@@ -46,7 +46,7 @@ void cr4_update_irqsoff(unsigned long set, unsigned long clear)
 EXPORT_SYMBOL(cr4_update_irqsoff);
 ```
 CR4中で1に更新するビットと0に更新するビットを引数で操作できます。
-そこで次のようなROP chianを実行してみます。
+そこで次のようなROP chainを実行してみます。
 ```c
   *chain++ = rop_pop_rdi;
   *chain++ = 0; // bit to set
