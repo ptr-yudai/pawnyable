@@ -56,7 +56,7 @@ typedef struct {
   struct list_head list;
 } blob_list;
 ```
-リストへのアイテムの追加は`list_all`, 削除は`list_del`, イテレーションは`list_for_each_entry(_safe)`などの操作があります。具体的な使い方については適宜調べてください。
+リストへのアイテムの追加は`list_add`, 削除は`list_del`, イテレーションは`list_for_each_entry(_safe)`などの操作があります。具体的な使い方については適宜調べてください。
 
 `ioctl`の実装を見ると、このモジュールには`CMD_ADD`, `CMD_DEL`, `CMD_GET`, `CMD_SET`の4種類の操作があることが分かります。
 ```c
