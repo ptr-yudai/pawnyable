@@ -86,7 +86,7 @@ p.spoiler {
   color: black;
   background-color: black;
   text-shadow: none;
-}</style><meta name="generator" content="Hexo 5.4.0"></head>
+}</style><meta name="generator" content="Hexo 5.4.2"></head>
   <body>
     <div class="mask-border">
     </div>
@@ -148,45 +148,45 @@ p.spoiler {
 <div class="column" title="目次">
 <!-- toc -->
 <ul>
-<li><a href="#%E9%95%B7%E3%81%95%E5%88%B6%E7%B4%84%E4%BB%98%E3%81%8D%E3%82%B7%E3%82%A7%E3%83%AB%E3%82%B3%E3%83%BC%E3%83%89">長さ制約付きシェルコード</a>
+<li><a href="#------------">長さ制約付きシェルコード</a>
 <ul>
-<li><a href="#%E7%9F%AD%E3%81%84%E6%A9%9F%E6%A2%B0%E8%AA%9E%E3%81%AE%E9%81%B8%E6%8A%9E">短い機械語の選択</a>
+<li><a href="#--------">短い機械語の選択</a>
 <ul>
-<li><a href="#%E3%83%AC%E3%82%B8%E3%82%B9%E3%82%BF%E3%81%AE%E3%82%AF%E3%83%AA%E3%82%A2%E4%BB%A3%E5%85%A5">レジスタのクリア・代入</a></li>
-<li><a href="#%E3%83%9D%E3%82%A4%E3%83%B3%E3%82%BF%E3%81%AE%E5%8F%96%E5%BE%97">ポインタの取得</a></li>
-<li><a href="#%E3%83%87%E3%83%BC%E3%82%BF%E3%81%AE%E3%82%B3%E3%83%94%E3%83%BC">データのコピー</a></li>
+<li><a href="#-----------">レジスタのクリア・代入</a></li>
+<li><a href="#-------">ポインタの取得</a></li>
+<li><a href="#-------">データのコピー</a></li>
 </ul>
 </li>
-<li><a href="#stager%E3%81%AE%E6%A7%8B%E7%AF%89">Stagerの構築</a>
+<li><a href="#stager---">Stagerの構築</a>
 <ul>
-<li><a href="#read%E3%81%AE%E5%88%A9%E7%94%A8">readの利用</a></li>
-<li><a href="#egg-hunter%E3%81%AE%E5%88%A9%E7%94%A8">Egg Hunterの利用</a></li>
+<li><a href="#read---">readの利用</a></li>
+<li><a href="#egg-hunter---">Egg Hunterの利用</a></li>
 </ul>
 </li>
 </ul>
 </li>
-<li><a href="#%E6%96%87%E5%AD%97%E5%88%B6%E7%B4%84%E4%BB%98%E3%81%8D%E3%82%B7%E3%82%A7%E3%83%AB%E3%82%B3%E3%83%BC%E3%83%89">文字制約付きシェルコード</a>
+<li><a href="#------------">文字制約付きシェルコード</a>
 <ul>
-<li><a href="#null%E6%96%87%E5%AD%97-%E6%94%B9%E8%A1%8C%E6%96%87%E5%AD%97%E5%88%B6%E7%B4%84">NULL文字、改行文字制約</a></li>
-<li><a href="#ascii-utf-8%E6%96%87%E5%AD%97%E5%88%B6%E7%B4%84">ASCII / UTF-8文字制約</a></li>
-<li><a href="#%E6%B5%AE%E5%8B%95%E5%B0%8F%E6%95%B0%E7%82%B9ieee-754%E5%88%B6%E7%B4%84">浮動小数点(IEEE 754)制約</a></li>
+<li><a href="#null---------">NULL文字、改行文字制約</a></li>
+<li><a href="#ascii---utf-8----">ASCII / UTF-8文字制約</a></li>
+<li><a href="#------ieee-754---">浮動小数点(IEEE 754)制約</a></li>
 </ul>
 </li>
-<li><a href="#%E7%8A%B6%E6%85%8B%E5%88%B6%E7%B4%84%E4%BB%98%E3%81%8D%E3%82%B7%E3%82%A7%E3%83%AB%E3%82%B3%E3%83%BC%E3%83%89">状態制約付きシェルコード</a>
+<li><a href="#------------">状態制約付きシェルコード</a>
 <ul>
-<li><a href="#%E3%82%A2%E3%83%89%E3%83%AC%E3%82%B9%E3%81%8C%E5%88%86%E3%81%8B%E3%82%89%E3%81%AA%E3%81%84%E5%A0%B4%E5%90%88">アドレスが分からない場合</a></li>
-<li><a href="#%E3%82%B7%E3%82%A7%E3%83%AB%E3%82%B3%E3%83%BC%E3%83%89%E9%A0%98%E5%9F%9F%E3%81%8C%E6%9B%B8%E3%81%8D%E8%BE%BC%E3%81%BF%E4%B8%8D%E8%83%BD%E3%81%AE%E5%A0%B4%E5%90%88">シェルコード領域が書き込み不能の場合</a></li>
+<li><a href="#------------">アドレスが分からない場合</a></li>
+<li><a href="#------------------">シェルコード領域が書き込み不能の場合</a></li>
 </ul>
 </li>
 </ul>
 <!-- tocstop -->
 <br>
 </div>
-<h2><span id="長さ制約付きシェルコード">長さ制約付きシェルコード</span></h2>
+<h2 id="長さ制約付きシェルコード">長さ制約付きシェルコード</h2>
 <p>シェルコードの長さに制約があるという状況は少なからず起こります。どのように長さ制限を突破できるでしょうか</p>
-<h3><span id="短い機械語の選択">短い機械語の選択</span></h3>
+<h3 id="短い機械語の選択">短い機械語の選択</h3>
 <p>長さ制限があるとき、同じ処理ができるなら短い機械語の方がお得です。まずはx86-64でバイト長が短い命令について知っておきましょう。</p>
-<h4><span id="レジスタのクリア代入">レジスタのクリア・代入</span></h4>
+<h4 id="レジスタのクリア・代入">レジスタのクリア・代入</h4>
 <p>シェルコードで頻出なのがレジスタを0にする命令です。</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">xor eax, eax</span><br><span class="line">xor edx, edx</span><br></pre></td></tr></table></figure>
 <p>のように32-bitレジスタに対してXORを使うと、レジスタの64-bitまるごと0になります。32-bitで計算すれば命令長は2バイトです。ただし、レジスタがr12などの場合はr12dにしても3バイトです。</p>
@@ -195,52 +195,52 @@ p.spoiler {
 <p>また、0以外のデータでもレジスタ間で値をコピーしたい場合は、<code>push</code>/<code>pop</code>命令も便利です。</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">push rax</span><br><span class="line">push rax</span><br><span class="line">pop rdx</span><br><span class="line">pop rcx</span><br></pre></td></tr></table></figure>
 <p>それぞれ1バイトなので、<code>mov</code>命令を使うよりも短く済みます。</p>
-<h4><span id="ポインタの取得">ポインタの取得</span></h4>
+<h4 id="ポインタの取得">ポインタの取得</h4>
 <p>次に文字列ポインタを取得する場合を考えます。多くの場合、次のように<code>call</code>命令を使うのが短いです。</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">call X</span><br><span class="line">db &quot;Hello&quot;, 0</span><br><span class="line">X:</span><br><span class="line">pop rdi</span><br></pre></td></tr></table></figure>
 <p><code>call</code>命令に5バイト、<code>pop</code>命令に1バイト必要になります。</p>
-<h4><span id="データのコピー">データのコピー</span></h4>
+<h4 id="データのコピー">データのコピー</h4>
 <p>文字列などのバイトデータの扱いは<code>rep</code>系命令と<code>movs</code>, <code>cmps</code>, <code>scas</code>, <code>lods</code>, <code>stos</code>命令を組み合わせることで短く実現できます。<br>
 <code>rep</code>命令はrcxが0になるまで後続の命令を繰り返すことができるプレフィックスです。例えば<code>memcpy(rdi, rsi, rdx);</code>は次のように書けます。</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">push rdx</span><br><span class="line">pop rcx</span><br><span class="line">rep movsb</span><br></pre></td></tr></table></figure>
 <div class="balloon_l">
-  <div class="faceicon"><img src="../img/piyo.jpg" alt="ひよこ先生"></div>
+  <div class="faceicon"><img src="../img/piyo.jpg" alt="ひよこ先生" ></div>
   <p class="says">
     このシェルコードはフラグレジスタのディレクションフラグ（ストリング操作命令実行後にrsi,rdiをインクリメントするかデクリメントするかを決めるフラグ）が0であると仮定しているため、厳密には正しくないよ。長さに余裕があるときな必ずループの前に`cld`命令を置くように心がけてね。
   </p>
 </div>
 <p>別の例として、次の関数をなるべく短く機械語で書いてみましょう。</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">mystrcpy</span><span class="params">(<span class="keyword">char</span> *dst, <span class="keyword">const</span> <span class="keyword">char</span> *src)</span> </span>&#123;</span><br><span class="line">  <span class="keyword">while</span> (<span class="number">1</span>) &#123;</span><br><span class="line">    *p1++ = *p2;</span><br><span class="line">    <span class="keyword">if</span> (*p2 == <span class="number">0</span>) <span class="keyword">break</span>;</span><br><span class="line">    p2++;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">void</span> <span class="title function_">mystrcpy</span><span class="params">(<span class="type">char</span> *dst, <span class="type">const</span> <span class="type">char</span> *src)</span> &#123;</span><br><span class="line">  <span class="keyword">while</span> (<span class="number">1</span>) &#123;</span><br><span class="line">    *p1++ = *p2;</span><br><span class="line">    <span class="keyword">if</span> (*p2 == <span class="number">0</span>) <span class="keyword">break</span>;</span><br><span class="line">    p2++;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p>GCCに<code>-Os</code>フラグを渡すと次のようになりました。</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">00000000000011d9 &lt;mystrcpy&gt;:</span><br><span class="line">    11d9:       f3 0f 1e fa             endbr64 </span><br><span class="line">    11dd:       31 c0                   xor    eax,eax</span><br><span class="line">    11df:       8a 14 06                mov    dl,BYTE PTR [rsi+rax*1]</span><br><span class="line">    11e2:       88 14 07                mov    BYTE PTR [rdi+rax*1],dl</span><br><span class="line">    11e5:       48 ff c0                inc    rax</span><br><span class="line">    11e8:       80 7c 06 ff 00          cmp    BYTE PTR [rsi+rax*1-0x1],0x0</span><br><span class="line">    11ed:       75 f0                   jne    11df &lt;mystrcpy+0x6&gt;</span><br><span class="line">    11ef:       c3                      ret </span><br></pre></td></tr></table></figure>
 <p><code>endbr64</code>を除けば19バイトになります。ストリング操作命令を使うと次のようになります。</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">mystrcpy:</span><br><span class="line">  .@Lp:</span><br><span class="line">  lodsb</span><br><span class="line">  stosb</span><br><span class="line">  test al, al</span><br><span class="line">  jnz .@Lp</span><br><span class="line">  ret</span><br></pre></td></tr></table></figure>
 <p>たったの7バイトになりました。<code>cld</code>命令を入れても8バイトです。コンパイラは事前に与えられた規則にしたがってしか最適化できないので、状況に応じて自分でシェルコードを書くと短いコードが書けます。</p>
 <div class="balloon_l">
-  <div class="faceicon"><img src="../img/piyo.jpg" alt="ひよこ先生"></div>
+  <div class="faceicon"><img src="../img/piyo.jpg" alt="ひよこ先生" ></div>
   <p class="says">
     GCC恐るるに足らず
   </p>
 </div>
 <p>また、<code>loop</code>命令を使うとrcxの値だけループできるため、<code>cmp</code>と<code>jmp</code>系命令を使うよりも短く書ける場合もあります。</p>
-<h3><span id="stagerの構築">Stagerの構築</span></h3>
+<h3 id="Stagerの構築">Stagerの構築</h3>
 <p>長さ制限をクリアできない場合はシェルコードを多段階に分けるのが一般的です。</p>
-<h4><span id="readの利用">readの利用</span></h4>
+<h4 id="readの利用">readの利用</h4>
 <p>シェルコード実行時に攻撃対象のプログラムにデータを送る手段が残っている場合は、readシステムコールなどを利用します。例えば次のように別の実行可能かつ書き込み可能な領域にシェルコードを上書きします。</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">mov edx, 0x1000</span><br><span class="line">lea rsi, [rel stage2]</span><br><span class="line">xor edi, edi</span><br><span class="line">xor eax, eax</span><br><span class="line">syscall</span><br><span class="line">jmp rsi</span><br></pre></td></tr></table></figure>
 <p>シェルコードを実行している箇所が書き込み可能な場合、そこに直接書き込んで<code>syscall</code>命令から2段階目のシェルコードを開始しても良いです。（ジャンプ命令が不要になるので短く済みます。）</p>
 <p>また、一般的には標準入力からデータを送ることはできないため、reverse shellの要領でソケット経由でシェルコードを送る方法もあります。</p>
-<h4><span id="egg-hunterの利用">Egg Hunterの利用</span></h4>
+<h4 id="Egg-Hunterの利用">Egg Hunterの利用</h4>
 <p>標準入力が使えないからといってソケットを利用すると、今度はシェルコードが大きくなってしまいます。また、後の章で登場するseccompによりソケット通信が禁止されている場合もあります。<br>
 このような場合、事前にヒープなどにシェルコード本体を置いておき、1段階目のシェルコードでそれを見つけてロード・実行するという方法が使えます。これを<strong>Egg Hunter</strong>と呼びます。シェルコードには目印となるようなバイト列を先頭などに設置し、それをEgg Hunterが探索します。Egg Hunterについては詳しく後の章で説明するので、ここでは解説しません。</p>
-<h2><span id="文字制約付きシェルコード">文字制約付きシェルコード</span></h2>
+<h2 id="文字制約付きシェルコード">文字制約付きシェルコード</h2>
 <p>CTFにおいては特定の言語の文字だけを利用したり、使えるバイトが数種類だけだったりという制約付きシェルコードが出題されますが、そのような状況は実際にはありえないと言って良いでしょう。ここでは現実的に起こり得る文字制約について考えます。</p>
-<h3><span id="null文字-改行文字制約">NULL文字、改行文字制約</span></h3>
+<h3 id="NULL文字、改行文字制約">NULL文字、改行文字制約</h3>
 <p>実際にはあまり見ませんが、strcpyの利用や入力の問題でNULL文字や改行文字が使えない場合があります。こういった場合はxorなどを使って適当にデータを書き換えれば問題ありません。<br>
 また、例えば</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">call arg0</span><br><span class="line">db &quot;/bin/sh&quot;, 0</span><br><span class="line">arg0:</span><br><span class="line">pop rdi</span><br></pre></td></tr></table></figure>
 <p>のように書くと<code>call</code>命令のジャンプ先オフセットがscanfなどの受け付けない文字になってしまいます。このような場合はデータを増やして適当にオフセットを調節しましょう。</p>
-<h3><span id="ascii-utf-8文字制約">ASCII / UTF-8文字制約</span></h3>
+<h3 id="ASCII-UTF-8文字制約">ASCII / UTF-8文字制約</h3>
 <p>あまりCTFなどでは見かけませんが、実際に起こり得るのがUTF-8文字制約シェルコードです。文字列の処理系が絡んでいるとき、例えば&quot;\x80&quot;のようなデータを使うと&quot;\xc2\x80&quot;に変換されてしまうことがあります。<br>
 このような場合、0x00から0x7FまでのASCII文字を使うのが簡単な解決策でしょう。</p>
 <p>このような制約付き問題では、命令は<a target="_blank" rel="noopener" href="http://ref.x86asm.net/coder64.html">x86-64の命令テーブル</a>などを参考に見つけましょう。制約が厳しい場合はPythonなどで命令を探すスクリプトを書くのも有効な手段です。</p>
@@ -253,12 +253,12 @@ p.spoiler {
 <p>値の移動やスタックの変更には次のような命令が使えます。</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">50             push rax</span><br><span class="line">58             pop rax</span><br><span class="line">52             push rdx</span><br><span class="line">5a             pop rdx</span><br><span class="line">51             push rcx</span><br><span class="line">59             pop rcx</span><br><span class="line">34 XX          xor al, imm8</span><br><span class="line">30 44 24 XX    xor [rsp+imm8], al</span><br><span class="line">6b 04 24 05    imul eax, [rsp], 5</span><br><span class="line">33 44 24 XX    xor eax, [rsp+imm8]</span><br></pre></td></tr></table></figure>
 <p>このような命令はいくらでも見つかるので、十分に自由な操作が実現できます。</p>
-<h3><span id="浮動小数点ieee-754制約">浮動小数点(IEEE 754)制約</span></h3>
+<h3 id="浮動小数点-IEEE-754-制約">浮動小数点(IEEE 754)制約</h3>
 <p>あまり問題にはなりませんが、JavaScript Exploitなどの文脈ではシェルコードを浮動小数点配列の形で与えることがあります。頻繁には起こりませんが、シェルコードが偶然NaNなどの複数通り表現がある形や、IEEE 754では起こりえないバイト列になってしまう可能性があります。<br>
 浮動小数点でシェルコードを与えて書き込めていない場合、浮動小数点で表せる形になっているかを確認しましょう。nop命令などを入れてデータをずらすことで解決できます。</p>
-<h2><span id="状態制約付きシェルコード">状態制約付きシェルコード</span></h2>
+<h2 id="状態制約付きシェルコード">状態制約付きシェルコード</h2>
 <p>何の制約もなくシェルコードを書き込めたとしても、シェルコード実行時に問題が起きる可能性があります。</p>
-<h3><span id="アドレスが分からない場合">アドレスが分からない場合</span></h3>
+<h3 id="アドレスが分からない場合">アドレスが分からない場合</h3>
 <p>シェルコードが実行できても自分自信のアドレスが分からない場合があります。通常シェルコードが実行される際に、そのシェルコードのアドレスがレジスタにロードされ、そこへジャンプします。しかし、ジャンプ後に必ず何らかの処理が実行されてしまう場合、シェルコードのアドレスを持つレジスタが破壊される可能性があります。<br>
 アドレスが分からない場合、Stagerの実行が困難になるといった問題が発生します。このような場合、システムコールを利用できます。システムコールは戻りアドレスをrcxレジスタに入れるという特性があります。したがって、次のように何もしないシステムコールを実行すれば<code>syscall</code>命令の次のアドレスを取得できます。</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">xor esi, esi</span><br><span class="line">xor eax, eax</span><br><span class="line">syscall    ; read(?, NULL, ?)</span><br></pre></td></tr></table></figure>
@@ -266,7 +266,7 @@ p.spoiler {
 64-bitのLinuxでは3つのスレッド固有領域（<strong>TLS</strong>; Thread Local Storage）があり、そのうち2つはfsレジスタとgsレジスタでアクセス可能です。TLSにはcanaryなどの情報があり、スタックへのポインタも保持しています。例えばglibcがロードされているとき、次のようなシェルコードでスタックのアドレスを取得できます。</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mov rax, [fs:0x300]</span><br></pre></td></tr></table></figure>
 <p>オフセットはバージョンにより異なる可能性があるので、適宜gdbで確認してください。</p>
-<h3><span id="シェルコード領域が書き込み不能の場合">シェルコード領域が書き込み不能の場合</span></h3>
+<h3 id="シェルコード領域が書き込み不能の場合">シェルコード領域が書き込み不能の場合</h3>
 <p>シェルコードを<code>/proc/self/mem</code>経由で書き込んだ場合などは、シェルコード領域が実行可能でも書き込み不能の場合があります。一般にシェルコードを動的に書き換えることはありませんが、エンコーダなどを利用している場合はシェルコードを書き換える必要があります。<br>
 このような場合、シェルコードを書き換えるよりもROPに持ち込んだ方が簡単な場合が多いです。シェルコードが書き込めている以上ROP gadgetも書き込めるので、スタックにgadgetのアドレスを積んで<code>ret</code>命令を呼べばROPが可能です。</p>
 <hr>

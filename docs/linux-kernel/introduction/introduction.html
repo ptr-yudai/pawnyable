@@ -86,7 +86,7 @@ p.spoiler {
   color: black;
   background-color: black;
   text-shadow: none;
-}</style><meta name="generator" content="Hexo 5.4.0"></head>
+}</style><meta name="generator" content="Hexo 5.4.2"></head>
   <body>
     <div class="mask-border">
     </div>
@@ -155,23 +155,23 @@ p.spoiler {
 <div class="column" title="目次">
 <!-- toc -->
 <ul>
-<li><a href="#%E3%82%AB%E3%83%BC%E3%83%8D%E3%83%ABexploit%E3%81%AE%E7%89%B9%E5%BE%B4">カーネルexploitの特徴</a>
+<li><a href="#----exploit---">カーネルexploitの特徴</a>
 <ul>
-<li><a href="#%E6%94%BB%E6%92%83%E5%AF%BE%E8%B1%A1">攻撃対象</a></li>
-<li><a href="#%E6%94%BB%E6%92%83%E6%96%B9%E6%B3%95">攻撃方法</a></li>
-<li><a href="#%E3%83%AA%E3%82%BD%E3%83%BC%E3%82%B9%E3%81%AE%E5%85%B1%E6%9C%89">リソースの共有</a></li>
-<li><a href="#%E3%83%92%E3%83%BC%E3%83%97%E9%A0%98%E5%9F%9F%E3%81%AE%E5%85%B1%E6%9C%89">ヒープ領域の共有</a></li>
+<li><a href="#----">攻撃対象</a></li>
+<li><a href="#----">攻撃方法</a></li>
+<li><a href="#-------">リソースの共有</a></li>
+<li><a href="#--------">ヒープ領域の共有</a></li>
 </ul>
 </li>
-<li><a href="#qemu%E3%81%AE%E5%88%A9%E7%94%A8">qemuの利用</a></li>
-<li><a href="#%E3%83%87%E3%82%A3%E3%82%B9%E3%82%AF%E3%82%A4%E3%83%A1%E3%83%BC%E3%82%B8">ディスクイメージ</a></li>
+<li><a href="#qemu---">qemuの利用</a></li>
+<li><a href="#--------">ディスクイメージ</a></li>
 </ul>
 <!-- tocstop -->
 <br>
 </div>
-<h2><span id="カーネルexploitの特徴">カーネルexploitの特徴</span></h2>
+<h2 id="カーネルexploitの特徴">カーネルexploitの特徴</h2>
 <p>まず始めにユーザーランドと比べてカーネル空間の脆弱性にはどんな特徴があるかを知っておきましょう。</p>
-<h3><span id="攻撃対象">攻撃対象</span></h3>
+<h3 id="攻撃対象">攻撃対象</h3>
 <p>ユーザーランドexploitとカーネルexploitの最も大きな違いはその目的にあります。<br>
 これまで説明したユーザーランドexploitでは多くの場合「任意コマンド実行」という目標に向けてexploitを書きました。一方で、カーネルexploitでは一般的に「権限昇格」に向けてexploitを書きます。何らかの手段で攻撃対象のマシンに侵入できた仮定で、攻撃者はカーネルexploitを利用してさらにroot権限を取得します<sup class="footnote-ref"><a href="#fn1" id="fnref1">[1]</a></sup>。このように、ローカルマシンでの権限昇格を<strong>LPE</strong>(Local Privilege Escalation)と呼びます。<br>
 もちろん、ユーザーランドで権限昇格できる脆弱性もありますが、それは攻撃対象のプログラムが特権ユーザーで動作しているからです。カーネルexploitの場合、攻撃対象は主に次の2つがあります。</p>
@@ -181,35 +181,35 @@ p.spoiler {
 </ol>
 <p>Linuxカーネル中のコード（システムコールやファイルシステム）はroot権限で動作しているため、カーネルそのものにバグがある場合LPEに繋がる可能性があります。<br>
 もう1つはデバイスドライバなどのカーネルモジュールに含まれる脆弱性です。デバイスドライバは、ユーザー空間から、主に外部機器（プリンタなど）とのやりとりを簡単にするためのインタフェースです。デバイスドライバも必ずroot権限で動作している<sup class="footnote-ref"><a href="#fn2" id="fnref2">[2]</a></sup>ので、バグがある場合LPEに繋がります。</p>
-<h3><span id="攻撃方法">攻撃方法</span></h3>
+<h3 id="攻撃方法">攻撃方法</h3>
 <p>ユーザーランドexploitの場合、通常は攻撃対象のサービスに入力を与えることでexploitしました。そのため、Pythonなどの言語でexploitを書くのが主流です。<br>
 一方で、カーネルexploitの場合は対象がOSやドライバです。これらの操作は低レイヤのため、C言語などでexploitを書くのが主流です。もちろんPythonなどでも書けますが、そもそも攻撃対象のマシン（特にCTFや実験環境で用意されるような小さいLinux）の上にPythonが存在することが少ないため、動かない可能性が高いです。</p>
 <p>このサイトでもexploitをC言語で記述します。詳しい話は別の節で出てきますが、<a target="_blank" rel="noopener" href="https://www.musl-libc.org/">musl-gcc</a>というコンパイラを使います。</p>
-<h3><span id="リソースの共有">リソースの共有</span></h3>
+<h3 id="リソースの共有">リソースの共有</h3>
 <p>カーネルexploitのもう1つの特徴は、リソースが共有されているという点です。<br>
 ユーザーランドでは通常、攻撃対象のプロセスが1つ存在し、そのプロセスをexploitすることで、シェルを取るなどの攻撃をしました。一方で、Linuxカーネルやデバイスドライバといったプログラムは、OSを利用するすべてのプロセスに共有されています。システムコールは誰でも自由なタイミングで使うことが可能ですし、デバイスドライバも誰がいつ操作するかわかりません。つまり、カーネル空間で動くコードを書く際は、常にマルチスレッドのつもりでプログラミングしなければ簡単に脆弱性を埋め込んでしまいます。</p>
 <div class="balloon_l">
-  <div class="faceicon"><img src="../img/wolf_atamawaru.png" alt="オオカミくん"></div>
+  <div class="faceicon"><img src="../img/wolf_atamawaru.png" alt="オオカミくん" ></div>
   <p class="says">
     グローバル変数のように競合する可能性のあるデータを使うときはロックを取らないといけないってことだね。<br>カーネル空間のプログラミングって大変だ〜。
   </p>
 </div>
-<h3><span id="ヒープ領域の共有">ヒープ領域の共有</span></h3>
+<h3 id="ヒープ領域の共有">ヒープ領域の共有</h3>
 <p>さらに、カーネルのヒープ領域は全ドライバやカーネルで共有されているという大きな特徴があります。<br>
 これまでユーザーランドのexploitでは、プログラムごとにヒープがあるため、そのプログラムでHeap Overflowが起きたからといってexploitableかはプログラム依存でした。しかし、例えばデバイスドライバで1回ヒープオーバーフローが起きると、他のデバイスドライバやLinuxカーネルがヒープに確保した周辺のデータまで汚染されてしまいます。</p>
 <p>攻撃者の観点からすると、この特徴には長所と短所があります。長所は、ヒープ周りの小さな脆弱性でもLPEに繋がる可能性が非常に高いという点です。例えば関数ポインタを持つオブジェクトはLinuxカーネルにたくさん存在するので、そのどれかを利用してRIPが簡単に取れるわけです。短所は、全プログラムの影響を受けるためヒープの状態が予測できないという点です。ユーザーランドのプログラムは簡単なものであれば、入力に対してヒープの状態が決定的だったので、複雑なヒープexploit（俗に言うHouse of XXXなど）が可能でした。一方で、カーネルではHeap Overflowが発生するチャンクの後ろにどんなデータが存在するかや、Use-after-Freeでfreeされた後に誰がそのアドレスを使うかはわかりません。</p>
 <div class="balloon_l">
-  <div class="faceicon"><img src="../img/wolf_normal.png" alt="オオカミくん"></div>
+  <div class="faceicon"><img src="../img/wolf_normal.png" alt="オオカミくん" ></div>
   <p class="says">
     ということは、カーネルexploitではHeap Sprayが重要なんだね。
   </p>
 </div>
 <p>脆弱性自体はユーザーランドのものと大きく変わりません。Stack OverflowやUse-after-Freeなどはカーネルランドにも存在し得ます。また、デバイスドライバのスタックにもセキュリティ機構としてStack Canaryを置くことができます。ただし、カーネル空間特有の脆弱性というのもあるので、それは後の節で登場します。</p>
-<h2><span id="qemuの利用">qemuの利用</span></h2>
+<h2 id="qemuの利用">qemuの利用</h2>
 <p>Linuxカーネルexploitを書くときは、デバッグのためにエミュレータの上でカーネルを動かします。VMなら何でも構いませんが、qemuが一般的なのでこのサイトでもqemuを利用します。</p>
 <p>読者の方は自分の環境に合わせてqemu-systemをインストールしておいてください。</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># apt install qemu-system</span><br></pre></td></tr></table></figure>
-<h2><span id="ディスクイメージ">ディスクイメージ</span></h2>
+<h2 id="ディスクイメージ">ディスクイメージ</h2>
 <p>qemuでマシンを起動する際、Linuxカーネルとは別にルートディレクトリとしてマウントされるディスクイメージが必要です。<br>
 ディスクイメージは一般的にext等のファイルシステムの生バイナリか、cpioと呼ばれる形式で作成・配布されます。<br>
 ファイルシステムの場合はmountコマンドでマウントすれば中のファイルを編集できます。</p>

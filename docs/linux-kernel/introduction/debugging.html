@@ -86,7 +86,7 @@ p.spoiler {
   color: black;
   background-color: black;
   text-shadow: none;
-}</style><meta name="generator" content="Hexo 5.4.0"></head>
+}</style><meta name="generator" content="Hexo 5.4.2"></head>
   <body>
     <div class="mask-border">
     </div>
@@ -156,15 +156,15 @@ p.spoiler {
 <div class="column" title="目次">
 <!-- toc -->
 <ul>
-<li><a href="#root%E6%A8%A9%E9%99%90%E3%81%AE%E5%8F%96%E5%BE%97">root権限の取得</a></li>
-<li><a href="#qemu%E3%81%B8%E3%81%AE%E3%82%A2%E3%82%BF%E3%83%83%E3%83%81">qemuへのアタッチ</a></li>
-<li><a href="#%E3%82%AB%E3%83%BC%E3%83%8D%E3%83%AB%E3%81%AE%E3%83%87%E3%83%90%E3%83%83%E3%82%AF">カーネルのデバック</a></li>
-<li><a href="#%E3%83%89%E3%83%A9%E3%82%A4%E3%83%90%E3%81%AE%E3%83%87%E3%83%90%E3%83%83%E3%82%B0">ドライバのデバッグ</a></li>
+<li><a href="#root-----">root権限の取得</a></li>
+<li><a href="#qemu------">qemuへのアタッチ</a></li>
+<li><a href="#---------">カーネルのデバック</a></li>
+<li><a href="#---------">ドライバのデバッグ</a></li>
 </ul>
 <!-- tocstop -->
 <br>
 </div>
-<h2><span id="root権限の取得">root権限の取得</span></h2>
+<h2 id="root権限の取得">root権限の取得</h2>
 <p>手元でKernel Exploitをデバッグする際、一般ユーザー権限だと不自由なことが多いです。特にカーネルやカーネルドライバの処理にブレークポイントを設定したり、リークしたアドレスが何の関数のアドレスかを調べたりする際、root権限がないとカーネル空間のアドレス情報を取得できません。<br>
 Kernel Exploitをデバッグする際は、まずroot権限を取得しましょう。この節の内容は前章の例題の(2)と同じですので、既に解いた方は確認程度に読み流してください。</p>
 <p>カーネルが起動すると最初に1つのプログラムが実行されます。このプログラムは設定によりパスは様々ですが、多くの場合<code>/init</code>や<code>/sbin/init</code>等に存在します。LK01の<code>rootfs.cpio</code>を展開すると、<code>/init</code>が存在します。</p>
@@ -180,7 +180,7 @@ Kernel Exploitをデバッグする際は、まずroot権限を取得しまし�
 <center>
   <img src="img/rooted.png" alt="root権限のシェルを起動" style="width:340px;">
 </center>
-<h2><span id="qemuへのアタッチ">qemuへのアタッチ</span></h2>
+<h2 id="qemuへのアタッチ">qemuへのアタッチ</h2>
 <p>qemuはgdbでデバッグするための機能を搭載しています。qemuに<code>-gdb</code>オプションを渡し、プロトコル、ホスト、ポート番号を指定してlistenできます。<code>run.sh</code>を編集して、例えば次のオプションを追加するとローカルホストでTCPの12345番ポートでgdbを待ち受けられます。</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">-gdb tcp::12345</span><br></pre></td></tr></table></figure>
 <p>今後の演習では断りなく12345番ポートを利用してデバッグしますが、自分の好きな番号を利用して問題ありません。</p>
@@ -189,7 +189,7 @@ Kernel Exploitをデバッグする際は、まずroot権限を取得しまし�
 <p>これで接続が完了すれば成功です。あとは通常のgdbコマンドを利用してレジスタやメモリの読み書き、ブレークポイントの設定などが可能です。メモリアドレスは「そのブレークポイントを付けたコンテキストでの仮想アドレス」になります。つまり、カーネルドライバやユーザー空間のプログラムが使っている馴染みあるアドレスにそのままブレークポイントを設定して構いません。</p>
 <p>今回は対象がx86-64です。もし皆さんのgdbが標準でデバッグ対象のアーキテクチャを認識しない場合、次のようにアーキテクチャを設定できます。（通常は自動で認識してくれます。）</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">pwndbg&gt; set arch i386:x86-64:intel</span><br></pre></td></tr></table></figure>
-<h2><span id="カーネルのデバック">カーネルのデバック</span></h2>
+<h2 id="カーネルのデバック">カーネルのデバック</h2>
 <p><code>/proc/kallsyms</code>というprocfsを通して、Linuxカーネル中で定義されたアドレスとシンボルの一覧を見られます。<a href="security.html#kadr-kernel-address-display-restriction">次章のKADRの節</a>でも説明しますが、セキュリティ機構によりカーネルのアドレスはroot権限でも見えないことがあります。<br>
 <a href="#root%E6%A8%A9%E9%99%90%E3%81%AE%E5%8F%96%E5%BE%97">root権限取得の節</a>で既にやりましたが、初期化スクリプトの以下の行をコメントアウトするのを忘れないでください。これをしないとカーネル空間のポインタが見えなくなります。</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">echo</span> 2 &gt; /proc/sys/kernel/kptr_restrict     <span class="comment"># 変更前</span></span><br><span class="line"><span class="comment">#echo 2 &gt; /proc/sys/kernel/kptr_restrict    # 変更後</span></span><br></pre></td></tr></table></figure>
@@ -211,7 +211,7 @@ Kernel Exploitをデバッグする際は、まずroot権限を取得しまし�
 </center>
 <p>このように、カーネル空間でもユーザー空間と同じようにgdbのコマンドが利用可能です。pwndbg等の拡張機能も使えますが、もちろんカーネル空間向けに書かれた拡張機能でなければ動かないので注意してください。<br>
 カーネルのデバッグ用の機能が<a target="_blank" rel="noopener" href="https://github.com/bata24/gef">搭載されたデバッガ</a>などもあるので、みなさんが好みのデバッガを使ってください。</p>
-<h2><span id="ドライバのデバッグ">ドライバのデバッグ</span></h2>
+<h2 id="ドライバのデバッグ">ドライバのデバッグ</h2>
 <p>次にカーネルモジュールをデバッグしてみましょう。<br>
 LK01にはvulnという名前のカーネルモジュールがロードされています。ロードされているモジュールの一覧と、そのベースアドレスは<code>/proc/modules</code>から確認できます。</p>
 <center>
@@ -228,7 +228,7 @@ IDAなどで<code>src/vuln.ko</code>を開くといくつかの関数が見え�
 </center>
 <p>詳しくは先の章で解析しますが、このモジュールは<code>/dev/holstein</code>というファイルにマップされています。<code>cat</code>コマンドを使えば<code>module_close</code>を呼び出せます。ブレークポイントで止まることを確認しましょう。</p>
 <div class="balloon_l">
-  <div class="faceicon"><img src="../img/wolf_atamawaru.png" alt="オオカミくん"></div>
+  <div class="faceicon"><img src="../img/wolf_atamawaru.png" alt="オオカミくん" ></div>
   <p class="says">
     ドライバのシンボル情報が欲しい場合はadd-symbol-file命令を使って、第一引数に手持ちのドライバ、第二引数にベースアドレスを渡すとシンボル情報を読み込んでくれるよ。関数名を使ってブレークポイントを設定できるね。
   </p>

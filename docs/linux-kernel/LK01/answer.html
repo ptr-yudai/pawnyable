@@ -86,7 +86,7 @@ p.spoiler {
   color: black;
   background-color: black;
   text-shadow: none;
-}</style><meta name="generator" content="Hexo 5.4.0"></head>
+}</style><meta name="generator" content="Hexo 5.4.2"></head>
   <body>
     <div class="mask-border">
     </div>
@@ -144,7 +144,7 @@ p.spoiler {
 </div>
 
     <div class="post-content">
-    <h3><span id="smepの無効化">SMEPの無効化？</span></h3>
+    <h3 id="SMEPの無効化？">SMEPの無効化？</h3>
 <p>ここまででkROPにより権限昇格できることが確認できましたが、実は別の方法を考えてみましょう。<br>
 <a href="../introduction/security#smep-supervisor-mode-execution-prevention">セキュリティ機構</a>の節で説明したように、SMEPはCR4レジスタで制御されています。したがって、ROPでCR4レジスタの21ビット目をフリップできればSMEPが無効化され、ret2userが使えるようになるはずです。</p>
 <p>問題はそのようなROP gadgetが存在するかです。CR4に対する即値の演算はできないので、別の汎用レジスタ経由で操作することになります。CR4を操作するコードはカーネル中に存在するので、そのようなgadgetは必ずありますが、副作用なくretで終わるものがあるかはobjdumpで探す必要があります。（多くのツールはCRレジスタに対する操作を正しく見つけてくれない上、このような処理の後にはjmpが続くことが多いです。）<br>
@@ -155,10 +155,10 @@ p.spoiler {
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">/ # cat /proc/kallsyms | grep ffffffff810285</span><br><span class="line">ffffffff81028540 T native_write_cr4</span><br><span class="line">ffffffff810285b0 T cr4_init</span><br><span class="line">/ # cat /proc/kallsyms | grep ffffffff810284</span><br><span class="line">ffffffff81028440 t default_init</span><br><span class="line">ffffffff810284b0 T cr4_update_irqsoff</span><br></pre></td></tr></table></figure>
 <p>それぞれ<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v5.10.7/source/arch/x86/kernel/cpu/common.c#L420"><code>cr4_init</code></a>、<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v5.10.7/source/arch/x86/kernel/cpu/common.c#L399"><code>cr4_update_irqsoff</code></a>という関数から来ています。<br>
 特に<code>cr4_update_irqsoff</code>という関数は使えそうな見た目をしています。</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">cr4_update_irqsoff</span><span class="params">(<span class="keyword">unsigned</span> <span class="keyword">long</span> <span class="built_in">set</span>, <span class="keyword">unsigned</span> <span class="keyword">long</span> clear)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">unsigned</span> <span class="keyword">long</span> newval, cr4 = this_cpu_read(cpu_tlbstate.cr4);</span><br><span class="line"></span><br><span class="line">	lockdep_assert_irqs_disabled();</span><br><span class="line"></span><br><span class="line">	newval = (cr4 &amp; ~clear) | <span class="built_in">set</span>;</span><br><span class="line">	<span class="keyword">if</span> (newval != cr4) &#123;</span><br><span class="line">		this_cpu_write(cpu_tlbstate.cr4, newval);</span><br><span class="line">		__write_cr4(newval);</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line">EXPORT_SYMBOL(cr4_update_irqsoff);</span><br></pre></td></tr></table></figure>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">void</span> <span class="title function_">cr4_update_irqsoff</span><span class="params">(<span class="type">unsigned</span> <span class="type">long</span> <span class="built_in">set</span>, <span class="type">unsigned</span> <span class="type">long</span> clear)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="type">unsigned</span> <span class="type">long</span> newval, cr4 = this_cpu_read(cpu_tlbstate.cr4);</span><br><span class="line"></span><br><span class="line">	lockdep_assert_irqs_disabled();</span><br><span class="line"></span><br><span class="line">	newval = (cr4 &amp; ~clear) | <span class="built_in">set</span>;</span><br><span class="line">	<span class="keyword">if</span> (newval != cr4) &#123;</span><br><span class="line">		this_cpu_write(cpu_tlbstate.cr4, newval);</span><br><span class="line">		__write_cr4(newval);</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line">EXPORT_SYMBOL(cr4_update_irqsoff);</span><br></pre></td></tr></table></figure>
 <p>CR4中で1に更新するビットと0に更新するビットを引数で操作できます。<br>
-そこで次のようなROP chianを実行してみます。</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">*chain++ = rop_pop_rdi;</span><br><span class="line">*chain++ = <span class="number">0</span>; <span class="comment">// bit to set</span></span><br><span class="line">*chain++ = rop_pop_rsi;</span><br><span class="line">*chain++ = <span class="number">1</span> &lt;&lt; <span class="number">20</span>; <span class="comment">// bit to clear</span></span><br><span class="line">*chain++ = cr4_update_irqsoff;</span><br><span class="line">*chain++ = (<span class="keyword">unsigned</span> <span class="keyword">long</span>)&amp;escalate_privilege;</span><br></pre></td></tr></table></figure>
+そこで次のようなROP chainを実行してみます。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">*chain++ = rop_pop_rdi;</span><br><span class="line">*chain++ = <span class="number">0</span>; <span class="comment">// bit to set</span></span><br><span class="line">*chain++ = rop_pop_rsi;</span><br><span class="line">*chain++ = <span class="number">1</span> &lt;&lt; <span class="number">20</span>; <span class="comment">// bit to clear</span></span><br><span class="line">*chain++ = cr4_update_irqsoff;</span><br><span class="line">*chain++ = (<span class="type">unsigned</span> <span class="type">long</span>)&amp;escalate_privilege;</span><br></pre></td></tr></table></figure>
 <p>これを実行すると、やはり<code>escalate_privilege</code>実行時にSMEPでクラッシュしてしまいます。直前でCR4の値を確認すると、SMEPのビットが有効になっていることが分かります。なぜCR4が更新できていないのかステップ実行で確認しましょう。</p>
 <center>
   <img src="img/update_cr4.png" alt="cr4_update_irqoffのCR4更新部分" style="width:640px;">
@@ -184,7 +184,7 @@ p.spoiler {
 しかし、SMEPを無効化する手法はWindows 7のKernel Exploitなどで登場します。</p>
 <p>ということで例題の答えは、「<code>native_write_cr4</code>を使わずにCR4に0x1000をORできるROP gadgetが存在すれば可能」です。</p>
 <div class="balloon_l">
-  <div class="faceicon"><img src="../img/cow.jpg" alt="牛さん"></div>
+  <div class="faceicon"><img src="../img/cow.jpg" alt="牛さん" ></div>
   <p class="says">
     CR4に0x1000をORしてくれるようなgadgetは普通は存在しないけど、実はbpfというLinux Kernelの機能を悪用すれば任意のgadgetが作れるよ。
   </p>

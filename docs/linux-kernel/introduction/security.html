@@ -86,7 +86,7 @@ p.spoiler {
   color: black;
   background-color: black;
   text-shadow: none;
-}</style><meta name="generator" content="Hexo 5.4.0"></head>
+}</style><meta name="generator" content="Hexo 5.4.2"></head>
   <body>
     <div class="mask-border">
     </div>
@@ -156,23 +156,23 @@ p.spoiler {
 <div class="column" title="目次">
 <!-- toc -->
 <ul>
-<li><a href="#smep-supervisor-mode-execution-prevention">SMEP (Supervisor Mode Execution Prevention)</a></li>
-<li><a href="#smap-supervisor-mode-access-prevention">SMAP (Supervisor Mode Access Prevention)</a></li>
-<li><a href="#kaslr-fgkaslr">KASLR / FGKASLR</a></li>
-<li><a href="#kpti-kernel-page-table-isolation">KPTI (Kernel Page-Table Isolation)</a></li>
-<li><a href="#kadr-kernel-address-display-restriction">KADR (Kernel Address Display Restriction)</a></li>
+<li><a href="#smep--supervisor-mode-execution-prevention-">SMEP (Supervisor Mode Execution Prevention)</a></li>
+<li><a href="#smap--supervisor-mode-access-prevention-">SMAP (Supervisor Mode Access Prevention)</a></li>
+<li><a href="#kaslr---fgkaslr">KASLR / FGKASLR</a></li>
+<li><a href="#kpti--kernel-page-table-isolation-">KPTI (Kernel Page-Table Isolation)</a></li>
+<li><a href="#kadr--kernel-address-display-restriction-">KADR (Kernel Address Display Restriction)</a></li>
 </ul>
 <!-- tocstop -->
 <br>
 </div>
-<h2><span id="smep-supervisor-mode-execution-prevention">SMEP (Supervisor Mode Execution Prevention)</span></h2>
+<h2 id="SMEP-Supervisor-Mode-Execution-Prevention">SMEP (Supervisor Mode Execution Prevention)</h2>
 <p>カーネルのセキュリティ機構として代表的なものが、SMEPとSMAPです。<br>
 SMEPはカーネル空間のコードを実行中に、突然ユーザー空間のコードを実行するのを禁止するセキュリティ機構です。イメージとしてはNXに似ています。</p>
 <p>SMEPは緩和機構で、それ単体で強い防御策という訳ではありません。例えばカーネル空間の脆弱性を利用して攻撃者にRIPを奪われてしまったとします。もしSMEPが無効だと、次のようにユーザー空間に用意したシェルコードを実行されてしまいます。</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">char</span> *shellcode = mmap(<span class="literal">NULL</span>, <span class="number">0x1000</span>, PROT_READ|PROT_WRITE|PROT_EXECUTE,</span><br><span class="line">                       MAP_ANONYMOUS | MAP_PRIVATE, <span class="number">-1</span>, <span class="number">0</span>);</span><br><span class="line"><span class="built_in">memcpy</span>(shellcode, SHELLCODE, <span class="keyword">sizeof</span>(SHELLCODE));</span><br><span class="line"></span><br><span class="line">control_rip(shellcode); <span class="comment">// RIP = shellcode</span></span><br></pre></td></tr></table></figure>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">char</span> *shellcode = mmap(<span class="literal">NULL</span>, <span class="number">0x1000</span>, PROT_READ|PROT_WRITE|PROT_EXECUTE,</span><br><span class="line">                       MAP_ANONYMOUS | MAP_PRIVATE, <span class="number">-1</span>, <span class="number">0</span>);</span><br><span class="line"><span class="built_in">memcpy</span>(shellcode, SHELLCODE, <span class="keyword">sizeof</span>(SHELLCODE));</span><br><span class="line"></span><br><span class="line">control_rip(shellcode); <span class="comment">// RIP = shellcode</span></span><br></pre></td></tr></table></figure>
 <p>しかしSMEPが有効の場合、上のようにユーザー空間に用意したシェルコードを実行しようとするとカーネルパニックを引き起こします。これにより、攻撃者はRIPを奪っても権限昇格に繋げられなくなる可能性が上がります。</p>
 <div class="balloon_l">
-  <div class="faceicon"><img src="../img/wolf_thinking.png" alt="オオカミくん"></div>
+  <div class="faceicon"><img src="../img/wolf_thinking.png" alt="オオカミくん" ></div>
   <p class="says">
     カーネル空間のシェルコードでは何を実行すれば良いのかな？<br>
     権限昇格の方法はまた別の章で勉強するよ。
@@ -183,7 +183,7 @@ SMEPはカーネル空間のコードを実行中に、突然ユーザー空間�
 <p>マシン内部からは<code>/proc/cpuinfo</code>を見ることでも確認できます。</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ cat /proc/cpuinfo | grep smep</span><br></pre></td></tr></table></figure>
 <p>SMEPはハードウェアのセキュリティ機構です。CR4レジスタの21ビット目を立てるとSMEPが有効になります。</p>
-<h2><span id="smap-supervisor-mode-access-prevention">SMAP (Supervisor Mode Access Prevention)</span></h2>
+<h2 id="SMAP-Supervisor-Mode-Access-Prevention">SMAP (Supervisor Mode Access Prevention)</h2>
 <p>ユーザー空間からカーネル空間のメモリを読み書きできないのはセキュリティ上当たり前ですが、実はカーネル空間からユーザー空間のメモリを読み書きできなくする<strong>SMAP</strong>(Supervisor Mode Access Prevention)というセキュリティ機構が存在します。カーネル空間からユーザー空間のデータを読み書きするには、<a target="_blank" rel="noopener" href="https://www.kernel.org/doc/htmldocs/kernel-api/API---copy-from-user.html"><code>copy_from_user</code></a>, <a target="_blank" rel="noopener" href="https://www.kernel.org/doc/htmldocs/kernel-api/API---copy-to-user.html"><code>copy_to_user</code></a>という関数を使う必要があります。<br>
 しかし、なぜ高い権限のカーネル空間から低い権限のユーザー空間のデータを読み書きできなくするのでしょうか。</p>
 <p>歴史的な経緯については知りませんが、SMAPによる恩恵は主に2つあると考えられます。</p>
@@ -191,15 +191,15 @@ SMEPはカーネル空間のコードを実行中に、突然ユーザー空間�
 SMEPで出した例ではRIPを制御できてもシェルコードは実行できなくなりました。しかし、Linuxカーネルは非常に膨大な量の機械語を持っているため、次のようなROP gadgetが必ず存在します。</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mov esp, 0x12345678; ret;</span><br></pre></td></tr></table></figure>
 <p>ESPに入る値が何であれ、このROP gadgetが呼ばれるとRSPはその値に変更されます<sup class="footnote-ref"><a href="#fn1" id="fnref1">[1]</a></sup>。一方、このような低いアドレスはユーザーランドから<code>mmap</code>で確保可能ですので、SMEPが有効でも攻撃者はRIPを取るだけで、次のようにROP chainを実行できます。</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">void</span> *p = mmap(<span class="number">0x12340000</span>, <span class="number">0x10000</span>, ...);</span><br><span class="line"><span class="keyword">unsigned</span> <span class="keyword">long</span> *chain = (<span class="keyword">unsigned</span> <span class="keyword">long</span>*)(p + <span class="number">0x5678</span>);</span><br><span class="line">*chain++ = rop_pop_rdi;</span><br><span class="line">*chain++ = <span class="number">0</span>;</span><br><span class="line">*chain++ = ...;</span><br><span class="line">...</span><br><span class="line"></span><br><span class="line">control_rip(rop_mov_esp_12345678h);</span><br></pre></td></tr></table></figure>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">void</span> *p = mmap(<span class="number">0x12340000</span>, <span class="number">0x10000</span>, ...);</span><br><span class="line"><span class="type">unsigned</span> <span class="type">long</span> *chain = (<span class="type">unsigned</span> <span class="type">long</span>*)(p + <span class="number">0x5678</span>);</span><br><span class="line">*chain++ = rop_pop_rdi;</span><br><span class="line">*chain++ = <span class="number">0</span>;</span><br><span class="line">*chain++ = ...;</span><br><span class="line">...</span><br><span class="line"></span><br><span class="line">control_rip(rop_mov_esp_12345678h);</span><br></pre></td></tr></table></figure>
 <p>もしSMAPが有効なら、ユーザー空間でmmapしたデータ（ROP chain）はカーネル空間から見られないので、stack pivotの<code>ret</code>命令でカーネルパニックを起こします。<br>
 このように、SMEPに加えてSMAPが有効になることで、ROPによる攻撃を緩和できます。</p>
 <p>SMAPによる2つ目の恩恵が、カーネルプログラミングで起こしやすいバグの防止です。<br>
 これにはデバイスドライバなどのプログラマが起こしてしまうカーネル特有のバグが関係します。ドライバが次のようなコードを書いたとしましょう。（今は関数定義の意味は分からなくて構いません。）</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">char</span> buffer[<span class="number">0x10</span>];</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">long</span> <span class="title">mydevice_ioctl</span><span class="params">(struct file *filp, <span class="keyword">unsigned</span> <span class="keyword">int</span> cmd, <span class="keyword">unsigned</span> <span class="keyword">long</span> arg)</span> </span>&#123;</span><br><span class="line">  <span class="keyword">if</span> (cmd == <span class="number">0xdead</span>) &#123;</span><br><span class="line">    <span class="built_in">memcpy</span>(buffer, arg, <span class="number">0x10</span>);</span><br><span class="line">  &#125; <span class="keyword">else</span> <span class="keyword">if</span> (cmd == <span class="number">0xcafe</span>) &#123;</span><br><span class="line">    <span class="built_in">memcpy</span>(arg, buffer, <span class="number">0x10</span>);</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">return</span> </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">char</span> buffer[<span class="number">0x10</span>];</span><br><span class="line"></span><br><span class="line"><span class="type">static</span> <span class="type">long</span> <span class="title function_">mydevice_ioctl</span><span class="params">(<span class="keyword">struct</span> file *filp, <span class="type">unsigned</span> <span class="type">int</span> cmd, <span class="type">unsigned</span> <span class="type">long</span> arg)</span> &#123;</span><br><span class="line">  <span class="keyword">if</span> (cmd == <span class="number">0xdead</span>) &#123;</span><br><span class="line">    <span class="built_in">memcpy</span>(buffer, arg, <span class="number">0x10</span>);</span><br><span class="line">  &#125; <span class="keyword">else</span> <span class="keyword">if</span> (cmd == <span class="number">0xcafe</span>) &#123;</span><br><span class="line">    <span class="built_in">memcpy</span>(arg, buffer, <span class="number">0x10</span>);</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">return</span> </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p><code>memcpy</code>で<code>buffer</code>というグローバル変数にデータを読み書きしていることがイメージできるかと思います。</p>
 <p>このモジュールはユーザー空間から次のように利用すると、0x10バイトのデータを記憶してくれます。</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">int</span> fd = open(<span class="string">&quot;/dev/mydevice&quot;</span>, O_RDWR);</span><br><span class="line"></span><br><span class="line"><span class="keyword">char</span> src[<span class="number">0x10</span>] = <span class="string">&quot;Hello, World!&quot;</span>;</span><br><span class="line"><span class="keyword">char</span> dst[<span class="number">0x10</span>];</span><br><span class="line"></span><br><span class="line">ioctl(fd, <span class="number">0xdead</span>, src);</span><br><span class="line">ioctl(fd, <span class="number">0xcafe</span>, dst);</span><br><span class="line"></span><br><span class="line"><span class="built_in">printf</span>(<span class="string">&quot;%s\n&quot;</span>, dst); <span class="comment">// --&gt; Hello, World!</span></span><br></pre></td></tr></table></figure>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> fd = open(<span class="string">&quot;/dev/mydevice&quot;</span>, O_RDWR);</span><br><span class="line"></span><br><span class="line"><span class="type">char</span> src[<span class="number">0x10</span>] = <span class="string">&quot;Hello, World!&quot;</span>;</span><br><span class="line"><span class="type">char</span> dst[<span class="number">0x10</span>];</span><br><span class="line"></span><br><span class="line">ioctl(fd, <span class="number">0xdead</span>, src);</span><br><span class="line">ioctl(fd, <span class="number">0xcafe</span>, dst);</span><br><span class="line"></span><br><span class="line"><span class="built_in">printf</span>(<span class="string">&quot;%s\n&quot;</span>, dst); <span class="comment">// --&gt; Hello, World!</span></span><br></pre></td></tr></table></figure>
 <p>ユーザー空間のプログラミングに慣れていると何ということはありません。<code>memcpy</code>のサイズも固定で、特に問題は無いように思えます。</p>
 <p>しかし、もしSMAPが無効だと、次のような呼び出しも許されてしまいます。</p>
 <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ioctl(fd, <span class="number">0xdead</span>, <span class="number">0xffffffffdeadbeef</span>);</span><br></pre></td></tr></table></figure>
@@ -213,12 +213,12 @@ SMEPで出した例ではRIPを制御できてもシェルコードは実行で�
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ cat /proc/cpuinfo | grep smap</span><br></pre></td></tr></table></figure>
 <p>SMAPもSMEP同様にハードウェアのセキュリティ機構です。CR4レジスタの22ビット目を立てるとSMAPが有効になります。</p>
 <div class="balloon_l">
-  <div class="faceicon"><img src="../img/wolf_suyasuya.png" alt="オオカミくん"></div>
+  <div class="faceicon"><img src="../img/wolf_suyasuya.png" alt="オオカミくん" ></div>
   <p class="says">
     Intel CPUではEFLAGS.AC (Alignment Check)というフラグをそれぞれ1,0に変更する<a href="https://www.felixcloutier.com/x86/stac" target="_blank">STAC</a>と<a href="https://www.felixcloutier.com/x86/clac" target="_blank">CLAC</a>という命令があって、ACがセットされている間はSMAPの効力が無効になるよ。
   </p>
 </div>
-<h2><span id="kaslr-fgkaslr">KASLR / FGKASLR</span></h2>
+<h2 id="KASLR-FGKASLR">KASLR / FGKASLR</h2>
 <p>ユーザー空間ではアドレスをランダム化するASLR(Address Space Layout Randomization)が存在しました。これと同様に、Linuxカーネルやデバイスドライバのコード・データ領域のアドレスをランダム化する<strong>KASLR</strong>(Kernel ASLR)という緩和機構も存在します。<br>
 カーネルは一度ロードされたら移動しませんので、KASLRは起動時に1度だけ働きます。何か1つでもLinuxカーネル中の関数やデータのアドレスをリークできれば、ベースアドレスが求まります。</p>
 <p><a target="_blank" rel="noopener" href="https://lwn.net/Articles/824307/">2020年に入ってから</a><strong>FGKASLR</strong>(Function Granular KASLR)と呼ばれるさらに強いKASLRが登場しました。2022年現在はデフォルトで無効なようですが、これはLinuxカーネルの関数ごとにアドレスをランダム化するという技術です。たとえLinuxカーネル中の関数のアドレスがリークできても、ベースアドレスは求まりません。<br>
@@ -226,7 +226,7 @@ SMEPで出した例ではRIPを制御できてもシェルコードは実行で�
 <p>アドレスはカーネル空間で共通という点に注意してください。たとえあるデバイスドライバがKASLRのおかげでexploit不可能だとしても、別のドライバがカーネルのアドレスをリークしてしまうと、アドレスは共通なのでexploit可能になります。</p>
 <p>KASLRはカーネルの起動時引数で無効化できます。qemuの<code>-append</code>オプションに<code>nokaslr</code>と付いていればKASLRは無効化されています</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">-append &quot;... nokaslr ...&quot;</span><br></pre></td></tr></table></figure>
-<h2><span id="kpti-kernel-page-table-isolation">KPTI (Kernel Page-Table Isolation)</span></h2>
+<h2 id="KPTI-Kernel-Page-Table-Isolation">KPTI (Kernel Page-Table Isolation)</h2>
 <p>2018年にIntel等のCPUで<a target="_blank" rel="noopener" href="https://ja.wikipedia.org/wiki/Meltdown">Meltdown</a>と呼ばれるサイドチャネル攻撃が発見されました。この脆弱性については説明しませんが、カーネル空間のメモリをユーザー権限で読めてしまうという重大な脆弱性で、KASLRの回避などが可能でした。近年のLinuxカーネルではMeltdownの対策として、<strong>KPTI</strong>(Kernel Page-Table Isolation)、あるいは古い名称で<strong>KAISER</strong>と呼ばれる機構が有効になっています。</p>
 <p>仮想アドレスから物理アドレスに変換する際にページテーブルが利用されるのはご存知の通りですが、このページテーブルをユーザーモードとカーネルモードで分離する<sup class="footnote-ref"><a href="#fn2" id="fnref2">[2]</a></sup>のがこのセキュリティ機構です。KPTIはあくまでMeltdownを防ぐためのセキュリティ機構なので通常のカーネルexploitにおいては問題になりません。しかし、カーネル空間でROPする場合などにKPTIが有効だと、最後にユーザー空間に戻る際に問題が発生します。具体的な解決方法はKernel ROPの章であらためて説明します。</p>
 <p>KPTIはカーネルの起動時引数で有効化できます。qemuの<code>-append</code>オプションに<code>pti=on</code>と付いていればKPTIは有効化され、<code>pti=off</code>や<code>nopti</code>が付いていれば無効化されます。</p>
@@ -235,7 +235,7 @@ SMEPで出した例ではRIPを制御できてもシェルコードは実行で�
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"># cat /sys/devices/system/cpu/vulnerabilities/meltdown</span><br><span class="line">Mitigation: PTI</span><br></pre></td></tr></table></figure>
 <p>無効な場合は「Vulnerable」となります。</p>
 <p>KPTIはページテーブルの切り替えなので、CR3レジスタの操作でユーザー・カーネル空間を切り替えられます。LinuxにおいてはCR3に0x1000をORする（すなわちPDBRを変更する）ことでカーネル空間からユーザー空間に切り替わります。この操作は<a target="_blank" rel="noopener" href="https://github.com/torvalds/linux/blob/master/arch/x86/entry/entry_64.S"><code>swapgs_restore_regs_and_return_to_usermode</code></a>で定義されていますが、詳細は実際にexploitを書く章で説明します。</p>
-<h2><span id="kadr-kernel-address-display-restriction">KADR (Kernel Address Display Restriction)</span></h2>
+<h2 id="KADR-Kernel-Address-Display-Restriction">KADR (Kernel Address Display Restriction)</h2>
 <p>Linuxカーネルでは、関数の名前とアドレスの情報を<code>/proc/kallsyms</code>から読むことができます。また、デバイスドライバによっては<code>printk</code>関数などを使い、さまざまなデバッグ情報をログに出力するものもあり、このログは<code>dmesg</code>コマンドなどでユーザーから見ることができます。<br>
 このように、カーネル空間の関数やデータ、ヒープなどのアドレス情報のリークを防ぐための機構がLinuxには存在します。正式な名称は無いと思いますが、<a target="_blank" rel="noopener" href="https://inaz2.hatenablog.com/entry/2015/03/27/021422">参考文献</a>では<strong>KADR</strong>(Kernel Address Display Restriction)と呼んでいるようなので、このサイトでもその名称を採用します。</p>
 <p>この機能は<code>/proc/sys/kernel/kptr_restrict</code>の値により変更できます。<code>kptr_restrict</code>が0である場合、アドレスの表示に制限はかかりません。<code>kptr_restrict</code>が1である場合、<code>CAP_SYSLOG</code>権限を持つユーザーにはアドレスが表示されます。<code>kptr_restrict</code>が2である場合、ユーザーが特権レベルであってもカーネルアドレスは隠されます。<br>

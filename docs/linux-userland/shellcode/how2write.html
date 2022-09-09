@@ -86,7 +86,7 @@ p.spoiler {
   color: black;
   background-color: black;
   text-shadow: none;
-}</style><meta name="generator" content="Hexo 5.4.0"></head>
+}</style><meta name="generator" content="Hexo 5.4.2"></head>
   <body>
     <div class="mask-border">
     </div>
@@ -148,26 +148,26 @@ p.spoiler {
 <div class="column" title="目次">
 <!-- toc -->
 <ul>
-<li><a href="#%E3%82%B7%E3%82%A7%E3%83%AB%E3%82%B3%E3%83%BC%E3%83%89%E3%81%AFnx%E3%81%A7%E6%B6%88%E6%BB%85%E3%81%97%E3%81%9F">シェルコードはNXで消滅した？</a>
+<li><a href="#-------nx------">シェルコードはNXで消滅した？</a>
 <ul>
-<li><a href="#%E3%82%B5%E3%83%B3%E3%83%89%E3%83%9C%E3%83%83%E3%82%AF%E3%82%B9%E4%B8%8B%E3%81%A7%E3%81%AE%E3%82%B7%E3%82%A7%E3%83%AB%E3%82%B3%E3%83%BC%E3%83%89">サンドボックス下でのシェルコード</a></li>
-<li><a href="#jit%E3%81%A8%E3%82%B7%E3%82%A7%E3%83%AB%E3%82%B3%E3%83%BC%E3%83%89">JITとシェルコード</a></li>
+<li><a href="#----------------">サンドボックス下でのシェルコード</a></li>
+<li><a href="#jit-------">JITとシェルコード</a></li>
 </ul>
 </li>
-<li><a href="#%E3%82%B7%E3%82%A7%E3%83%AB%E3%82%B3%E3%83%BC%E3%83%89%E3%82%92%E6%9B%B8%E3%81%84%E3%81%A6%E3%81%BF%E3%82%88%E3%81%86">シェルコードを書いてみよう</a></li>
+<li><a href="#-------------">シェルコードを書いてみよう</a></li>
 </ul>
 <!-- tocstop -->
 <br>
 </div>
-<h2><span id="シェルコードはnxで消滅した">シェルコードはNXで消滅した？</span></h2>
+<h2 id="シェルコードはNXで消滅した？">シェルコードはNXで消滅した？</h2>
 <p>シェルコードはもともと名前の通り、「シェルを起動する機械語」にちなんで登場した言葉ですが、実際には「攻撃に利用する機械語」程度の意味合いで使われています。言葉の定義はどうでも良いので、その内容を確認していきましょう。</p>
 <p>シェルコードが他の手法よりも大きく優れているのは安定性です。関数ポインタを書き換えてsystem関数を呼び出したり、ROPによるコード実行は通常バイナリ依存となります。実世界の攻撃で、攻撃対象が使っているバイナリとまったく同じものを入手するのは困難なため、ROPを使う場合はバージョンごとにROP chainを分けてexploit中に記載します。しかし、シェルコードの場合はアドレスさえリークできていれば、そこへジャンプするだけで確実にコードが実行できます。</p>
 <p>しかし、ご存知の通り、NXという考え方が登場してからはメモリ上のほとんどの領域がW^X<sup class="footnote-ref"><a href="#fn1" id="fnref1">[1]</a></sup>になり、シェルコードが使えなくなりました。そのためCTFの問題では特に、関数ポインタの書き換えやROPが主流になり、シェルコードに関する問題は相当入門者向けのような状況でしか見ない方も多いかと思います。ところが実際にはシェルコードは非常に強力で、多くの状況で必要になってきます。</p>
-<h3><span id="サンドボックス下でのシェルコード">サンドボックス下でのシェルコード</span></h3>
+<h3 id="サンドボックス下でのシェルコード">サンドボックス下でのシェルコード</h3>
 <p>任意コマンド実行するだけのような簡単なコードであればROPで事足りますが、場合によってはそうはいきません。近年多くのアプリがサンドボックス機構を取り入れるようになっています。Linuxの場合seccompが代表的な例でしょう。seccompはシステムコール番号などから使えるシステムコールを手軽に制限できる機能です。当然開発者は任意コマンド実行されたくないので、execveなどのシステムコールを禁止します。<br>
 このような場合、サンドボックスを回避したり、あるいはサンドボックス下で最大限悪用可能なコードを走らせるためにはシェルコードが必要になります。もちろんROPでも実現可能ですが、サンドボックスを回避するような複雑な処理であればシェルコードの方が楽でしょう。<br>
 つまり、複雑な処理が要求される場合はROPを諦めてシェルコードで書いた方が圧倒的にexploitが簡潔になります。</p>
-<h3><span id="jitとシェルコード">JITとシェルコード</span></h3>
+<h3 id="JITとシェルコード">JITとシェルコード</h3>
 <p>ブラウザ（JavaScriptエンジン）のような大規模なアプリケーションになってくると実行時コンパイラ(JIT)が組み込まれています。JITは動的に機械語を生成する必要があるため、必然的に実行可能領域を割り当てます。</p>
 <p>JITの中にはW^Xの考え方を実現していないものもあり、例えば2021年現在のChromeのJavaScriptエンジンであるV8は、WebAssemblyのコンパイル時に生成する機械語領域をRWXのまま使っています。このようにJITが作るRWXページは当然ながら攻撃の対象となっています。また、仮にW^Xだとしても、JITではほとんどの場合シェルコードが実現できます。<br>
 例えば次のように、32-bitの算術演算だけが許される電卓のような言語のJITが搭載されていたとしましょう。</p>
@@ -178,12 +178,12 @@ p.spoiler {
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">01h: 31 C0    xor eax, eax</span><br><span class="line">03h: EB 01    jmp 6h</span><br><span class="line">05h: 05       db 05h</span><br><span class="line">06h: B0 3C    mov al, 60</span><br><span class="line">08h: EB 01    jmp Bh</span><br><span class="line">0Ah: 2D       db 2Dh</span><br><span class="line">0Bh: 0F 05    syscall</span><br><span class="line">0Dh: C3       ret</span><br></pre></td></tr></table></figure>
 <p>eaxを60にしてシステムコールを呼び出す機械語になってしまいました。このようにして、JITが存在する場合は例えその領域が書き込み不能でも、中のコードで使われる定数をある程度制御できる場合、シェルコードやROP gadgetを攻撃者が用意できます。</p>
 <div class="balloon_l">
-  <div class="faceicon"><img src="../img/piyo.jpg" alt="ひよこ先生"></div>
+  <div class="faceicon"><img src="../img/piyo.jpg" alt="ひよこ先生" ></div>
   <p class="says">
     このような手法を<strong>Bring Your Own Gadget</strong>などと呼ぶよ。
   </p>
 </div>
-<h2><span id="シェルコードを書いてみよう">シェルコードを書いてみよう</span></h2>
+<h2 id="シェルコードを書いてみよう">シェルコードを書いてみよう</h2>
 <p>シェルコードが必要となったときに入門者がやりがちなのが、shell-stormなどインターネットに転がっているシェルコードを使うことです。このようなシェルコードというのは以下の3つの特徴があります。</p>
 <ol>
 <li>NULLバイトを使っていない</li>
@@ -195,7 +195,7 @@ p.spoiler {
 3つ目に、インターネット上のシェルコードの中には不思議なほど短さを意識しているものがあります。短い方が良いと思っているのか分かりませんが、数バイト単位の字数制限が要求される状況も滅多にありません。極端に短いシェルコードはむしろ欠点があります。こういったインターネット上のシェルコードはレジスタやスタックの初期状態を仮定している場合が多く、そのまま使おうとすると動かないケースがあります。短いけど動かないシェルコードを書くくらいなら、長くても読みやすいシェルコードを心がけましょう。</p>
 <p>また、インターネットにあるシェルコードは「<code>/bin/sh</code>を起動する」であったり「リバースシェルを取る」であったり、とにかく典型的な処理だけです。実際に要求されるのは状況に応じた複雑な処理ですし、そもそも典型的な処理すらすぐにアセンブリで書けないようでは生きていけません。（複雑なシェルコードは後の章で実践します。）</p>
 <div class="balloon_l">
-  <div class="faceicon"><img src="../img/piyo.jpg" alt="ひよこ先生"></div>
+  <div class="faceicon"><img src="../img/piyo.jpg" alt="ひよこ先生" ></div>
   <p class="says">
     自然界は厳しいのでコマンドを呼び出すシェルコードも手書きできないようでは生きていけない。
   </p>
@@ -213,7 +213,7 @@ p.spoiler {
 <p>次に引数リストの用意です。これは機械語領域が書き込み可能ならmov命令でも良いですし、そうでないならスタックでも良いです。配列の終端はNULLを入れるのを忘れないようにしましょう。</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">  xor edx, edx</span><br><span class="line">  push rdx</span><br><span class="line">  lea rdi, [rel s_arg2]</span><br><span class="line">  push rdi</span><br><span class="line">  lea rdi, [rel s_arg1]</span><br><span class="line">  push rdi</span><br><span class="line">  lea rdi, [rel s_arg0]</span><br><span class="line">  push rdi</span><br><span class="line">  mov rsi, rsp</span><br><span class="line">  ...</span><br><span class="line">s_arg2: db &quot;/bin/ls -lha&quot;, 0</span><br><span class="line">s_arg1: db &quot;-c&quot;, 0</span><br><span class="line">s_arg0: db &quot;/bin/sh&quot;, 0</span><br></pre></td></tr></table></figure>
 <div class="balloon_l">
-  <div class="faceicon"><img src="../img/piyo.jpg" alt="ひよこ先生"></div>
+  <div class="faceicon"><img src="../img/piyo.jpg" alt="ひよこ先生" ></div>
   <p class="says">
     x86-64では32-bitのレジスタに結果を代入すると上位32-bitは0になるよ。
     だから「xor eax,eax」で確実にraxを0にできるんだね。
