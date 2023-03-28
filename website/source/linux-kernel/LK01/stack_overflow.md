@@ -122,6 +122,11 @@ commit_creds(prepare_kernel_cred(NULL));
 ```
 を呼び出すのがKernel Exploitで権限昇格するための1つの手法となります。
 
+
+**\[2023年3月28日追記\]**
+Linuxカーネル6.2からは`prepare_kernel_cred`に[NULLが渡せなくなりました。](https://elixir.bootlin.com/linux/v6.2/source/kernel/cred.c#L712)
+`init_cred`はまだ存在するので、`commit_creds(&init_cred)`を実行すれば同じことが可能です。
+
 ### swapgs: ユーザー空間への復帰
 `prepare_kernel_cred`と`commit_creds`でめでたくroot権限が取れたのですが、それで終わりではありません。
 ROP chainが終わった後、何事もなかったかのようにユーザー空間に復帰してシェルを取る必要があります。せっかくroot権限を取ってもクラッシュしたり、プロセスが終了したりしては意味がありません。
