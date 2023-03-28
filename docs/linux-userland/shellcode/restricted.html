@@ -213,13 +213,13 @@ p.spoiler {
 <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">void</span> <span class="title function_">mystrcpy</span><span class="params">(<span class="type">char</span> *dst, <span class="type">const</span> <span class="type">char</span> *src)</span> &#123;</span><br><span class="line">  <span class="keyword">while</span> (<span class="number">1</span>) &#123;</span><br><span class="line">    *p1++ = *p2;</span><br><span class="line">    <span class="keyword">if</span> (*p2 == <span class="number">0</span>) <span class="keyword">break</span>;</span><br><span class="line">    p2++;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p>GCCに<code>-Os</code>フラグを渡すと次のようになりました。</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">00000000000011d9 &lt;mystrcpy&gt;:</span><br><span class="line">    11d9:       f3 0f 1e fa             endbr64 </span><br><span class="line">    11dd:       31 c0                   xor    eax,eax</span><br><span class="line">    11df:       8a 14 06                mov    dl,BYTE PTR [rsi+rax*1]</span><br><span class="line">    11e2:       88 14 07                mov    BYTE PTR [rdi+rax*1],dl</span><br><span class="line">    11e5:       48 ff c0                inc    rax</span><br><span class="line">    11e8:       80 7c 06 ff 00          cmp    BYTE PTR [rsi+rax*1-0x1],0x0</span><br><span class="line">    11ed:       75 f0                   jne    11df &lt;mystrcpy+0x6&gt;</span><br><span class="line">    11ef:       c3                      ret </span><br></pre></td></tr></table></figure>
-<p><code>endbr64</code>を除けば19バイトになります。ストリング操作命令を使うと次のようになります。</p>
+<p><code>endbr64</code>を除けば19バイトになります。一方で、ストリング操作命令を使うと次のようになります。</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">mystrcpy:</span><br><span class="line">  .@Lp:</span><br><span class="line">  lodsb</span><br><span class="line">  stosb</span><br><span class="line">  test al, al</span><br><span class="line">  jnz .@Lp</span><br><span class="line">  ret</span><br></pre></td></tr></table></figure>
-<p>たったの7バイトになりました。<code>cld</code>命令を入れても8バイトです。コンパイラは事前に与えられた規則にしたがってしか最適化できないので、状況に応じて自分でシェルコードを書くと短いコードが書けます。</p>
+<p>たったの7バイトになりました。<code>cld</code>命令を入れても8バイトです。コンパイラは事前に与えられた規則にしたがってしか最適化できないので、状況に応じて自分でシェルコードを書くともっと短いコードが書けます。</p>
 <div class="balloon_l">
   <div class="faceicon"><img src="../img/piyo.jpg" alt="ひよこ先生" ></div>
   <p class="says">
-    GCC恐るるに足らず
+    GCC恐るるに足らず。
   </p>
 </div>
 <p>また、<code>loop</code>命令を使うとrcxの値だけループできるため、<code>cmp</code>と<code>jmp</code>系命令を使うよりも短く書ける場合もあります。</p>
@@ -263,7 +263,7 @@ p.spoiler {
 アドレスが分からない場合、Stagerの実行が困難になるといった問題が発生します。このような場合、システムコールを利用できます。システムコールは戻りアドレスをrcxレジスタに入れるという特性があります。したがって、次のように何もしないシステムコールを実行すれば<code>syscall</code>命令の次のアドレスを取得できます。</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">xor esi, esi</span><br><span class="line">xor eax, eax</span><br><span class="line">syscall    ; read(?, NULL, ?)</span><br></pre></td></tr></table></figure>
 <p>また、シェルコードではなくlibcやヒープ、スタックなどのアドレスが必要な場合、TLS領域の情報を利用できます。<br>
-64-bitのLinuxでは3つのスレッド固有領域（<strong>TLS</strong>; Thread Local Storage）があり、そのうち2つはfsレジスタとgsレジスタでアクセス可能です。TLSにはcanaryなどの情報があり、スタックへのポインタも保持しています。例えばglibcがロードされているとき、次のようなシェルコードでスタックのアドレスを取得できます。</p>
+64-bitのLinuxでは3つのスレッド固有領域（<strong>TLS</strong>; Thread Local Storage）があり、そのうち2つはfsレジスタとgsレジスタでアクセス可能です。TLSにはcanaryなどの情報があり、スタックへのポインタも保持しています。例えばldでロードされているとき、次のようなシェルコードでスタックのアドレスを取得できます。</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mov rax, [fs:0x300]</span><br></pre></td></tr></table></figure>
 <p>オフセットはバージョンにより異なる可能性があるので、適宜gdbで確認してください。</p>
 <h3 id="シェルコード領域が書き込み不能の場合">シェルコード領域が書き込み不能の場合</h3>

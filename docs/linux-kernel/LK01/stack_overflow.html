@@ -195,6 +195,9 @@ root権限を取った後にもう1つ重要なのが、ユーザー空間に戻
 <p>したがって、</p>
 <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">commit_creds(prepare_kernel_cred(<span class="literal">NULL</span>));</span><br></pre></td></tr></table></figure>
 <p>を呼び出すのがKernel Exploitで権限昇格するための1つの手法となります。</p>
+<p><strong>[2023年3月28日追記]</strong><br>
+Linuxカーネル6.2からは<code>prepare_kernel_cred</code>に<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v6.2/source/kernel/cred.c#L712">NULLが渡せなくなりました。</a><br>
+<code>init_cred</code>はまだ存在するので、<code>commit_creds(&amp;init_cred)</code>を実行すれば同じことが可能です。</p>
 <h3 id="swapgs-ユーザー空間への復帰">swapgs: ユーザー空間への復帰</h3>
 <p><code>prepare_kernel_cred</code>と<code>commit_creds</code>でめでたくroot権限が取れたのですが、それで終わりではありません。<br>
 ROP chainが終わった後、何事もなかったかのようにユーザー空間に復帰してシェルを取る必要があります。せっかくroot権限を取ってもクラッシュしたり、プロセスが終了したりしては意味がありません。</p>
@@ -332,7 +335,7 @@ KPTI自体はこのような一般的な脆弱性に対する緩和策ではな�
 <p>で構築されたもの（rdiは元のrsp）ですので、gadget呼び出しの0x10バイト先にswapgsで使うデータを置く必要があります。</p>
 <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">*chain++ = rop_bypass_kpti;</span><br><span class="line">*chain++ = <span class="number">0xdeadbeef</span>;</span><br><span class="line">*chain++ = <span class="number">0xdeadbeef</span>;</span><br><span class="line">*chain++ = (<span class="type">unsigned</span> <span class="type">long</span>)&amp;win; <span class="comment">// [rdi+0x10]</span></span><br><span class="line">*chain++ = user_cs;</span><br><span class="line">*chain++ = user_rflags;</span><br><span class="line">*chain++ = user_rsp;</span><br><span class="line">*chain++ = user_ss;</span><br></pre></td></tr></table></figure>
 <p>この点に気をつけて、KPTIのもとでも動くkROPを自分の手で完成させてみてください。</p>
-<h2 id="KASLRの回避-2">KASLRの回避</h2>
+<h2 id="KASLRの回避">KASLRの回避</h2>
 <p>ここまでKASLRを無効化してきましたが、KASLR有効だとexploit可能でしょうか。</p>
 <h3 id="KASLRのエントロピー">KASLRのエントロピー</h3>
 <p>本題に入る前に、そもそもKASLRはどのように実装されているのでしょうか。<br>

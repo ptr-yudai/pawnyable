@@ -162,7 +162,7 @@ p.spoiler {
 <p>スタックは低位アドレスに向かって利用されますが、ラベル<code>stack</code>は用意されたスタック領域の先頭を指しています。したがって、以降<code>push</code>命令が呼ばれると機械語領域を破壊してしまいます。<br>
 5行目を次のように変更すればスタックポインタの位置は正しくなります。</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">lea rsp, [rel stack + 1024]</span><br></pre></td></tr></table></figure>
-<p>なお、ユーザーランドの場合はこれで問題ないですが、もしカーネル空間でこのような処理をする場合、アラインメントに注意する必要があります。カーネルではスタックポインタが8の倍数でないと例外を引き起こしてしまうため、次のように<code>align</code>を利用しましょう。</p>
+<p>なお、今回の場合はこれで問題ないですが、もし外部関数を呼び出す場合はアラインメントに注意しましょう。いくつかの関数では<code>movaps</code>などの、スタックポインタが8の倍数でないと例外を引き起こしてしまう命令を使っています。アラインするには次のように<code>align</code>疑似命令を利用できます。</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">align 8</span><br><span class="line">stack: times 1024 dq 0</span><br></pre></td></tr></table></figure>
 <p>ファイルの全体は<a href="src/bug-fixed.S">ここ</a>からダウンロードできます。</p>
 <h2 id="例題３">例題３</h2>

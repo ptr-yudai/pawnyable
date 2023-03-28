@@ -159,9 +159,9 @@ p.spoiler {
 <li><a href="#----------">ブラックリストの不備</a>
 <ul>
 <li><a href="#openat-execveat">openatとexecveat</a></li>
-<li><a href="#creat-procfs">creatとprocfs</a></li>
-<li><a href="#process--vm--readv--process--vm--writev">process_vm_readv, process_vm_writev</a></li>
 <li><a href="#open--by--handle--at--name--to--handle--at">open_by_handle_at, name_to_handle_at</a></li>
+<li><a href="#--------">実行モードの変更</a></li>
+<li><a href="#x32-------abi">x32システムコールABI</a></li>
 </ul>
 </li>
 <li><a href="#---------">サイドチャネル攻撃</a>
@@ -172,10 +172,14 @@ p.spoiler {
 </li>
 <li><a href="#--------">その他の回避手法</a>
 <ul>
+<li><a href="#trace-seccomp">TRACEとseccomp</a></li>
 <li><a href="#--------">他プロセスの悪用</a>
 <ul>
+<li><a href="#creat-procfs">creatとprocfs</a></li>
 <li><a href="#kill--tkill--tgkill">kill, tkill, tgkill</a></li>
 <li><a href="#prlimit64">prlimit64</a></li>
+<li><a href="#ptrace">ptrace</a></li>
+<li><a href="#process--vm--readv--process--vm--writev">process_vm_readv, process_vm_writev</a></li>
 </ul>
 </li>
 <li><a href="#----------------">カーネルやライブラリの欠陥の利用</a></li>
@@ -216,21 +220,26 @@ p.spoiler {
 <li><code>prlimit64</code></li>
 </ul>
 <p>などさまざまなシステムコールを禁止する必要があります。<br>
-このように、seccompをブラックリスト方式で使うのは非常に大変です。そのため、特別な理由がない限りはプログラムが使う安全なシステムコールのみを許可するホワイトリスト方式で使用しましょう。</p>
+このように、seccompをブラックリスト方式で適切に使うのは面倒です。そのため、特別な理由がない限りはプログラムが使う安全なシステムコールのみを許可するホワイトリスト方式で使用しましょう。</p>
 <h2 id="ブラックリストの不備">ブラックリストの不備</h2>
 <p>ここからはseccompの回避方法について説明します。まず、ブラックリスト方式を利用した際の不備を悪用する方法を紹介します。</p>
 <h3 id="openatとexecveat">openatとexecveat</h3>
-<h3 id="creatとprocfs">creatとprocfs</h3>
-<h3 id="process-vm-readv-process-vm-writev">process_vm_readv, process_vm_writev</h3>
+<p>また、<code>openat2</code></p>
 <h3 id="open-by-handle-at-name-to-handle-at">open_by_handle_at, name_to_handle_at</h3>
+<h3 id="実行モードの変更">実行モードの変更</h3>
+<h3 id="x32システムコールABI">x32システムコールABI</h3>
 <h2 id="サイドチャネル攻撃">サイドチャネル攻撃</h2>
 <p>メモリ上の情報漏洩が目的で、コマンド実行などが不要な場合もあります。このような場合はシステムコールを利用せずに情報漏洩が可能かもしれません。</p>
 <h3 id="エラーの観測">エラーの観測</h3>
 <h3 id="処理時間の計測">処理時間の計測</h3>
 <h2 id="その他の回避手法">その他の回避手法</h2>
+<h3 id="TRACEとseccomp">TRACEとseccomp</h3>
 <h3 id="他プロセスの悪用">他プロセスの悪用</h3>
+<h4 id="creatとprocfs">creatとprocfs</h4>
 <h4 id="kill-tkill-tgkill">kill, tkill, tgkill</h4>
 <h4 id="prlimit64">prlimit64</h4>
+<h4 id="ptrace">ptrace</h4>
+<h4 id="process-vm-readv-process-vm-writev">process_vm_readv, process_vm_writev</h4>
 <h3 id="カーネルやライブラリの欠陥の利用">カーネルやライブラリの欠陥の利用</h3>
 
 </div> 

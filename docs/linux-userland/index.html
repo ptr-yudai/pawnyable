@@ -150,6 +150,8 @@ p.spoiler {
 <ul>
 <li><a href="introduction/security.html">セキュリティ機構</a></li>
 <li><a href="introduction/primitive.html">Primitiveについて</a></li>
+<li><a href="introduction/chain.html">脆弱性の種類と連鎖</a></li>
+<li><a href="introduction/struct.html">データ構造</a></li>
 </ul>
 </li>
 <li>シェルコード
@@ -171,6 +173,7 @@ p.spoiler {
 </li>
 <li>ヒープ
 <ul>
+<li><a href="heap/allocator.html">ヒープアロケータの仕組み</a></li>
 <li><a href="heap/cop.html">Call/Jump Oriented Programming</a></li>
 <li><a href="heap/bof.html">Heap Buffer Overflow</a></li>
 <li><a href="heap/uaf.html">Use-after-Free</a></li>
@@ -179,18 +182,27 @@ p.spoiler {
 <li><a href="heap/spray3.html">Heap Sprayその３：ヒープの初期状態を固定する手法</a></li>
 </ul>
 </li>
-<li>その他の脆弱性
+<li>さまざまなアーキテクチャ
 <ul>
-<li><a href="others/fsb.html">Format String Bug</a></li>
-<li><a href="others/integer.html">Integer Overflow</a></li>
-<li><a href="others/confusion.html">Type Confusion</a></li>
+<li><a href="arch/arm.html">ARM</a></li>
+<li><a href="arch/mips.html">MIPS</a></li>
+<li><a href="arch/sparc.html">SPARC</a></li>
+<li><a href="arch/wasm.html">WebAssembly</a></li>
 </ul>
 </li>
 </ul>
-<div class="column" title="豆知識：ひよこ鑑定士">
-  　鶏の雛はオスとメスがそれぞれ半分ずつ程度の割合で生まれますが、とくに卵を生産する採卵農場ではメスの鶏が必要になります。食肉専用のブロイラーでも性別によって異なる場所で飼育されることがありますが、その性別の判定は非常に難しいとされています。<br>
-  　これを判別する職業として初生雛鑑別師（通称：<b>ひよこ鑑定士</b>）と呼ばれる職業があります。日本では民間資格が存在し、養成所を修了するなどの条件を満たした人だけが受験できます。しかし、この試験に合格しただけでは職業鑑別師としては働けず、さらに数年間の研修を経て経験を積む必要があります。<br>
-  　ひよこ鑑定士は「ひよこかそれ以外の物体か」を判別する職業ではないので、使い方を間違えないように注意しましょう。
+<div class="column" title="講師プロフィール">
+  <div style="overflow: hidden">
+    <div style="float: left; margin-right: 1em;" class="faceicon">
+      <img src="img/piyo.png" alt="ひよこ先生" >
+    </div>
+    <div style="float: left;">
+      <b>ひよこ先生</b><br>
+      ぴよ。<br>
+      好きなもの：猫 / seccomp(2)<br>
+      苦手なもの：ヘビ / pledge(2)
+    </div>
+  </div>
 </div>
 
 </div> 
