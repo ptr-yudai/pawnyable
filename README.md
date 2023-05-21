@@ -21,7 +21,7 @@ Run the following command in [/website](website) and open http://localhost:4000/
 $ npm i
 $ hexo s
 ```
-You can generate the static files by the following command:
+You can generate the static files with the following command:
 ```
 $ hexo g
 ```

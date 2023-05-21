@@ -19,7 +19,7 @@ title: Linux Userland Exploitation
   - [forkとcanary](stack/fork.html)
   - [スレッドとcanary](stack/thread.html)
 - ヒープ
-  - [Call/Jump Oriented Programming](heap/cop.html)
+  - [Call/Jump Oriented Programming](heap/call-chain.html)
   - [Heap Buffer Overflow](heap/bof.html)
   - [Use-after-Free](heap/uaf.html)
   - [Heap Sprayその１：特定のアドレスにデータを置く手法](heap/spray1.html)
