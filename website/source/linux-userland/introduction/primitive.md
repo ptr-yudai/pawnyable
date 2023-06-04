@@ -7,12 +7,12 @@ tags:
     - [AAR]
     - [AAW]
 lang: ja
+
+pagination: true
+bk: security.html
+fd: environment.html
 ---
 Binary Exploitationにおいて最も重要となるのがprimitiveと呼ばれるものです。本章では、primitiveの種類と重要性について説明します。
-
-<div class="column" title="目次">
-<!-- toc --><br>
-</div>
 
 ## Primitiveとは
 Binary Exploitationとは、脆弱性を利用して目的を達成する作業です。

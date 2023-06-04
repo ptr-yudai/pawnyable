@@ -13,10 +13,6 @@ bk: uffd.html
 ---
 [前章](uffd.html)ではuserfaultfdを利用してLK04(Fleckvieh)の競合を安定化させました。本章では同じくLK04を、別の方法でexploitしてみます。
 
-<div class="column" title="目次">
-<!-- toc --><br>
-</div>
-
 ## userfaultfdの欠点
 前章でも少し説明したように、userfaultfdは現在のLinuxでは標準で一般ユーザーは利用できません。正確には、ユーザー空間で発生さしたページフォルトは検知できますが、カーネル空間で発生したものは一般ユーザーの作ったuserfaultfdでは検知できません。それぞれ以下のパッチで導入されたセキュリティ緩和機構です。
 

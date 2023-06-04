@@ -13,10 +13,6 @@ fd: ../LK02/null_ptr_deref.html
 ---
 [前章](use_after_free.html)ではHolsteinモジュールのUse-after-Freeを悪用して権限昇格をしました。3度目の正直、Holsteinモジュールの開発者は3つ目のパッチでモジュールを修正し、Holstein v4を公開しました。開発者曰くもうこれ以上脆弱性はなく、今後はアップデートも停止するそうです。本章では、最終版のHolsteinモジュールv4をexploitしていきます。
 
-<div class="column" title="目次">
-<!-- toc --><br>
-</div>
-
 ## パッチの解析
 最終版v4は[ここ](distfiles/LK01-4.tar.gz)からダウンロードできます。まずはv3との差分を見ていきましょう。
 まず起動スクリプト`run.sh`ですが、マルチコアで動作するように変更されています。

@@ -20,10 +20,6 @@ fd: use_after_free.html
 ---
 前章ではHolsteinモジュールのStack Overflowを悪用して権限昇格をしました。Holsteinモジュールの開発者はすぐさま脆弱性を修正し、Holstein v2を公開しました。本章では、改善されたHolsteinモジュールv2をexploitしていきます。
 
-<div class="column" title="目次">
-<!-- toc --><br>
-</div>
-
 ## パッチの解析と脆弱性の調査
 まずは[Holstein v2](distfiles/LK01-2.tar.gz)をダウンロードしてください。
 srcディレクトリにあるソースコードを確認すると、前回との差分は`module_read`と`module_write`の2箇所だけだと分かります。

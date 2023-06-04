@@ -1,5 +1,6 @@
 ---
 title: Linux Kernel Exploitation
+hide_toc: true
 ---
 
 <div class="balloon_l">

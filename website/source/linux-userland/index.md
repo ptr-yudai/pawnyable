@@ -1,5 +1,6 @@
 ---
 title: Linux Userland Exploitation
+hide_toc: true
 ---
 この章ではひよこ先生🐤と一緒にLinuxのユーザー空間におけるExploit手法について学びます。Linuxのユーザー空間におけるExploit手法を解説した資料は人間社会にも多数出回っているため、ここではより重要な知識のみを説明します。
 
@@ -10,7 +11,7 @@ title: Linux Userland Exploitation
 - シェルコード
   - [シェルコードの書き方](shellcode/how2write.html)
   - [制約付きシェルコード](shellcode/restricted.html)
-  - [seccompの回避（工事中）](shellcode/seccomp.html)
+  - [seccompの回避](shellcode/seccomp.html)
   - [Egg Hunter（工事中）](shellcode/egg-hunter.html)
   - [Bring Your Own Gadget（工事中）](shellcode/byog.html)
 - スタック
@@ -29,7 +30,8 @@ title: Linux Userland Exploitation
   - [Format String Bug](others/fsb.html)
   - [Integer Overflow](others/integer.html)
   - [Type Confusion](others/confusion.html)
+  - [NULL pointer dereference](others/nullpo.html)
 
 <div class="column" title="ひよこ先生">
-  　
+　TBD :)
 </div>

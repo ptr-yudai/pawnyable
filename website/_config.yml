@@ -4,16 +4,25 @@
 
 # Site
 title: PAWNYABLE!
-subtitle: ''
-description: ''
+subtitle: 'pawnyable'
+description: "Let's learn pwnable with cute animals."
 keywords:
+  - linux
+  - windows
+  - kernel
+  - browser
+  - vm
+  - exploit
+  - exploitation
+  - binary exploit
+  - pwn
+  - pwnable
 author: ptr-yudai
 language: ja
-timezone: ''
+timezone: 'Japan'
 
 # URL
-## Set your site url here. For example, if you use GitHub Page, set url as 'https://username.github.io/project'
-url: http://example.com
+url: https://pawnyable.cafe/
 permalink: post/:lang/:title/
 permalink_defaults:
 pretty_urls:
@@ -22,7 +31,7 @@ pretty_urls:
 
 # Directory
 source_dir: source
-public_dir: public
+public_dir: ../docs
 tag_dir: tags
 archive_dir: archives
 category_dir: categories
@@ -99,8 +108,11 @@ ignore:
 markdown:
   plugins:
     - markdown-it-footnote
-plugins:
-  - hexo-spoiler
+
+toc:
+  list_number: false
+  max_depth: 3
+
 ## Themes: https://hexo.io/themes/
 theme: frame
 

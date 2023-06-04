@@ -12,10 +12,6 @@ fd: verifier.html
 ---
 LK06(Brahman)では、Linuxカーネルの機能の1つである、eBPFに含まれるJIT（検証器）のバグを攻撃します。この章では、まずBPFという機能と、その使い方について学びます。
 
-<div class="column" title="目次">
-<!-- toc --><br>
-</div>
-
 ## BPF
 eBPFについて説明する前に、その前身となるBPFについて説明します。
 BPFは時代とともに利用用途が広がり、拡張が進みました。大幅な変更が入ってからのBPFをeBPF(extended BPF)、それ以前のBPFをcBPF(classic BPF)と区別して表記することもあります。しかし、現在のLinuxでは、内部的にはeBPFのみが利用されているため、本サイトでは明確に区別が必要ないときはeBPF/cBPFをまとめてBPFと呼びます。

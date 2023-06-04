@@ -1,13 +1,11 @@
 <div class="post-head">
     <div class="post-info">
         <div class="post-title">
-            
             <% if (page.title) {%>
                 <%= page.title %>
             <% } else {%>
                 *Untitled
-            <% } %>
-            
+            <% } %>            
         </div>
     </div>
     <div class="h-line-primary"></div>
@@ -16,6 +14,12 @@
             <div class="pagination-bk"><% if (page.bk) { %><a href="<%= page.bk %>">前のページへ</a><% } else { %><span></span><% } %></div>
             <div class="pagination-index"><a href="../index.html">目次へ</a></div>
             <div class="pagination-fd"><% if (page.fd) { %><a href="<%= page.fd %>">次のページへ</a><% } %></div>
+        </div>
+    <% } %>
+    <% if (!page.hide_toc) { %>
+        <div class="column" title="目次">
+            <% console.log(config.toc); %>
+            <%- toc(page.content, config.toc) %>
         </div>
     <% } %>
 </div>

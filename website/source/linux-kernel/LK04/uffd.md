@@ -14,10 +14,6 @@ bk: ../LK03/double_fetch.html
 ---
 LK04(Fleckvieh)では、LK01-4(Holstein v4)で学んだものと同様のRace Conditionを、より厳しい条件で扱います。まず[練習問題LK04](distfiles/LK04.tar.gz)のファイルをダウンロードしてください。
 
-<div class="column" title="目次">
-<!-- toc --><br>
-</div>
-
 ## ドライバの確認
 まずはドライバのソースコードを読んでみてください。今回のドライバは今までに比べると量が多く、これまで登場しなかった機能や記法が存在します。`module_open`は次のようになっています。
 ```c

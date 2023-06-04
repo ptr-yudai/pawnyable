@@ -13,10 +13,6 @@ bk: ebpf.html
 ---
 [前章](ebpf.html)ではeBPFについて学びました。本章では、ユーザーから渡されたBPFプログラムを安全かつ高速に動かすための、検証器とJITについて説明します。
 
-<div class="column" title="目次">
-<!-- toc --><br>
-</div>
-
 ## 検証器
 まずは、eBPFの検証器について学びましょう。検証器のソースコードはLinuxカーネルの[`kernel/bpf/verifier.c`](https://elixir.bootlin.com/linux/v5.18.11/source/kernel/bpf/verifier.c)に書かれています。。
 検証器は命令を1つずつチェックし、すべての分岐先をexit命令までトレースします。検証は大きく二段階（First Pass, Second Pass）に分けられます。

@@ -1,16 +1,6 @@
 # html lang
 language: ja
 
-# toc
-toc:
-  maxdepth: 3
-  class: toc
-  slugify: transliteration
-  anchor:
-    position: after
-    symbol: '#'
-    style: header-anchor
-
 # header
 site_brand_name: PAWNYABLE
 
@@ -33,7 +23,7 @@ date_format: MMM D, YYYY
 
 # profile
 profile:
-  description: Pawnyableは、中〜上級者がpwn(Binary Exploitation)を勉強するための資料です。
+  description: "Pawnyableは、中〜上級者がpwn(Binary Exploitation)を勉強するための資料です。"
   image: /pawnyable.png
   langs:
     "English": /#
@@ -60,7 +50,7 @@ footer:
 
   other_info:
     enable: true
-    content: © 2022 ptr-yudai 🐈
+    content: © 2023 ptr-yudai 🐈
 
 # color mode: default / classic / dark
 color_mode: default

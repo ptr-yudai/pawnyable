@@ -22,10 +22,6 @@ fd: compile-and-transfer.html
 
 カーネル起動時のパラメータについては[公式のドキュメント](https://github.com/torvalds/linux/blob/master/Documentation/admin-guide/kernel-parameters.txt)が分かりやすいです。
 
-<div class="column" title="目次">
-<!-- toc --><br>
-</div>
-
 ## SMEP (Supervisor Mode Execution Prevention)
 カーネルのセキュリティ機構として代表的なものが、SMEPとSMAPです。
 SMEPはカーネル空間のコードを実行中に、突然ユーザー空間のコードを実行するのを禁止するセキュリティ機構です。イメージとしてはNXに似ています。
