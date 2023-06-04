@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+<meta name="og:url" content="https://pawnyable.cafe/linux-userland/introduction/security.html">
+
+    <meta name="og:title" content="セキュリティ機構 - PAWNYABLE!">
+
+<meta name="og:image" content="https://pawnyable.cafe/pawnyable.ogp.png">
+<meta name="og:description" content="もふもふpwnワールド">
+<meta name="og:type" content="website">
+<meta name="og:site_name" content="PAWNYABLE!">
+
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+    <meta name="author" content="ptr-yudai">
+
+
+    <meta name="subtitle" content="pawnyable">
+
+
+    <meta name="description" content="Let's learn pwnable with cute animals.">
+
+
+    <meta name="keywords" content="linux,windows,kernel,browser,vm,exploit,exploitation,binary exploit,pwn,pwnable">
+
+
+
+
+<title>セキュリティ機構 | PAWNYABLE!</title>
+
+
+
+    <link rel="icon" href="/favicon.png">
+
+
+
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=Roboto+Mono&display=swap');
+</style>
+
+
+
+    <!-- stylesheets list from _config.yml -->
+    
+    <link rel="stylesheet" href="/css/style.css">
+    
+
+
+
+
+    <!-- scripts list from _config.yml -->
+    
+    <script src="/js/frame.js"></script>
+    
+
+
+
+
+
+
+
+  <style type="text/css">
+.spoiler {
+  display: inline-flex;
+}
+p.spoiler {
+  display: flex;
+}
+.spoiler a {
+  pointer-events: none;
+}
+.spoiler-blur, .spoiler-blur > * {
+  transition: text-shadow .5s ease;
+}
+.spoiler .spoiler-blur, .spoiler .spoiler-blur > * {
+  color: rgba(0, 0, 0, 0);
+  background-color: rgba(0, 0, 0, 0);
+  text-shadow: 0 0 10px grey;
+  cursor: pointer;
+}
+.spoiler .spoiler-blur:hover, .spoiler .spoiler-blur:hover > * {
+  text-shadow: 0 0 5px grey;
+}
+.spoiler-box, .spoiler-box > * {
+  transition: color .5s ease,
+  background-color .5s ease;
+}
+.spoiler .spoiler-box, .spoiler .spoiler-box > * {
+  color: black;
+  background-color: black;
+  text-shadow: none;
+}</style><meta name="generator" content="Hexo 5.4.2"></head>
+  <body>
+    <div class="mask-border">
+    </div>
+
+    <div class="wrapper">
+
+      <div class="header">
+  <div class="flex-container">
+    <div class="header-inner">
+      <div class="site-brand-container">
+        <a href="/">PAWNYABLE</a>
+      </div>
+      <div id="menu-btn" class="menu-btn" onclick="toggleMenu()">
+        Menu
+      </div>
+      <nav class="site-nav">
+        <ul class="menu-list">
+          
+            
+              <li class="menu-item">
+                <a href="/practice/">Practice</a>
+              </li> 
+                   
+          
+            
+              <li class="menu-item">
+                <a href="/about/">About</a>
+              </li> 
+                   
+          
+        </ul>
+      </nav>
+    </div>
+  </div>
+</div>
+
+
+      <div class="main">
+        <div class="flex-container">
+          <article id="post">
+
+  
+    <div class="post-head">
+    <div class="post-info">
+        <div class="post-title">
+            
+                セキュリティ機構
+                        
+        </div>
+    </div>
+    <div class="h-line-primary"></div>
+    
+        <div class="pagination">
+            <div class="pagination-bk"><span></span></div>
+            <div class="pagination-index"><a href="../index.html">目次へ</a></div>
+            <div class="pagination-fd"><a href="primitive.html">次のページへ</a></div>
+        </div>
+    
+    
+        <div class="column" title="目次">
+            
+            <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#OS%E3%82%84CPU%E3%83%AC%E3%83%99%E3%83%AB%E3%81%AE%E3%82%BB%E3%82%AD%E3%83%A5%E3%83%AA%E3%83%86%E3%82%A3%E6%A9%9F%E6%A7%8B"><span class="toc-text">OSやCPUレベルのセキュリティ機構</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#ASLR"><span class="toc-text">ASLR</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#ASLR%E3%81%AE%E5%BD%B1%E9%9F%BF%E3%82%92%E5%8F%97%E3%81%91%E3%81%AA%E3%81%84%E9%A0%98%E5%9F%9F%E3%81%A8PIE"><span class="toc-text">ASLRの影響を受けない領域とPIE</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#NX"><span class="toc-text">NX</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#CET"><span class="toc-text">CET</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E3%82%B3%E3%83%B3%E3%83%91%E3%82%A4%E3%83%A9%E3%82%84%E3%83%97%E3%83%AD%E3%82%B0%E3%83%A9%E3%83%A0%E3%83%AC%E3%83%99%E3%83%AB%E3%81%AE%E3%82%BB%E3%82%AD%E3%83%A5%E3%83%AA%E3%83%86%E3%82%A3%E6%A9%9F%E6%A7%8B"><span class="toc-text">コンパイラやプログラムレベルのセキュリティ機構</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Stack-Canary-SSP"><span class="toc-text">Stack Canary (SSP)</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#FORTIFY-SOURCE"><span class="toc-text">FORTIFY_SOURCE</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#CFI"><span class="toc-text">CFI</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E3%83%A9%E3%82%A4%E3%83%96%E3%83%A9%E3%83%AA%E3%81%AE%E7%B7%A9%E5%92%8C%E7%AD%96"><span class="toc-text">ライブラリの緩和策</span></a></li></ol>
+        </div>
+    
+</div>
+
+    <div class="post-content">
+    <p>この章では、Linuxのユーザー空間で登場するセキュリティ機構や、それにまつわる用語について説明します。</p>
+<h2 id="OSやCPUレベルのセキュリティ機構">OSやCPUレベルのセキュリティ機構</h2>
+<p>セキュリティ機構には、大きくわけてOS/CPUレベルのものと、コンパイラ/プログラムレベルのものの2種類があります。<br>
+ユーザー空間のプログラムを攻撃する際、一般にOS/CPUレベルのセキュリティ機構はコンパイラ/プログラムレベルのものより強力です。<br>
+一般的にOS/CPUレベルのセキュリティ機構は、脆弱性を利用して無力化することができても、無効化することはできません。</p>
+<p>まずはOS/CPUレベルのセキュリティ機構から見ていきましょう。</p>
+<h3 id="ASLR">ASLR</h3>
+<p>ASLR (Address Space Layout Randomization)は、特定のメモリ領域がマップされるアドレスを、プログラム起動時にランダムに設定するセキュリティ機構です。<br>
+アドレスをランダム化することで攻撃者はアドレスがわからなくなるため、特定の場所にあるデータ構造を破壊したり利用したりできなくなります。</p>
+<p>ASLRはOSのプログラムローダに搭載されたセキュリティ機構です。<br>
+乱数を利用するコードは<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/latest/source/mm/util.c#L329">randomize_page関数</a>に記載されています。<br>
+ローダは<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/latest/source/fs/binfmt_elf.c#L818">load_elf_binary関数</a>で定義されています。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">int</span> <span class="title function_">load_elf_binary</span><span class="params">(<span class="keyword">struct</span> linux_binprm *bprm)</span></span><br><span class="line">&#123;</span><br><span class="line">    ...</span><br><span class="line">    <span class="comment">// [1]</span></span><br><span class="line">	<span class="keyword">if</span> (!(current-&gt;personality &amp; ADDR_NO_RANDOMIZE) &amp;&amp; randomize_va_space)</span><br><span class="line">		current-&gt;flags |= PF_RANDOMIZE;</span><br><span class="line">    ...</span><br><span class="line">    <span class="comment">// [2]</span></span><br><span class="line">	retval = setup_arg_pages(bprm, randomize_stack_top(STACK_TOP),</span><br><span class="line">				 executable_stack);</span><br><span class="line">    ...</span><br><span class="line">    <span class="comment">// [3]</span></span><br><span class="line">	<span class="keyword">if</span> ((current-&gt;flags &amp; PF_RANDOMIZE) &amp;&amp; (randomize_va_space &gt; <span class="number">1</span>)) &#123;</span><br><span class="line">		<span class="comment">/*</span></span><br><span class="line"><span class="comment">		 * For architectures with ELF randomization, when executing</span></span><br><span class="line"><span class="comment">		 * a loader directly (i.e. no interpreter listed in ELF</span></span><br><span class="line"><span class="comment">		 * headers), move the brk area out of the mmap region</span></span><br><span class="line"><span class="comment">		 * (since it grows up, and may collide early with the stack</span></span><br><span class="line"><span class="comment">		 * growing down), and into the unused ELF_ET_DYN_BASE region.</span></span><br><span class="line"><span class="comment">		 */</span></span><br><span class="line">		<span class="keyword">if</span> (IS_ENABLED(CONFIG_ARCH_HAS_ELF_RANDOMIZE) &amp;&amp;</span><br><span class="line">		    elf_ex-&gt;e_type == ET_DYN &amp;&amp; !interpreter) &#123;</span><br><span class="line">			mm-&gt;brk = mm-&gt;start_brk = ELF_ET_DYN_BASE;</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		mm-&gt;brk = mm-&gt;start_brk = arch_randomize_brk(mm);</span><br><span class="line"><span class="meta">#<span class="keyword">ifdef</span> compat_brk_randomized</span></span><br><span class="line">		current-&gt;brk_randomized = <span class="number">1</span>;</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line">	&#125;</span><br></pre></td></tr></table></figure>
+<p>まず、[1]で<code>current-&gt;personality</code>と<code>randomize_va_space</code>を確認して<code>PF_RANDOMIZE</code>フラグを設定しています。<br>
+<code>current-&gt;personality</code>は、<code>personality</code>システムコールで設定できるプロセス固有のパラメータで、通常<code>ADDR_NO_RANDOMIZE</code>は付いていません。<br>
+<code>randomize_va_space</code>は、<code>/proc/sys/kernel/randomize_va_space</code>経由でユーザー空間から設定できるカーネル共通のパラメータで、コードから分かるように0に設定するとASLRが無効化できます。</p>
+<p>さて、[2]でスタックをマップしています。<br>
+第２引数にスタック領域の先頭（スタックボトム）のアドレスが渡されますが、ここで<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/latest/source/mm/util.c#L299"><code>randomize_stack_top</code></a>が使われています。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">unsigned</span> <span class="type">long</span> <span class="title function_">randomize_stack_top</span><span class="params">(<span class="type">unsigned</span> <span class="type">long</span> stack_top)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="type">unsigned</span> <span class="type">long</span> random_variable = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (current-&gt;flags &amp; PF_RANDOMIZE) &#123;</span><br><span class="line">		random_variable = get_random_long();</span><br><span class="line">		random_variable &amp;= STACK_RND_MASK;</span><br><span class="line">		random_variable &lt;&lt;= PAGE_SHIFT;</span><br><span class="line">	&#125;</span><br><span class="line"><span class="meta">#<span class="keyword">ifdef</span> CONFIG_STACK_GROWSUP</span></span><br><span class="line">	<span class="keyword">return</span> PAGE_ALIGN(stack_top) + random_variable;</span><br><span class="line"><span class="meta">#<span class="keyword">else</span></span></span><br><span class="line">	<span class="keyword">return</span> PAGE_ALIGN(stack_top) - random_variable;</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>STACK_RND_MASK</code>は32-bitでは0x7ff, 64-bitでは0x3fffffと定義されています。<br>
+したがって、スタックのアドレスがランダム化されます。</p>
+<p>続いて<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/latest/source/arch/x86/kernel/process.c#L972"><code>arch_randomize_brk</code></a>は次のように定義されています。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">unsigned</span> <span class="type">long</span> <span class="title function_">arch_randomize_brk</span><span class="params">(<span class="keyword">struct</span> mm_struct *mm)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="keyword">return</span> randomize_page(mm-&gt;brk, <span class="number">0x02000000</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>これによりプログラムブレーク（glibc mallocで使われる）のアドレスもランダム化されています。</p>
+<p>また、mmapにより確保されるアドレスも、<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/latest/source/arch/x86/mm/mmap.c#L82"><code>mmap_base</code></a>でランダム化されます。<br>
+ここで使われる乱数は<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/latest/source/arch/x86/mm/mmap.c#L70"><code>arch_rnd</code></a>で計算されます。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">unsigned</span> <span class="type">long</span> <span class="title function_">arch_rnd</span><span class="params">(<span class="type">unsigned</span> <span class="type">int</span> rndbits)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="keyword">if</span> (!(current-&gt;flags &amp; PF_RANDOMIZE))</span><br><span class="line">		<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">	<span class="keyword">return</span> (get_random_long() &amp; ((<span class="number">1UL</span> &lt;&lt; rndbits) - <span class="number">1</span>)) &lt;&lt; PAGE_SHIFT;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>ここに渡されるビット数<code>rndbits</code>は<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/latest/source/arch/Kconfig#L979"><code>/proc/sys/vm/mmap_rnd_bits</code></a>で調整できます。</p>
+<p>最終的に、以下のアドレスがASLRによりランダム化されます。</p>
+<ul>
+<li>スタックのアドレス</li>
+<li>プログラムブレークのアドレス</li>
+<li>mmapのベースアドレス</li>
+<li>プログラム(PIE)およびローダ(interpreter)のロードアドレス</li>
+</ul>
+<h3 id="ASLRの影響を受けない領域とPIE">ASLRの影響を受けない領域とPIE</h3>
+<p>ASLRが有効になるとスタックやmmapなどさまざまなアドレスがランダム化されることが分かりました。<br>
+しかし、アドレスがランダム化されると困る箇所がいくつかあります。<br>
+その1つがプログラムそのもののアドレスです。</p>
+<p>グローバル変数や文字列定数などは、どの関数からも参照できるため、固定アドレスに設置します。<br>
+歴史的にこういったデータは、固定アドレスを機械語中に書いて、直接参照していました。<br>
+しかし、プログラムのロードアドレスがランダム化されると、プログラム自身がこれらのデータを参照できなくなってしまいます。</p>
+<p>そこで登場するのがPIE(Position Independent Executable)です。<br>
+PIEはPIC(Position Independent Code)とも呼ばれ、共有ライブラリのようにマップされるアドレスがわからない場合でも、正しく動くようにコンパイルされたプログラムのことを指します。<br>
+グローバル変数といったロードアドレスに依存するアドレスを参照するコードは、すべてRIPからの相対アドレスを使って参照されます。</p>
+<p>PIEはELFファイル中の<code>e_type</code>が<code>ET_DYN</code>であると有効として認識されます。<br>
+PIEが有効なプログラムは、ASLRが有効なときロードアドレスがランダム化されます。</p>
+<div class="balloon_l">
+  <div class="faceicon"><img src="../img/XXX.png" alt="ヒヨコ先生" ></div>
+  <p class="says">
+    PIEが有効な場合、初期値としてポインタを持つ変数はリロケーションという仕組みで実行ファイル起動時にロードアドレスが加算され、正しいポインタに修正されるのです。
+  </p>
+</div>
+<h3 id="NX">NX</h3>
+<p>ASLRがOSで実装されるセキュリティ機構であるのに対し、 <strong>NX (No eXecute)</strong> はCPUレベルで実装されるセキュリティ機構です。特にWindowsの文脈では <strong>DEP (Data Execution Prevention)</strong> とも呼ばれます。</p>
+<p>NXが有効な場合、実行しようとする機械語が置かれたメモリ領域が実行可能領域（コード領域）かを判定します。仮想メモリアドレスを物理メモリアドレスに変換するためのページテーブルのエントリ中に、NXビットと呼ばれるビットがあります。CPUのメモリ管理ユニット(MMU)がコードをfetchする際に、このビットを確認します。実行可能とマークされていないのに実行しようとした場合、例外が発生します。</p>
+<p>NXが有効になることにより、例えばスタックやヒープ上に攻撃者が用意したシェルコードは実行できなくなります。逆に言うと、NXが有効でも実行かつ書き換え可能な領域があると、攻撃に利用される可能性があります。実際、2021年までのV8エンジン（Google Chromeで使われているJavaScriptエンジン）では、動的にコンパイルされるWebAssemblyの機械語領域が実行かつ書き換え可能な状態にあり、exploitに多用されていました。現在は書き換え不可能になっており、使えません。<br>
+このように、攻撃を緩和するためには「書き込み可能」と「実行可能」の両方ができる領域をなくすことが大切です。このような設計を、「書き込み可能(Writable)」と「実行可能(Executable)」が排他的であることから、 <strong>W^X(Write XOR eXecute)</strong> と呼びます。</p>
+<h3 id="CET">CET</h3>
+<p>NXが普及した現在、もっとも一般的なNXの回避方法はROP(Return Oriented Programming)やCOP/JOP(Call/Jump Oriented Programming)です。これらの攻撃手法では、実行可能領域の小さいコード片(gadget)をスタックやvtableなどの制御可能な領域を通して連続的に実行し、一連の処理を実現します。</p>
+<p>これらの攻撃を防ぐために2020年あたりから登場したIntelのセキュリティ機構として、 <strong>Intel CET (Control-flow Enforcement Technology)</strong> があります。CETと似たセキュリティ機構は後述するCFIとして古くからありましたが、CETではROP対策がCPUレベルで実現されたという点が強力です。</p>
+<p>CETを有効にすると、ROPに使われるスタックのリターンアドレスと、関数テーブルやvtableなどのindirect branchが保護されます。2023年現在一般的なマシンおよびサーバーに使われているCPUにおいてCETはまだ無効なので、詳しい説明は省略します。</p>
+<p>原理としては、まず、Shadow Stackと呼ばれるリターンアドレスのコピーが保存された領域を使ってリターンアドレスの書き換えを検知します。さらに、indirect jump/callにおいては、飛び先が<code>endbr32/64</code>命令から始まらないと例外を発生します<sup class="footnote-ref"><a href="#fn1" id="fnref1">[1]</a></sup>。</p>
+<p>CPUがCETをサポートしている場合、Linuxでは<code>arch_prctl</code>を使ってプロセスごとにCETを有効化・無効化できます。glibcでは、起動時に<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/glibc/glibc-2.37.9000/source/sysdeps/x86/cpu-features.c#L815">CETの確認およびロック</a>が走ります。</p>
+<h2 id="コンパイラやプログラムレベルのセキュリティ機構">コンパイラやプログラムレベルのセキュリティ機構</h2>
+<p>ここまでOSやCPUが実装するユーザー空間向けのセキュリティ機構について説明しました。ここからは、アプリケーションが独自で実装する、あるいはコンパイラによりアプリケーションに導入されるセキュリティ機構について説明します。</p>
+<h3 id="Stack-Canary-SSP">Stack Canary (SSP)</h3>
+<p>スタックバッファオーバーフローに対する代表的なセキュリティ機構として、 <strong>Stack Canary</strong> があげられます。 <strong>SSP(Stack Smashing Protector)</strong> とも呼ばれます。gccやVC++などの代表的なコンパイラはすべてSSPを実装しており、標準で有効化されます。</p>
+<p>TODO: つづき</p>
+<h3 id="FORTIFY-SOURCE">FORTIFY_SOURCE</h3>
+<h3 id="CFI">CFI</h3>
+<h2 id="ライブラリの緩和策">ライブラリの緩和策</h2>
+<hr class="footnotes-sep">
+<section class="footnotes">
+<ol class="footnotes-list">
+<li id="fn1" class="footnote-item"><p>つまり、このセキュリティ機構が原因で、Intel機器を対象とする世の中のコンパイラやJITは、すべて<code>endbr32/64</code>命令を適切に吐き出すように修正される必要があります。 <a href="#fnref1" class="footnote-backref">↩︎</a></p>
+</li>
+</ol>
+</section>
+
+</div> 
+
+<div style="margin-top: 1em">
+    <div class="h-line-primary"></div>
+    
+        <div class="pagination">
+            <div class="pagination-bk"><span></span></div>
+            <div class="pagination-index"><a href="../index.html">目次へ</a></div>
+            <div class="pagination-fd"><a href="primitive.html">次のページへ</a></div>
+        </div>
+    
+</div>
+
+<script>
+    window.onload = detectors();
+</script>
+
+  
+</article>
+        </div>
+      </div>
+      
+      <div class="footer">
+    <div class="flex-container">
+        <div class="footer-text">
+            
+                © 2023 ptr-yudai 🐈
+                <br>
+            
+            
+                
+        </div>
+    </div>
+</div>
+
+    </div>
+
+  </body>
+</html>
