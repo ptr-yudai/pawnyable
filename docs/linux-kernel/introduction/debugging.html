@@ -18,7 +18,13 @@
     <meta name="author" content="ptr-yudai">
 
 
+    <meta name="subtitle" content="pawnyable">
 
+
+    <meta name="description" content="Let's learn pwnable with cute animals.">
+
+
+    <meta name="keywords" content="linux,windows,kernel,browser,vm,exploit,exploitation,binary exploit,pwn,pwnable">
 
 
 
@@ -133,10 +139,8 @@ p.spoiler {
     <div class="post-info">
         <div class="post-title">
             
-            
                 gdbによるカーネルのデバッグ
-            
-            
+                        
         </div>
     </div>
     <div class="h-line-primary"></div>
@@ -147,23 +151,18 @@ p.spoiler {
             <div class="pagination-fd"><a href="security.html">次のページへ</a></div>
         </div>
     
+    
+        <div class="column" title="目次">
+            
+            <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#root%E6%A8%A9%E9%99%90%E3%81%AE%E5%8F%96%E5%BE%97"><span class="toc-text">root権限の取得</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#qemu%E3%81%B8%E3%81%AE%E3%82%A2%E3%82%BF%E3%83%83%E3%83%81"><span class="toc-text">qemuへのアタッチ</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E3%82%AB%E3%83%BC%E3%83%8D%E3%83%AB%E3%81%AE%E3%83%87%E3%83%90%E3%83%83%E3%82%AF"><span class="toc-text">カーネルのデバック</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E3%83%89%E3%83%A9%E3%82%A4%E3%83%90%E3%81%AE%E3%83%87%E3%83%90%E3%83%83%E3%82%B0"><span class="toc-text">ドライバのデバッグ</span></a></li></ol>
+        </div>
+    
 </div>
 
     <div class="post-content">
     <p>カーネルexploitに入門しにくい大きな原因が、デバッグ方法がよく分からないという点です。<br>
 この節ではgdbを使ってqemu上で動くLinuxカーネルをデバッグする方法を学びます。</p>
 <p>まず<a href="../LK01/distfiles/LK01.tar.gz">練習問題LK01</a>のファイルをダウンロードしてください。</p>
-<div class="column" title="目次">
-<!-- toc -->
-<ul>
-<li><a href="#root-----">root権限の取得</a></li>
-<li><a href="#qemu------">qemuへのアタッチ</a></li>
-<li><a href="#---------">カーネルのデバック</a></li>
-<li><a href="#---------">ドライバのデバッグ</a></li>
-</ul>
-<!-- tocstop -->
-<br>
-</div>
 <h2 id="root権限の取得">root権限の取得</h2>
 <p>手元でKernel Exploitをデバッグする際、一般ユーザー権限だと不自由なことが多いです。特にカーネルやカーネルドライバの処理にブレークポイントを設定したり、リークしたアドレスが何の関数のアドレスかを調べたりする際、root権限がないとカーネル空間のアドレス情報を取得できません。<br>
 Kernel Exploitをデバッグする際は、まずroot権限を取得しましょう。この節の内容は前章の例題の(2)と同じですので、既に解いた方は確認程度に読み流してください。</p>
@@ -266,7 +265,7 @@ IDAなどで<code>src/vuln.ko</code>を開くといくつかの関数が見え�
     <div class="flex-container">
         <div class="footer-text">
             
-                © 2022 ptr-yudai 🐈
+                © 2023 ptr-yudai 🐈
                 <br>
             
             

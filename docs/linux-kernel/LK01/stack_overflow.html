@@ -18,7 +18,13 @@
     <meta name="author" content="ptr-yudai">
 
 
+    <meta name="subtitle" content="pawnyable">
 
+
+    <meta name="description" content="Let's learn pwnable with cute animals.">
+
+
+    <meta name="keywords" content="linux,windows,kernel,browser,vm,exploit,exploitation,binary exploit,pwn,pwnable">
 
 
 
@@ -133,10 +139,8 @@ p.spoiler {
     <div class="post-info">
         <div class="post-title">
             
-            
                 Holstein v1: Stack Overflowの悪用
-            
-            
+                        
         </div>
     </div>
     <div class="h-line-primary"></div>
@@ -147,32 +151,16 @@ p.spoiler {
             <div class="pagination-fd"><a href="heap_overflow.html">次のページへ</a></div>
         </div>
     
+    
+        <div class="column" title="目次">
+            
+            <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%A8%A9%E9%99%90%E6%98%87%E6%A0%BC%E3%81%AE%E6%96%B9%E6%B3%95"><span class="toc-text">権限昇格の方法</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#prepare-kernel-cred%E3%81%A8commit-creds"><span class="toc-text">prepare_kernel_credとcommit_creds</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#swapgs-%E3%83%A6%E3%83%BC%E3%82%B6%E3%83%BC%E7%A9%BA%E9%96%93%E3%81%B8%E3%81%AE%E5%BE%A9%E5%B8%B0"><span class="toc-text">swapgs: ユーザー空間への復帰</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#ret2user-ret2usr"><span class="toc-text">ret2user (ret2usr)</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#kROP"><span class="toc-text">kROP</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#KPTI%E3%81%AE%E6%89%B1%E3%81%84"><span class="toc-text">KPTIの扱い</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#KASLR%E3%81%AE%E5%9B%9E%E9%81%BF"><span class="toc-text">KASLRの回避</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#KASLR%E3%81%AE%E3%82%A8%E3%83%B3%E3%83%88%E3%83%AD%E3%83%94%E3%83%BC"><span class="toc-text">KASLRのエントロピー</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E3%82%A2%E3%83%89%E3%83%AC%E3%82%B9%E3%83%AA%E3%83%BC%E3%82%AF"><span class="toc-text">アドレスリーク</span></a></li></ol></li></ol>
+        </div>
+    
 </div>
 
     <div class="post-content">
     <p>前節ではHolsteinモジュールにStack Overflowを見つけ、脆弱性を利用してRIPを取れることを確認しました。この節ではこれをLPEに繋げる方法と、さまざまなセキュリティ機構を回避する方法を学びます。</p>
-<div class="column" title="目次">
-<!-- toc -->
-<ul>
-<li><a href="#-------">権限昇格の方法</a>
-<ul>
-<li><a href="#prepare--kernel--cred-commit--creds">prepare_kernel_credとcommit_creds</a></li>
-<li><a href="#swapgs------------">swapgs: ユーザー空間への復帰</a></li>
-</ul>
-</li>
-<li><a href="#ret2user--ret2usr-">ret2user (ret2usr)</a></li>
-<li><a href="#krop">kROP</a></li>
-<li><a href="#kpti---">KPTIの扱い</a></li>
-<li><a href="#kaslr---">KASLRの回避</a>
-<ul>
-<li><a href="#kaslr-------">KASLRのエントロピー</a></li>
-<li><a href="#-------">アドレスリーク</a></li>
-</ul>
-</li>
-</ul>
-<!-- tocstop -->
-<br>
-</div>
 <h2 id="権限昇格の方法">権限昇格の方法</h2>
 <p>権限昇格の方法にはいろいろありますが、最も基本的な手法は<code>commit_creds</code>を使う方法です。これは、カーネルがroot権限のプロセスを作る時に実行する処理と同じことを実行する方法で、非常に自然な考え方です。<br>
 root権限を取った後にもう1つ重要なのが、ユーザー空間に戻ることです。今カーネルモジュールをexploitしているのでコンテキストはカーネルですが、最終的にはユーザー空間に戻ってroot権限のシェルを取る必要があるので、クラッシュせずにユーザー空間に戻る必要があります。<br>
@@ -412,7 +400,7 @@ KPTI自体はこのような一般的な脆弱性に対する緩和策ではな�
     <div class="flex-container">
         <div class="footer-text">
             
-                © 2022 ptr-yudai 🐈
+                © 2023 ptr-yudai 🐈
                 <br>
             
             

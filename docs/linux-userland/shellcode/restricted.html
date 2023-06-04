@@ -18,7 +18,13 @@
     <meta name="author" content="ptr-yudai">
 
 
+    <meta name="subtitle" content="pawnyable">
 
+
+    <meta name="description" content="Let's learn pwnable with cute animals.">
+
+
+    <meta name="keywords" content="linux,windows,kernel,browser,vm,exploit,exploitation,binary exploit,pwn,pwnable">
 
 
 
@@ -133,13 +139,17 @@ p.spoiler {
     <div class="post-info">
         <div class="post-title">
             
-            
                 制約付きシェルコード
-            
-            
+                        
         </div>
     </div>
     <div class="h-line-primary"></div>
+    
+    
+        <div class="column" title="目次">
+            
+            <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%95%B7%E3%81%95%E5%88%B6%E7%B4%84%E4%BB%98%E3%81%8D%E3%82%B7%E3%82%A7%E3%83%AB%E3%82%B3%E3%83%BC%E3%83%89"><span class="toc-text">長さ制約付きシェルコード</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%9F%AD%E3%81%84%E6%A9%9F%E6%A2%B0%E8%AA%9E%E3%81%AE%E9%81%B8%E6%8A%9E"><span class="toc-text">短い機械語の選択</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Stager%E3%81%AE%E6%A7%8B%E7%AF%89"><span class="toc-text">Stagerの構築</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%96%87%E5%AD%97%E5%88%B6%E7%B4%84%E4%BB%98%E3%81%8D%E3%82%B7%E3%82%A7%E3%83%AB%E3%82%B3%E3%83%BC%E3%83%89"><span class="toc-text">文字制約付きシェルコード</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#NULL%E6%96%87%E5%AD%97%E3%80%81%E6%94%B9%E8%A1%8C%E6%96%87%E5%AD%97%E5%88%B6%E7%B4%84"><span class="toc-text">NULL文字、改行文字制約</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#ASCII-UTF-8%E6%96%87%E5%AD%97%E5%88%B6%E7%B4%84"><span class="toc-text">ASCII &#x2F; UTF-8文字制約</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%B5%AE%E5%8B%95%E5%B0%8F%E6%95%B0%E7%82%B9-IEEE-754-%E5%88%B6%E7%B4%84"><span class="toc-text">浮動小数点(IEEE 754)制約</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%8A%B6%E6%85%8B%E5%88%B6%E7%B4%84%E4%BB%98%E3%81%8D%E3%82%B7%E3%82%A7%E3%83%AB%E3%82%B3%E3%83%BC%E3%83%89"><span class="toc-text">状態制約付きシェルコード</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E3%82%A2%E3%83%89%E3%83%AC%E3%82%B9%E3%81%8C%E5%88%86%E3%81%8B%E3%82%89%E3%81%AA%E3%81%84%E5%A0%B4%E5%90%88"><span class="toc-text">アドレスが分からない場合</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E3%82%B7%E3%82%A7%E3%83%AB%E3%82%B3%E3%83%BC%E3%83%89%E9%A0%98%E5%9F%9F%E3%81%8C%E6%9B%B8%E3%81%8D%E8%BE%BC%E3%81%BF%E4%B8%8D%E8%83%BD%E3%81%AE%E5%A0%B4%E5%90%88"><span class="toc-text">シェルコード領域が書き込み不能の場合</span></a></li></ol></li></ol>
+        </div>
     
 </div>
 
@@ -213,13 +223,13 @@ p.spoiler {
 <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">void</span> <span class="title function_">mystrcpy</span><span class="params">(<span class="type">char</span> *dst, <span class="type">const</span> <span class="type">char</span> *src)</span> &#123;</span><br><span class="line">  <span class="keyword">while</span> (<span class="number">1</span>) &#123;</span><br><span class="line">    *p1++ = *p2;</span><br><span class="line">    <span class="keyword">if</span> (*p2 == <span class="number">0</span>) <span class="keyword">break</span>;</span><br><span class="line">    p2++;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p>GCCに<code>-Os</code>フラグを渡すと次のようになりました。</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">00000000000011d9 &lt;mystrcpy&gt;:</span><br><span class="line">    11d9:       f3 0f 1e fa             endbr64 </span><br><span class="line">    11dd:       31 c0                   xor    eax,eax</span><br><span class="line">    11df:       8a 14 06                mov    dl,BYTE PTR [rsi+rax*1]</span><br><span class="line">    11e2:       88 14 07                mov    BYTE PTR [rdi+rax*1],dl</span><br><span class="line">    11e5:       48 ff c0                inc    rax</span><br><span class="line">    11e8:       80 7c 06 ff 00          cmp    BYTE PTR [rsi+rax*1-0x1],0x0</span><br><span class="line">    11ed:       75 f0                   jne    11df &lt;mystrcpy+0x6&gt;</span><br><span class="line">    11ef:       c3                      ret </span><br></pre></td></tr></table></figure>
-<p><code>endbr64</code>を除けば19バイトになります。一方で、ストリング操作命令を使うと次のようになります。</p>
+<p><code>endbr64</code>を除けば19バイトになります。ストリング操作命令を使うと次のようになります。</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">mystrcpy:</span><br><span class="line">  .@Lp:</span><br><span class="line">  lodsb</span><br><span class="line">  stosb</span><br><span class="line">  test al, al</span><br><span class="line">  jnz .@Lp</span><br><span class="line">  ret</span><br></pre></td></tr></table></figure>
-<p>たったの7バイトになりました。<code>cld</code>命令を入れても8バイトです。コンパイラは事前に与えられた規則にしたがってしか最適化できないので、状況に応じて自分でシェルコードを書くともっと短いコードが書けます。</p>
+<p>たったの7バイトになりました。<code>cld</code>命令を入れても8バイトです。コンパイラは事前に与えられた規則にしたがってしか最適化できないので、状況に応じて自分でシェルコードを書くと短いコードが書けます。</p>
 <div class="balloon_l">
   <div class="faceicon"><img src="../img/piyo.jpg" alt="ひよこ先生" ></div>
   <p class="says">
-    GCC恐るるに足らず。
+    GCC恐るるに足らず
   </p>
 </div>
 <p>また、<code>loop</code>命令を使うとrcxの値だけループできるため、<code>cmp</code>と<code>jmp</code>系命令を使うよりも短く書ける場合もあります。</p>
@@ -260,18 +270,21 @@ p.spoiler {
 <p>何の制約もなくシェルコードを書き込めたとしても、シェルコード実行時に問題が起きる可能性があります。</p>
 <h3 id="アドレスが分からない場合">アドレスが分からない場合</h3>
 <p>シェルコードが実行できても自分自信のアドレスが分からない場合があります。通常シェルコードが実行される際に、そのシェルコードのアドレスがレジスタにロードされ、そこへジャンプします。しかし、ジャンプ後に必ず何らかの処理が実行されてしまう場合、シェルコードのアドレスを持つレジスタが破壊される可能性があります。<br>
-アドレスが分からない場合、Stagerの実行が困難になるといった問題が発生します。このような場合、システムコールを利用できます。システムコールは戻りアドレスをrcxレジスタに入れるという特性があります。したがって、次のように何もしないシステムコールを実行すれば<code>syscall</code>命令の次のアドレスを取得できます。</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">xor esi, esi</span><br><span class="line">xor eax, eax</span><br><span class="line">syscall    ; read(?, NULL, ?)</span><br></pre></td></tr></table></figure>
+アドレスが分からない場合、Stagerの実行が困難になるといった問題が発生します。このような場合、call命令かシステムコールを利用できます。<br>
+call命令は簡単で、スタックにリターンアドレスが積まれることを利用してRIPを取り出します。これはコンパイラが生成するコードにも登場するような、一般的な手法です。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">  call x</span><br><span class="line">x:</span><br><span class="line">  pop rax ; rax=&lt;address of `pop rax`&gt;</span><br></pre></td></tr></table></figure>
+<p>次にシステムコールです。Linuxにおいて、syscall命令は戻りアドレスをrcxレジスタに入れるという特性があります。したがって、次のように何もしないシステムコールを実行すれば<code>syscall</code>命令の次のアドレスを取得できます。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">xor esi, esi</span><br><span class="line">xor eax, eax</span><br><span class="line">syscall    ; read(?, NULL, ?) （悪影響のないシステムコールが動けば何でも良い）</span><br></pre></td></tr></table></figure>
 <p>また、シェルコードではなくlibcやヒープ、スタックなどのアドレスが必要な場合、TLS領域の情報を利用できます。<br>
-64-bitのLinuxでは3つのスレッド固有領域（<strong>TLS</strong>; Thread Local Storage）があり、そのうち2つはfsレジスタとgsレジスタでアクセス可能です。TLSにはcanaryなどの情報があり、スタックへのポインタも保持しています。例えばldでロードされているとき、次のようなシェルコードでスタックのアドレスを取得できます。</p>
+64-bitのLinuxでは3つのスレッド固有領域（<strong>TLS</strong>; Thread Local Storage）があり、そのうち2つはfsレジスタとgsレジスタでアクセス可能です。TLSにはcanaryなどの情報があり、スタックへのポインタも保持しています。例えばglibcがロードされているとき、次のようなシェルコードでスタックのアドレスを取得できます。</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mov rax, [fs:0x300]</span><br></pre></td></tr></table></figure>
 <p>オフセットはバージョンにより異なる可能性があるので、適宜gdbで確認してください。</p>
 <h3 id="シェルコード領域が書き込み不能の場合">シェルコード領域が書き込み不能の場合</h3>
-<p>シェルコードを<code>/proc/self/mem</code>経由で書き込んだ場合などは、シェルコード領域が実行可能でも書き込み不能の場合があります。一般にシェルコードを動的に書き換えることはありませんが、エンコーダなどを利用している場合はシェルコードを書き換える必要があります。<br>
+<p>シェルコードを<code>/proc/self/mem</code>経由で書き込んだ場合や、Bring Your Own Gadgetで動かす場合などは、シェルコード領域が実行可能でも書き込み不能の場合があります。一般にシェルコードを動的に書き換えることはありませんが、エンコーダなどを利用している場合はシェルコードを書き換える必要があります。<br>
 このような場合、シェルコードを書き換えるよりもROPに持ち込んだ方が簡単な場合が多いです。シェルコードが書き込めている以上ROP gadgetも書き込めるので、スタックにgadgetのアドレスを積んで<code>ret</code>命令を呼べばROPが可能です。</p>
 <hr>
 <div class="column" title="例題１">
-  すべての汎用レジスタが0xdeadbeefcafebabeの状態から<code>/bin/sh</code>を起動するシェルコードを24バイト以内で書け。（汎用レジスタはRSPやRBPも含む。）
+  すべての汎用レジスタが0xdeadbeefcafebabeの状態から<code>/bin/sh</code>を起動するシェルコードを24バイト以内で書け。ただし、シェルコード領域は書き換え不可能とする。（汎用レジスタはRSPやRBPも含む。）
 </div>
 <div class="column" title="例題２">
   0x00から0x7Fまでのバイト列のみを使って「ls -lha」を実行するシェルコードを書け。ただし、シェルコード領域は書き込み不能とする。また、RSPは正常なスタックポインタを指しているが、それ以外のレジスタやスタック上のデータの初期状態はランダムと仮定する。
@@ -298,7 +311,7 @@ p.spoiler {
     <div class="flex-container">
         <div class="footer-text">
             
-                © 2022 ptr-yudai 🐈
+                © 2023 ptr-yudai 🐈
                 <br>
             
             

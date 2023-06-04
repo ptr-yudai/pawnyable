@@ -18,7 +18,13 @@
     <meta name="author" content="ptr-yudai">
 
 
+    <meta name="subtitle" content="pawnyable">
 
+
+    <meta name="description" content="Let's learn pwnable with cute animals.">
+
+
+    <meta name="keywords" content="linux,windows,kernel,browser,vm,exploit,exploitation,binary exploit,pwn,pwnable">
 
 
 
@@ -133,10 +139,8 @@ p.spoiler {
     <div class="post-info">
         <div class="post-title">
             
-            
                 Holstein v4: Race Condition
-            
-            
+                        
         </div>
     </div>
     <div class="h-line-primary"></div>
@@ -147,26 +151,16 @@ p.spoiler {
             <div class="pagination-fd"><a href="../LK02/null_ptr_deref.html">次のページへ</a></div>
         </div>
     
+    
+        <div class="column" title="目次">
+            
+            <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E3%83%91%E3%83%83%E3%83%81%E3%81%AE%E8%A7%A3%E6%9E%90"><span class="toc-text">パッチの解析</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Race-Condition"><span class="toc-text">Race Condition</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%99%BA%E7%94%9F%E6%9D%A1%E4%BB%B6"><span class="toc-text">発生条件</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%AB%B6%E5%90%88%E3%82%92%E6%88%90%E5%8A%9F%E3%81%95%E3%81%9B%E3%82%8B"><span class="toc-text">競合を成功させる</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#CPU%E3%81%A8Heap-Spray"><span class="toc-text">CPUとHeap Spray</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%A8%A9%E9%99%90%E6%98%87%E6%A0%BC"><span class="toc-text">権限昇格</span></a></li></ol>
+        </div>
+    
 </div>
 
     <div class="post-content">
     <p><a href="use_after_free.html">前章</a>ではHolsteinモジュールのUse-after-Freeを悪用して権限昇格をしました。3度目の正直、Holsteinモジュールの開発者は3つ目のパッチでモジュールを修正し、Holstein v4を公開しました。開発者曰くもうこれ以上脆弱性はなく、今後はアップデートも停止するそうです。本章では、最終版のHolsteinモジュールv4をexploitしていきます。</p>
-<div class="column" title="目次">
-<!-- toc -->
-<ul>
-<li><a href="#------">パッチの解析</a></li>
-<li><a href="#race-condition">Race Condition</a>
-<ul>
-<li><a href="#----">発生条件</a></li>
-<li><a href="#--------">競合を成功させる</a></li>
-</ul>
-</li>
-<li><a href="#cpu-heap-spray">CPUとHeap Spray</a></li>
-<li><a href="#----">権限昇格</a></li>
-</ul>
-<!-- tocstop -->
-<br>
-</div>
 <h2 id="パッチの解析">パッチの解析</h2>
 <p>最終版v4は<a href="distfiles/LK01-4.tar.gz">ここ</a>からダウンロードできます。まずはv3との差分を見ていきましょう。<br>
 まず起動スクリプト<code>run.sh</code>ですが、マルチコアで動作するように変更されています。</p>
@@ -231,7 +225,7 @@ OSは複数のプロセス（スレッド）を同時に実行できるように
   　sched_setaffinity関数を使うと、スレッドが利用するCPUを制限できるから、コア数が増えても2コアの時と同じような挙動になるよ。
   </p>
 </div>
-<h2 id="権限昇格-2">権限昇格</h2>
+<h2 id="権限昇格">権限昇格</h2>
 <p>あとはこれまで同様の手順で権限昇格するだけです。<br>
 データ競合によりUse-after-Freeを引き起こし、そこにHeap Sprayで<code>tty_struct</code>を載せるという一連の流れを関数にすると、複数回Use-after-Freeを起こすのが簡単に書けます。</p>
 <p>サンプルのexploitは<a href="exploit/race-krop.c">ここ</a>からダウンロードできます。</p>
@@ -278,7 +272,7 @@ OSは複数のプロセス（スレッド）を同時に実行できるように
     <div class="flex-container">
         <div class="footer-text">
             
-                © 2022 ptr-yudai 🐈
+                © 2023 ptr-yudai 🐈
                 <br>
             
             

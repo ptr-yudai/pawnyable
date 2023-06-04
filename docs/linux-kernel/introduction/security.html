@@ -18,7 +18,13 @@
     <meta name="author" content="ptr-yudai">
 
 
+    <meta name="subtitle" content="pawnyable">
 
+
+    <meta name="description" content="Let's learn pwnable with cute animals.">
+
+
+    <meta name="keywords" content="linux,windows,kernel,browser,vm,exploit,exploitation,binary exploit,pwn,pwnable">
 
 
 
@@ -133,10 +139,8 @@ p.spoiler {
     <div class="post-info">
         <div class="post-title">
             
-            
                 セキュリティ機構
-            
-            
+                        
         </div>
     </div>
     <div class="h-line-primary"></div>
@@ -147,24 +151,18 @@ p.spoiler {
             <div class="pagination-fd"><a href="compile-and-transfer.html">次のページへ</a></div>
         </div>
     
+    
+        <div class="column" title="目次">
+            
+            <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#SMEP-Supervisor-Mode-Execution-Prevention"><span class="toc-text">SMEP (Supervisor Mode Execution Prevention)</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#SMAP-Supervisor-Mode-Access-Prevention"><span class="toc-text">SMAP (Supervisor Mode Access Prevention)</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#KASLR-FGKASLR"><span class="toc-text">KASLR &#x2F; FGKASLR</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#KPTI-Kernel-Page-Table-Isolation"><span class="toc-text">KPTI (Kernel Page-Table Isolation)</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#KADR-Kernel-Address-Display-Restriction"><span class="toc-text">KADR (Kernel Address Display Restriction)</span></a></li></ol>
+        </div>
+    
 </div>
 
     <div class="post-content">
     <p>カーネルexploitへの緩和策として、Linuxカーネルにはセキュリティ機構がいくつか存在します。ユーザーランドで登場したNXのように、ハードウェアレベルでのセキュリティ機構も存在するため、いくつかの知識はWindowsのカーネルexploitにもそのまま適用できます。</p>
 <p>ここで取り上げるのはカーネル特有の保護策で、Stack Canaryのようなセキュリティ機構はデバイスドライバにも存在しますが、それについては特筆すべき点はないためここでは説明しません。</p>
 <p>カーネル起動時のパラメータについては<a target="_blank" rel="noopener" href="https://github.com/torvalds/linux/blob/master/Documentation/admin-guide/kernel-parameters.txt">公式のドキュメント</a>が分かりやすいです。</p>
-<div class="column" title="目次">
-<!-- toc -->
-<ul>
-<li><a href="#smep--supervisor-mode-execution-prevention-">SMEP (Supervisor Mode Execution Prevention)</a></li>
-<li><a href="#smap--supervisor-mode-access-prevention-">SMAP (Supervisor Mode Access Prevention)</a></li>
-<li><a href="#kaslr---fgkaslr">KASLR / FGKASLR</a></li>
-<li><a href="#kpti--kernel-page-table-isolation-">KPTI (Kernel Page-Table Isolation)</a></li>
-<li><a href="#kadr--kernel-address-display-restriction-">KADR (Kernel Address Display Restriction)</a></li>
-</ul>
-<!-- tocstop -->
-<br>
-</div>
 <h2 id="SMEP-Supervisor-Mode-Execution-Prevention">SMEP (Supervisor Mode Execution Prevention)</h2>
 <p>カーネルのセキュリティ機構として代表的なものが、SMEPとSMAPです。<br>
 SMEPはカーネル空間のコードを実行中に、突然ユーザー空間のコードを実行するのを禁止するセキュリティ機構です。イメージとしてはNXに似ています。</p>
@@ -283,7 +281,7 @@ KADRが無効な場合はアドレスリークの必要がなくなるため、�
     <div class="flex-container">
         <div class="footer-text">
             
-                © 2022 ptr-yudai 🐈
+                © 2023 ptr-yudai 🐈
                 <br>
             
             

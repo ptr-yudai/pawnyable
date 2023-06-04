@@ -18,7 +18,13 @@
     <meta name="author" content="ptr-yudai">
 
 
+    <meta name="subtitle" content="pawnyable">
 
+
+    <meta name="description" content="Let's learn pwnable with cute animals.">
+
+
+    <meta name="keywords" content="linux,windows,kernel,browser,vm,exploit,exploitation,binary exploit,pwn,pwnable">
 
 
 
@@ -133,10 +139,8 @@ p.spoiler {
     <div class="post-info">
         <div class="post-title">
             
-            
                 BPFの導入
-            
-            
+                        
         </div>
     </div>
     <div class="h-line-primary"></div>
@@ -147,36 +151,16 @@ p.spoiler {
             <div class="pagination-fd"><a href="verifier.html">次のページへ</a></div>
         </div>
     
+    
+        <div class="column" title="目次">
+            
+            <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#BPF"><span class="toc-text">BPF</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#BPF%E3%81%A8%E3%81%AF"><span class="toc-text">BPFとは</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#BPF%E3%81%AE%E3%82%A2%E3%83%BC%E3%82%AD%E3%83%86%E3%82%AF%E3%83%81%E3%83%A3"><span class="toc-text">BPFのアーキテクチャ</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#BPF%E3%81%AE%E5%88%A9%E7%94%A8"><span class="toc-text">BPFの利用</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#BPF%E3%83%97%E3%83%AD%E3%82%B0%E3%83%A9%E3%83%A0%E3%81%AE%E8%A8%98%E8%BF%B0"><span class="toc-text">BPFプログラムの記述</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#BPF%E3%83%9E%E3%83%83%E3%83%97%E3%81%AE%E5%88%A9%E7%94%A8"><span class="toc-text">BPFマップの利用</span></a></li></ol></li></ol>
+        </div>
+    
 </div>
 
     <div class="post-content">
     <p>LK06(Brahman)では、Linuxカーネルの機能の1つである、eBPFに含まれるJIT（検証器）のバグを攻撃します。この章では、まずBPFという機能と、その使い方について学びます。</p>
-<div class="column" title="目次">
-<!-- toc -->
-<ul>
-<li><a href="#bpf">BPF</a>
-<ul>
-<li><a href="#bpf--">BPFとは</a></li>
-<li><a href="#bpf--------">BPFのアーキテクチャ</a>
-<ul>
-<li><a href="#---------">レジスタとスタック</a></li>
-<li><a href="#-----">命令セット</a></li>
-<li><a href="#--------">プログラムタイプ</a></li>
-<li><a href="#------">ヘルパー関数</a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li><a href="#bpf---">BPFの利用</a>
-<ul>
-<li><a href="#bpf--------">BPFプログラムの記述</a></li>
-<li><a href="#bpf------">BPFマップの利用</a></li>
-</ul>
-</li>
-</ul>
-<!-- tocstop -->
-<br>
-</div>
 <h2 id="BPF">BPF</h2>
 <p>eBPFについて説明する前に、その前身となるBPFについて説明します。<br>
 BPFは時代とともに利用用途が広がり、拡張が進みました。大幅な変更が入ってからのBPFをeBPF(extended BPF)、それ以前のBPFをcBPF(classic BPF)と区別して表記することもあります。しかし、現在のLinuxでは、内部的にはeBPFのみが利用されているため、本サイトでは明確に区別が必要ないときはeBPF/cBPFをまとめてBPFと呼びます。</p>
@@ -415,7 +399,7 @@ BPFマップを作るには、<code>BPF_MAP_CREATE</code>で<code>bpf</code>シ�
     <div class="flex-container">
         <div class="footer-text">
             
-                © 2022 ptr-yudai 🐈
+                © 2023 ptr-yudai 🐈
                 <br>
             
             

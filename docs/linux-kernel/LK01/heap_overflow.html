@@ -18,7 +18,13 @@
     <meta name="author" content="ptr-yudai">
 
 
+    <meta name="subtitle" content="pawnyable">
 
+
+    <meta name="description" content="Let's learn pwnable with cute animals.">
+
+
+    <meta name="keywords" content="linux,windows,kernel,browser,vm,exploit,exploitation,binary exploit,pwn,pwnable">
 
 
 
@@ -133,10 +139,8 @@ p.spoiler {
     <div class="post-info">
         <div class="post-title">
             
-            
                 Holstein v2: Heap Overflowの悪用
-            
-            
+                        
         </div>
     </div>
     <div class="h-line-primary"></div>
@@ -147,41 +151,16 @@ p.spoiler {
             <div class="pagination-fd"><a href="use_after_free.html">次のページへ</a></div>
         </div>
     
+    
+        <div class="column" title="目次">
+            
+            <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E3%83%91%E3%83%83%E3%83%81%E3%81%AE%E8%A7%A3%E6%9E%90%E3%81%A8%E8%84%86%E5%BC%B1%E6%80%A7%E3%81%AE%E8%AA%BF%E6%9F%BB"><span class="toc-text">パッチの解析と脆弱性の調査</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E3%82%B9%E3%83%A9%E3%83%96%E3%82%A2%E3%83%AD%E3%82%B1%E3%83%BC%E3%82%BF"><span class="toc-text">スラブアロケータ</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#SLAB%E3%82%A2%E3%83%AD%E3%82%B1%E3%83%BC%E3%82%BF"><span class="toc-text">SLABアロケータ</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#SLUB%E3%82%A2%E3%83%AD%E3%82%B1%E3%83%BC%E3%82%BF"><span class="toc-text">SLUBアロケータ</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#SLOB%E3%82%A2%E3%83%AD%E3%82%B1%E3%83%BC%E3%82%BF"><span class="toc-text">SLOBアロケータ</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Heap-Overflow%E3%81%AE%E6%82%AA%E7%94%A8"><span class="toc-text">Heap Overflowの悪用</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#ROP%E3%81%AB%E3%82%88%E3%82%8BExploit"><span class="toc-text">ROPによるExploit</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E3%83%92%E3%83%BC%E3%83%97%E3%82%AA%E3%83%BC%E3%83%90%E3%83%BC%E3%83%95%E3%83%AD%E3%83%BC%E3%81%AE%E7%A2%BA%E8%AA%8D"><span class="toc-text">ヒープオーバーフローの確認</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#KASLR%E3%81%AE%E5%9B%9E%E9%81%BF"><span class="toc-text">KASLRの回避</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#SMAP%E3%81%AE%E5%9B%9E%E9%81%BF%EF%BC%9ARIP%E3%81%AE%E5%88%B6%E5%BE%A1"><span class="toc-text">SMAPの回避：RIPの制御</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#SMEP%E3%81%AE%E5%9B%9E%E9%81%BF%EF%BC%9AStack-Pivot"><span class="toc-text">SMEPの回避：Stack Pivot</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%A8%A9%E9%99%90%E6%98%87%E6%A0%BC"><span class="toc-text">権限昇格</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#AAR-AAW%E3%81%AB%E3%82%88%E3%82%8BExploit"><span class="toc-text">AAR&#x2F;AAWによるExploit</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#modprobe-path%E3%81%A8core-pattern"><span class="toc-text">modprobe_pathとcore_pattern</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#cred%E6%A7%8B%E9%80%A0%E4%BD%93"><span class="toc-text">cred構造体</span></a></li></ol></li></ol>
+        </div>
+    
 </div>
 
     <div class="post-content">
     <p>前章ではHolsteinモジュールのStack Overflowを悪用して権限昇格をしました。Holsteinモジュールの開発者はすぐさま脆弱性を修正し、Holstein v2を公開しました。本章では、改善されたHolsteinモジュールv2をexploitしていきます。</p>
-<div class="column" title="目次">
-<!-- toc -->
-<ul>
-<li><a href="#-------------">パッチの解析と脆弱性の調査</a></li>
-<li><a href="#--------">スラブアロケータ</a>
-<ul>
-<li><a href="#slab-----">SLABアロケータ</a></li>
-<li><a href="#slub-----">SLUBアロケータ</a></li>
-<li><a href="#slob-----">SLOBアロケータ</a></li>
-</ul>
-</li>
-<li><a href="#heap-overflow---">Heap Overflowの悪用</a></li>
-<li><a href="#rop---exploit">ROPによるExploit</a>
-<ul>
-<li><a href="#-------------">ヒープオーバーフローの確認</a></li>
-<li><a href="#kaslr---">KASLRの回避</a></li>
-<li><a href="#smap----rip---">SMAPの回避：RIPの制御</a></li>
-<li><a href="#smep----stack-pivot">SMEPの回避：Stack Pivot</a></li>
-<li><a href="#----">権限昇格</a></li>
-</ul>
-</li>
-<li><a href="#aar-aaw---exploit">AAR/AAWによるExploit</a>
-<ul>
-<li><a href="#modprobe--path-core--pattern">modprobe_pathとcore_pattern</a></li>
-<li><a href="#cred---">cred構造体</a></li>
-</ul>
-</li>
-</ul>
-<!-- tocstop -->
-<br>
-</div>
 <h2 id="パッチの解析と脆弱性の調査">パッチの解析と脆弱性の調査</h2>
 <p>まずは<a href="distfiles/LK01-2.tar.gz">Holstein v2</a>をダウンロードしてください。<br>
 srcディレクトリにあるソースコードを確認すると、前回との差分は<code>module_read</code>と<code>module_write</code>の2箇所だけだと分かります。</p>
@@ -462,7 +441,7 @@ Linuxには実行ファイル形式が複数共存しており、実行権限の
     <div class="flex-container">
         <div class="footer-text">
             
-                © 2022 ptr-yudai 🐈
+                © 2023 ptr-yudai 🐈
                 <br>
             
             

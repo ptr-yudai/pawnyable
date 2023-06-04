@@ -18,7 +18,13 @@
     <meta name="author" content="ptr-yudai">
 
 
+    <meta name="subtitle" content="pawnyable">
 
+
+    <meta name="description" content="Let's learn pwnable with cute animals.">
+
+
+    <meta name="keywords" content="linux,windows,kernel,browser,vm,exploit,exploitation,binary exploit,pwn,pwnable">
 
 
 
@@ -133,10 +139,8 @@ p.spoiler {
     <div class="post-info">
         <div class="post-title">
             
-            
                 検証器とJITコンパイラ
-            
-            
+                        
         </div>
     </div>
     <div class="h-line-primary"></div>
@@ -147,31 +151,16 @@ p.spoiler {
             <div class="pagination-fd"><a href="exploit.html">次のページへ</a></div>
         </div>
     
+    
+        <div class="column" title="目次">
+            
+            <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%A4%9C%E8%A8%BC%E5%99%A8"><span class="toc-text">検証器</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%B8%80%E6%AE%B5%E9%9A%8E%E7%9B%AE%E3%81%AE%E3%83%81%E3%82%A7%E3%83%83%E3%82%AF"><span class="toc-text">一段階目のチェック</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BA%8C%E6%AE%B5%E9%9A%8E%E7%9B%AE%E3%81%AE%E3%83%81%E3%82%A7%E3%83%83%E3%82%AF"><span class="toc-text">二段階目のチェック</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#JIT-Just-In-Time-compiler"><span class="toc-text">JIT (Just-In-Time compiler)</span></a></li></ol>
+        </div>
+    
 </div>
 
     <div class="post-content">
     <p><a href="ebpf.html">前章</a>ではeBPFについて学びました。本章では、ユーザーから渡されたBPFプログラムを安全かつ高速に動かすための、検証器とJITについて説明します。</p>
-<div class="column" title="目次">
-<!-- toc -->
-<ul>
-<li><a href="#---">検証器</a>
-<ul>
-<li><a href="#---------">一段階目のチェック</a></li>
-<li><a href="#---------">二段階目のチェック</a>
-<ul>
-<li><a href="#----">型の追跡</a></li>
-<li><a href="#-----">定数の追跡</a></li>
-<li><a href="#alu-sanitation">ALU sanitation</a></li>
-<li><a href="#------">各操作の可否</a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li><a href="#jit--just-in-time-compiler-">JIT (Just-In-Time compiler)</a></li>
-</ul>
-<!-- tocstop -->
-<br>
-</div>
 <h2 id="検証器">検証器</h2>
 <p>まずは、eBPFの検証器について学びましょう。検証器のソースコードはLinuxカーネルの<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v5.18.11/source/kernel/bpf/verifier.c"><code>kernel/bpf/verifier.c</code></a>に書かれています。。<br>
 検証器は命令を1つずつチェックし、すべての分岐先をexit命令までトレースします。検証は大きく二段階（First Pass, Second Pass）に分けられます。</p>
@@ -466,7 +455,7 @@ CPUごとに機械語は異なるため、JITのコードは<code>arch</code>デ
     <div class="flex-container">
         <div class="footer-text">
             
-                © 2022 ptr-yudai 🐈
+                © 2023 ptr-yudai 🐈
                 <br>
             
             

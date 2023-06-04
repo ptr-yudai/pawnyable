@@ -18,7 +18,13 @@
     <meta name="author" content="ptr-yudai">
 
 
+    <meta name="subtitle" content="pawnyable">
 
+
+    <meta name="description" content="Let's learn pwnable with cute animals.">
+
+
+    <meta name="keywords" content="linux,windows,kernel,browser,vm,exploit,exploitation,binary exploit,pwn,pwnable">
 
 
 
@@ -133,10 +139,8 @@ p.spoiler {
     <div class="post-info">
         <div class="post-title">
             
-            
                 userfaultfdの利用
-            
-            
+                        
         </div>
     </div>
     <div class="h-line-primary"></div>
@@ -147,22 +151,16 @@ p.spoiler {
             <div class="pagination-fd"><a href="fuse.html">次のページへ</a></div>
         </div>
     
+    
+        <div class="column" title="目次">
+            
+            <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E3%83%89%E3%83%A9%E3%82%A4%E3%83%90%E3%81%AE%E7%A2%BA%E8%AA%8D"><span class="toc-text">ドライバの確認</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E8%84%86%E5%BC%B1%E6%80%A7%E3%81%AE%E7%A2%BA%E8%AA%8D"><span class="toc-text">脆弱性の確認</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#userfaultfd%E3%81%A8%E3%81%AF"><span class="toc-text">userfaultfdとは</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#userfaultfd%E3%81%AE%E4%BD%BF%E7%94%A8%E4%BE%8B"><span class="toc-text">userfaultfdの使用例</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Race%E3%81%AE%E5%AE%89%E5%AE%9A%E5%8C%96"><span class="toc-text">Raceの安定化</span></a></li></ol>
+        </div>
+    
 </div>
 
     <div class="post-content">
     <p>LK04(Fleckvieh)では、LK01-4(Holstein v4)で学んだものと同様のRace Conditionを、より厳しい条件で扱います。まず<a href="distfiles/LK04.tar.gz">練習問題LK04</a>のファイルをダウンロードしてください。</p>
-<div class="column" title="目次">
-<!-- toc -->
-<ul>
-<li><a href="#-------">ドライバの確認</a></li>
-<li><a href="#------">脆弱性の確認</a></li>
-<li><a href="#userfaultfd--">userfaultfdとは</a></li>
-<li><a href="#userfaultfd----">userfaultfdの使用例</a></li>
-<li><a href="#race----">Raceの安定化</a></li>
-</ul>
-<!-- tocstop -->
-<br>
-</div>
 <h2 id="ドライバの確認">ドライバの確認</h2>
 <p>まずはドライバのソースコードを読んでみてください。今回のドライバは今までに比べると量が多く、これまで登場しなかった機能や記法が存在します。<code>module_open</code>は次のようになっています。</p>
 <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">int</span> <span class="title function_">module_open</span><span class="params">(<span class="keyword">struct</span> inode *inode, <span class="keyword">struct</span> file *filp)</span> &#123;</span><br><span class="line">  <span class="comment">/* Allocate list head */</span></span><br><span class="line">  filp-&gt;private_data = (<span class="type">void</span>*)kmalloc(<span class="keyword">sizeof</span>(<span class="keyword">struct</span> list_head), GFP_KERNEL);</span><br><span class="line">  <span class="keyword">if</span> (unlikely(!filp-&gt;private_data))</span><br><span class="line">    <span class="keyword">return</span> -ENOMEM;</span><br><span class="line"></span><br><span class="line">  INIT_LIST_HEAD((<span class="keyword">struct</span> list_head*)filp-&gt;private_data);</span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
@@ -303,7 +301,7 @@ userfaultfdを使うことでページフォルトのタイミングでカーネ
     <div class="flex-container">
         <div class="footer-text">
             
-                © 2022 ptr-yudai 🐈
+                © 2023 ptr-yudai 🐈
                 <br>
             
             

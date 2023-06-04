@@ -18,7 +18,13 @@
     <meta name="author" content="ptr-yudai">
 
 
+    <meta name="subtitle" content="pawnyable">
 
+
+    <meta name="description" content="Let's learn pwnable with cute animals.">
+
+
+    <meta name="keywords" content="linux,windows,kernel,browser,vm,exploit,exploitation,binary exploit,pwn,pwnable">
 
 
 
@@ -133,10 +139,8 @@ p.spoiler {
     <div class="post-info">
         <div class="post-title">
             
-            
                 カーネルexploitへの導入
-            
-            
+                        
         </div>
     </div>
     <div class="h-line-primary"></div>
@@ -147,28 +151,17 @@ p.spoiler {
             <div class="pagination-fd"><a href="debugging.html">次のページへ</a></div>
         </div>
     
+    
+        <div class="column" title="目次">
+            
+            <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E3%82%AB%E3%83%BC%E3%83%8D%E3%83%ABexploit%E3%81%AE%E7%89%B9%E5%BE%B4"><span class="toc-text">カーネルexploitの特徴</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%94%BB%E6%92%83%E5%AF%BE%E8%B1%A1"><span class="toc-text">攻撃対象</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%94%BB%E6%92%83%E6%96%B9%E6%B3%95"><span class="toc-text">攻撃方法</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E3%83%AA%E3%82%BD%E3%83%BC%E3%82%B9%E3%81%AE%E5%85%B1%E6%9C%89"><span class="toc-text">リソースの共有</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E3%83%92%E3%83%BC%E3%83%97%E9%A0%98%E5%9F%9F%E3%81%AE%E5%85%B1%E6%9C%89"><span class="toc-text">ヒープ領域の共有</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#qemu%E3%81%AE%E5%88%A9%E7%94%A8"><span class="toc-text">qemuの利用</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E3%83%87%E3%82%A3%E3%82%B9%E3%82%AF%E3%82%A4%E3%83%A1%E3%83%BC%E3%82%B8"><span class="toc-text">ディスクイメージ</span></a></li></ol>
+        </div>
+    
 </div>
 
     <div class="post-content">
     <p>「ユーザーランドのpwnは一通り勉強したけど、カーネルからは難しそうで手が出ない」という方は多いでしょう。しかし、実はカーネルexploitでは、場合によってはとても攻撃が簡単です。<br>
 この節では、ユーザーランドexploitとカーネルexploitとの違い、環境構築などについて説明します。</p>
-<div class="column" title="目次">
-<!-- toc -->
-<ul>
-<li><a href="#----exploit---">カーネルexploitの特徴</a>
-<ul>
-<li><a href="#----">攻撃対象</a></li>
-<li><a href="#----">攻撃方法</a></li>
-<li><a href="#-------">リソースの共有</a></li>
-<li><a href="#--------">ヒープ領域の共有</a></li>
-</ul>
-</li>
-<li><a href="#qemu---">qemuの利用</a></li>
-<li><a href="#--------">ディスクイメージ</a></li>
-</ul>
-<!-- tocstop -->
-<br>
-</div>
 <h2 id="カーネルexploitの特徴">カーネルexploitの特徴</h2>
 <p>まず始めにユーザーランドと比べてカーネル空間の脆弱性にはどんな特徴があるかを知っておきましょう。</p>
 <h3 id="攻撃対象">攻撃対象</h3>
@@ -264,7 +257,7 @@ cpioコマンドを使って次のようにファイルを展開します。</p>
     <div class="flex-container">
         <div class="footer-text">
             
-                © 2022 ptr-yudai 🐈
+                © 2023 ptr-yudai 🐈
                 <br>
             
             

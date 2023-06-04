@@ -18,7 +18,13 @@
     <meta name="author" content="ptr-yudai">
 
 
+    <meta name="subtitle" content="pawnyable">
 
+
+    <meta name="description" content="Let's learn pwnable with cute animals.">
+
+
+    <meta name="keywords" content="linux,windows,kernel,browser,vm,exploit,exploitation,binary exploit,pwn,pwnable">
 
 
 
@@ -133,10 +139,8 @@ p.spoiler {
     <div class="post-info">
         <div class="post-title">
             
-            
                 FUSEの利用
-            
-            
+                        
         </div>
     </div>
     <div class="h-line-primary"></div>
@@ -147,21 +151,16 @@ p.spoiler {
             <div class="pagination-fd"></div>
         </div>
     
+    
+        <div class="column" title="目次">
+            
+            <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#userfaultfd%E3%81%AE%E6%AC%A0%E7%82%B9"><span class="toc-text">userfaultfdの欠点</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#FUSE%E3%81%A8%E3%81%AF"><span class="toc-text">FUSEとは</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#FUSE%E3%81%AE%E5%88%A9%E7%94%A8"><span class="toc-text">FUSEの利用</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Race%E3%81%AE%E5%AE%89%E5%AE%9A%E5%8C%96"><span class="toc-text">Raceの安定化</span></a></li></ol>
+        </div>
+    
 </div>
 
     <div class="post-content">
     <p><a href="uffd.html">前章</a>ではuserfaultfdを利用してLK04(Fleckvieh)の競合を安定化させました。本章では同じくLK04を、別の方法でexploitしてみます。</p>
-<div class="column" title="目次">
-<!-- toc -->
-<ul>
-<li><a href="#userfaultfd---">userfaultfdの欠点</a></li>
-<li><a href="#fuse--">FUSEとは</a></li>
-<li><a href="#fuse---">FUSEの利用</a></li>
-<li><a href="#race----">Raceの安定化</a></li>
-</ul>
-<!-- tocstop -->
-<br>
-</div>
 <h2 id="userfaultfdの欠点">userfaultfdの欠点</h2>
 <p>前章でも少し説明したように、userfaultfdは現在のLinuxでは標準で一般ユーザーは利用できません。正確には、ユーザー空間で発生さしたページフォルトは検知できますが、カーネル空間で発生したものは一般ユーザーの作ったuserfaultfdでは検知できません。それぞれ以下のパッチで導入されたセキュリティ緩和機構です。</p>
 <ul>
@@ -264,7 +263,7 @@ FUSEで実装したファイルを<code>mmap</code>で<code>MAP_POPULATE</code>�
     <div class="flex-container">
         <div class="footer-text">
             
-                © 2022 ptr-yudai 🐈
+                © 2023 ptr-yudai 🐈
                 <br>
             
             

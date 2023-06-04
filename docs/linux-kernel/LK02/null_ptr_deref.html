@@ -18,7 +18,13 @@
     <meta name="author" content="ptr-yudai">
 
 
+    <meta name="subtitle" content="pawnyable">
 
+
+    <meta name="description" content="Let's learn pwnable with cute animals.">
+
+
+    <meta name="keywords" content="linux,windows,kernel,browser,vm,exploit,exploitation,binary exploit,pwn,pwnable">
 
 
 
@@ -133,10 +139,8 @@ p.spoiler {
     <div class="post-info">
         <div class="post-title">
             
-            
                 NULL Pointer Dereference
-            
-            
+                        
         </div>
     </div>
     <div class="h-line-primary"></div>
@@ -147,30 +151,17 @@ p.spoiler {
             <div class="pagination-fd"><a href="../LK03/double_fetch.html">次のページへ</a></div>
         </div>
     
+    
+        <div class="column" title="目次">
+            
+            <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%9C%AC%E7%AB%A0%E3%81%A7%E6%89%B1%E3%81%86%E8%84%86%E5%BC%B1%E6%80%A7%E3%81%AB%E3%81%A4%E3%81%84%E3%81%A6"><span class="toc-text">本章で扱う脆弱性について</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E8%84%86%E5%BC%B1%E6%80%A7%E3%81%AE%E7%A2%BA%E8%AA%8D"><span class="toc-text">脆弱性の確認</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#ioctl"><span class="toc-text">ioctl</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#file%E6%A7%8B%E9%80%A0%E4%BD%93"><span class="toc-text">file構造体</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E3%83%97%E3%83%AD%E3%82%B0%E3%83%A9%E3%83%A0%E3%81%AE%E6%A6%82%E8%A6%81"><span class="toc-text">プログラムの概要</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%84%86%E5%BC%B1%E6%80%A7%E3%81%AE%E8%AA%BF%E6%9F%BB"><span class="toc-text">脆弱性の調査</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%84%86%E5%BC%B1%E6%80%A7%E3%81%AE%E7%A2%BA%E8%AA%8D-2"><span class="toc-text">脆弱性の確認</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BB%AE%E6%83%B3%E3%83%A1%E3%83%A2%E3%83%AA%E3%81%A8mmap-min-addr"><span class="toc-text">仮想メモリとmmap_min_addr</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%A8%A9%E9%99%90%E6%98%87%E6%A0%BC"><span class="toc-text">権限昇格</span></a></li></ol>
+        </div>
+    
 </div>
 
     <div class="post-content">
     <p>Kernel Exploitに必要な知識のほとんどはLK01で既に説明が完了しているので、ここからはカーネル空間特有の攻撃手法やLinuxカーネルに搭載された機能に対する攻撃などの細かい内容になります。<br>
 LK02(Angus)ではカーネル空間におけるNULL Pointer Dereferenceの悪用方法について学びます。まず<a href="distfiles/LK02.tar.gz">練習問題LK02</a>のファイルをダウンロードしてください。</p>
-<div class="column" title="目次">
-<!-- toc -->
-<ul>
-<li><a href="#------------">本章で扱う脆弱性について</a></li>
-<li><a href="#------">脆弱性の確認</a>
-<ul>
-<li><a href="#ioctl">ioctl</a></li>
-<li><a href="#file---">file構造体</a></li>
-<li><a href="#--------">プログラムの概要</a></li>
-<li><a href="#------">脆弱性の調査</a></li>
-<li><a href="#------">脆弱性の確認</a></li>
-</ul>
-</li>
-<li><a href="#------mmap--min--addr">仮想メモリとmmap_min_addr</a></li>
-<li><a href="#----">権限昇格</a></li>
-</ul>
-<!-- tocstop -->
-<br>
-</div>
 <h2 id="本章で扱う脆弱性について">本章で扱う脆弱性について</h2>
 <p>LK02のqemu起動オプションを見ると分かりますが、今回の攻撃対象のマシンではSMAPが無効になっています。本章で扱うNULL Pointer Dereferenceは、SMAPが無効でないとexploitできません。<br>
 また、今回のカーネルを起動して次のコマンドを入力してみてください。</p>
@@ -258,7 +249,7 @@ NULLポインタ参照はユーザー空間のプログラムでも度々発生�
 LinuxにはNULL pointer dereferenceに対するmitigationとして<code>mmap_min_addr</code>という変数があります。</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ cat /proc/sys/vm/mmap_min_addr</span><br><span class="line">65536</span><br></pre></td></tr></table></figure>
 <p>ユーザー空間からこのアドレスよりも小さいアドレスにメモリをマップすることはできません。そのため通常NULL pointer dereferenceはunexploitableですが、今回の攻撃対象ではこの値が0に設定されているため攻撃可能となります。</p>
-<h2 id="権限昇格-3">権限昇格</h2>
+<h2 id="権限昇格">権限昇格</h2>
 <p><code>XorCipher</code>構造体をNULLポインタ参照してしまうので、攻撃者はアドレス0に偽の<code>XorCipher</code>構造体を用意します。</p>
 <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> &#123;</span></span><br><span class="line">  <span class="type">char</span> *key;</span><br><span class="line">  <span class="type">char</span> *data;</span><br><span class="line">  <span class="type">size_t</span> keylen;</span><br><span class="line">  <span class="type">size_t</span> datalen;</span><br><span class="line">&#125; XorCipher;</span><br></pre></td></tr></table></figure>
 <p><code>data</code>ポインタと<code>datalen</code>を操作すれば、<code>CMD_GETDATA</code>で任意アドレスからデータを読み出せることが分かります。また、<code>data</code>ポインタと<code>datalen</code>、さらに<code>key</code>と<code>keylen</code>を適切に設定すれば、任意アドレスのデータを書き換えられます。<br>
@@ -313,7 +304,7 @@ LinuxにはNULL pointer dereferenceに対するmitigationとして<code>mmap_min
     <div class="flex-container">
         <div class="footer-text">
             
-                © 2022 ptr-yudai 🐈
+                © 2023 ptr-yudai 🐈
                 <br>
             
             

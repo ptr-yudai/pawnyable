@@ -18,7 +18,13 @@
     <meta name="author" content="ptr-yudai">
 
 
+    <meta name="subtitle" content="pawnyable">
 
+
+    <meta name="description" content="Let's learn pwnable with cute animals.">
+
+
+    <meta name="keywords" content="linux,windows,kernel,browser,vm,exploit,exploitation,binary exploit,pwn,pwnable">
 
 
 
@@ -133,13 +139,12 @@ p.spoiler {
     <div class="post-info">
         <div class="post-title">
             
-            
                 Linux Userland Exploitation
-            
-            
+                        
         </div>
     </div>
     <div class="h-line-primary"></div>
+    
     
 </div>
 
@@ -150,15 +155,14 @@ p.spoiler {
 <ul>
 <li><a href="introduction/security.html">セキュリティ機構</a></li>
 <li><a href="introduction/primitive.html">Primitiveについて</a></li>
-<li><a href="introduction/chain.html">脆弱性の種類と連鎖</a></li>
-<li><a href="introduction/struct.html">データ構造</a></li>
+<li><a href="introduction/environment.html">環境の用意</a></li>
 </ul>
 </li>
 <li>シェルコード
 <ul>
 <li><a href="shellcode/how2write.html">シェルコードの書き方</a></li>
 <li><a href="shellcode/restricted.html">制約付きシェルコード</a></li>
-<li><a href="shellcode/seccomp.html">seccompの回避（工事中）</a></li>
+<li><a href="shellcode/seccomp.html">seccompの回避</a></li>
 <li><a href="shellcode/egg-hunter.html">Egg Hunter（工事中）</a></li>
 <li><a href="shellcode/byog.html">Bring Your Own Gadget（工事中）</a></li>
 </ul>
@@ -173,8 +177,7 @@ p.spoiler {
 </li>
 <li>ヒープ
 <ul>
-<li><a href="heap/allocator.html">ヒープアロケータの仕組み</a></li>
-<li><a href="heap/cop.html">Call/Jump Oriented Programming</a></li>
+<li><a href="heap/call-chain.html">Call/Jump Oriented Programming</a></li>
 <li><a href="heap/bof.html">Heap Buffer Overflow</a></li>
 <li><a href="heap/uaf.html">Use-after-Free</a></li>
 <li><a href="heap/spray1.html">Heap Sprayその１：特定のアドレスにデータを置く手法</a></li>
@@ -182,27 +185,17 @@ p.spoiler {
 <li><a href="heap/spray3.html">Heap Sprayその３：ヒープの初期状態を固定する手法</a></li>
 </ul>
 </li>
-<li>さまざまなアーキテクチャ
+<li>その他の脆弱性
 <ul>
-<li><a href="arch/arm.html">ARM</a></li>
-<li><a href="arch/mips.html">MIPS</a></li>
-<li><a href="arch/sparc.html">SPARC</a></li>
-<li><a href="arch/wasm.html">WebAssembly</a></li>
+<li><a href="others/fsb.html">Format String Bug</a></li>
+<li><a href="others/integer.html">Integer Overflow</a></li>
+<li><a href="others/confusion.html">Type Confusion</a></li>
+<li><a href="others/nullpo.html">NULL pointer dereference</a></li>
 </ul>
 </li>
 </ul>
-<div class="column" title="講師プロフィール">
-  <div style="overflow: hidden">
-    <div style="float: left; margin-right: 1em;" class="faceicon">
-      <img src="img/piyo.png" alt="ひよこ先生" >
-    </div>
-    <div style="float: left;">
-      <b>ひよこ先生</b><br>
-      ぴよ。<br>
-      好きなもの：猫 / seccomp(2)<br>
-      苦手なもの：ヘビ / pledge(2)
-    </div>
-  </div>
+<div class="column" title="ひよこ先生">
+　TBD :)
 </div>
 
 </div> 
@@ -225,7 +218,7 @@ p.spoiler {
     <div class="flex-container">
         <div class="footer-text">
             
-                © 2022 ptr-yudai 🐈
+                © 2023 ptr-yudai 🐈
                 <br>
             
             

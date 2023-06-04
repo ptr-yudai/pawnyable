@@ -18,7 +18,13 @@
     <meta name="author" content="ptr-yudai">
 
 
+    <meta name="subtitle" content="pawnyable">
 
+
+    <meta name="description" content="Let's learn pwnable with cute animals.">
+
+
+    <meta name="keywords" content="linux,windows,kernel,browser,vm,exploit,exploitation,binary exploit,pwn,pwnable">
 
 
 
@@ -133,10 +139,8 @@ p.spoiler {
     <div class="post-info">
         <div class="post-title">
             
-            
                 コンパイルとexploitの転送
-            
-            
+                        
         </div>
     </div>
     <div class="h-line-primary"></div>
@@ -147,19 +151,16 @@ p.spoiler {
             <div class="pagination-fd"><a href="../LK01/welcome-to-holstein.html">次のページへ</a></div>
         </div>
     
+    
+        <div class="column" title="目次">
+            
+            <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#qemu%E4%B8%8A%E3%81%A7%E3%81%AE%E5%AE%9F%E8%A1%8C"><span class="toc-text">qemu上での実行</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E3%83%AA%E3%83%A2%E3%83%BC%E3%83%88%E3%83%9E%E3%82%B7%E3%83%B3%E3%81%A7%E3%81%AE%E5%AE%9F%E8%A1%8C%EF%BC%9Amusl-gcc%E3%81%AE%E5%88%A9%E7%94%A8"><span class="toc-text">リモートマシンでの実行：musl-gccの利用</span></a></li></ol>
+        </div>
+    
 </div>
 
     <div class="post-content">
     <p>カーネルの起動方法、デバッグ方法、そしてセキュリティなど、Kernel Exploitを始めるのに必要な知識は完璧に習得しました。ここからは、実際にexploitをどのように書いていくのかと、書いたexploitをどうやってqemu上で動かすかを学びます。</p>
-<div class="column" title="目次">
-<!-- toc -->
-<ul>
-<li><a href="#qemu-----">qemu上での実行</a></li>
-<li><a href="#------------musl-gcc---">リモートマシンでの実行：musl-gccの利用</a></li>
-</ul>
-<!-- tocstop -->
-<br>
-</div>
 <h2 id="qemu上での実行">qemu上での実行</h2>
 <p>qemuの上でexploitを書いてビルド、実行すると、カーネルがクラッシュする度にやり直す必要があるので大変です。そのため、C言語で書いたexploitを手元でビルドしてから、それをqemuに送る必要があります。<br>
 この流れを毎回コマンド入力するのは大変なので、シェルスクリプトなどでテンプレートとして用意しておきましょう。例えば次のような<code>transfer.sh</code>を用意してみます。</p>
@@ -232,7 +233,7 @@ GCCでサイズを小さくしたければ、libcを使わないようにし、r
     <div class="flex-container">
         <div class="footer-text">
             
-                © 2022 ptr-yudai 🐈
+                © 2023 ptr-yudai 🐈
                 <br>
             
             

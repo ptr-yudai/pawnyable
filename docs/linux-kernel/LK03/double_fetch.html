@@ -18,7 +18,13 @@
     <meta name="author" content="ptr-yudai">
 
 
+    <meta name="subtitle" content="pawnyable">
 
+
+    <meta name="description" content="Let's learn pwnable with cute animals.">
+
+
+    <meta name="keywords" content="linux,windows,kernel,browser,vm,exploit,exploitation,binary exploit,pwn,pwnable">
 
 
 
@@ -133,10 +139,8 @@ p.spoiler {
     <div class="post-info">
         <div class="post-title">
             
-            
                 Double Fetch
-            
-            
+                        
         </div>
     </div>
     <div class="h-line-primary"></div>
@@ -147,23 +151,16 @@ p.spoiler {
             <div class="pagination-fd"><a href="../LK04/uffd.html">次のページへ</a></div>
         </div>
     
+    
+        <div class="column" title="目次">
+            
+            <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#QEMU%E3%81%AE%E8%B5%B7%E5%8B%95%E3%82%AA%E3%83%97%E3%82%B7%E3%83%A7%E3%83%B3"><span class="toc-text">QEMUの起動オプション</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E3%82%BD%E3%83%BC%E3%82%B9%E3%82%B3%E3%83%BC%E3%83%89%E3%81%AE%E8%A7%A3%E6%9E%90"><span class="toc-text">ソースコードの解析</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Double-Fetch"><span class="toc-text">Double Fetch</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E8%84%86%E5%BC%B1%E6%80%A7%E3%81%AE%E7%99%BA%E7%81%AB"><span class="toc-text">脆弱性の発火</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#seq-operations"><span class="toc-text">seq_operations</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%A8%A9%E9%99%90%E6%98%87%E6%A0%BC"><span class="toc-text">権限昇格</span></a></li></ol>
+        </div>
+    
 </div>
 
     <div class="post-content">
     <p>LK03(Dexter)ではDouble Fetchと呼ばれる脆弱性について学びます。まず<a href="distfiles/LK03.tar.gz">練習問題LK03</a>のファイルをダウンロードしてください。</p>
-<div class="column" title="目次">
-<!-- toc -->
-<ul>
-<li><a href="#qemu--------">QEMUの起動オプション</a></li>
-<li><a href="#---------">ソースコードの解析</a></li>
-<li><a href="#double-fetch">Double Fetch</a></li>
-<li><a href="#------">脆弱性の発火</a></li>
-<li><a href="#seq--operations">seq_operations</a></li>
-<li><a href="#----">権限昇格</a></li>
-</ul>
-<!-- tocstop -->
-<br>
-</div>
 <h2 id="QEMUの起動オプション">QEMUの起動オプション</h2>
 <p>LK03ではSMEP,KASLR,KPTIが有効で、SMAPが無効です。また、今回扱う脆弱性は競合に関するバグなので、マルチコアで動作させている点に注意してください。<sup class="footnote-ref"><a href="#fn1" id="fnref1">[1]</a></sup><br>
 権限昇格を簡単にするためにSMAPを無効化しているだけで、脆弱性自体はSMAPが有効でも発火します。</p>
@@ -193,7 +190,7 @@ p.spoiler {
     ユーザー空間のデータを複数回扱うときは、最初にカーネル空間にコピーしたものを使わないとダメなんだね。
   </p>
 </div>
-<h2 id="脆弱性の発火-2">脆弱性の発火</h2>
+<h2 id="脆弱性の発火">脆弱性の発火</h2>
 <p>まずは正しい使い方をしてみましょう。次のようにドライバにデータを保存できます。</p>
 <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> <span class="title function_">set</span><span class="params">(<span class="type">char</span> *buf, <span class="type">size_t</span> len)</span> &#123;</span><br><span class="line">  <span class="type">request_t</span> req = &#123; .ptr=buf, .len=len &#125;;</span><br><span class="line">  <span class="keyword">return</span> ioctl(fd, CMD_SET, &amp;req);</span><br><span class="line">&#125;</span><br><span class="line"><span class="type">int</span> <span class="title function_">get</span><span class="params">(<span class="type">char</span> *buf, <span class="type">size_t</span> len)</span> &#123;</span><br><span class="line">  <span class="type">request_t</span> req = &#123; .ptr=buf, .len=len &#125;;</span><br><span class="line">  <span class="keyword">return</span> ioctl(fd, CMD_GET, &amp;req);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">()</span> &#123;</span><br><span class="line">  fd = open(<span class="string">&quot;/dev/dexter&quot;</span>, O_RDWR);</span><br><span class="line">  <span class="keyword">if</span> (fd == <span class="number">-1</span>) fatal(<span class="string">&quot;/dev/dexter&quot;</span>);</span><br><span class="line"></span><br><span class="line">  <span class="type">char</span> buf[<span class="number">0x20</span>];</span><br><span class="line">  <span class="built_in">set</span>(<span class="string">&quot;Hello, World!&quot;</span>, <span class="number">13</span>);</span><br><span class="line">  get(buf, <span class="number">13</span>);</span><br><span class="line">  <span class="built_in">printf</span>(<span class="string">&quot;%s\n&quot;</span>, buf);</span><br><span class="line"></span><br><span class="line">  close(fd);</span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p>次にDouble Fetchの挙動を確認しましょう。まずは適当なコードを書いて、脆弱性が発火することを確認します。ここではセットしていないデータが読み込まれるまで競合を試みるコードを書いています。</p>
@@ -217,7 +214,7 @@ p.spoiler {
     詳しくは例題で見てみよう。
   </p>
 </div>
-<h2 id="権限昇格-4">権限昇格</h2>
+<h2 id="権限昇格">権限昇格</h2>
 <p>今回はSMAPが無効なのでユーザー空間にStack Pivotできます。各自ROP chainを書いて権限昇格してみてください。</p>
 <center>
   <img src="img/dexter_privesc.png" alt="Double Fetchによる権限昇格" style="width:320px;">
@@ -260,7 +257,7 @@ p.spoiler {
     <div class="flex-container">
         <div class="footer-text">
             
-                © 2022 ptr-yudai 🐈
+                © 2023 ptr-yudai 🐈
                 <br>
             
             

@@ -18,7 +18,13 @@
     <meta name="author" content="ptr-yudai">
 
 
+    <meta name="subtitle" content="pawnyable">
 
+
+    <meta name="description" content="Let's learn pwnable with cute animals.">
+
+
+    <meta name="keywords" content="linux,windows,kernel,browser,vm,exploit,exploitation,binary exploit,pwn,pwnable">
 
 
 
@@ -133,36 +139,28 @@ p.spoiler {
     <div class="post-info">
         <div class="post-title">
             
-            
                 Primitiveについて
-            
-            
+                        
         </div>
     </div>
     <div class="h-line-primary"></div>
+    
+        <div class="pagination">
+            <div class="pagination-bk"><a href="security.html">前のページへ</a></div>
+            <div class="pagination-index"><a href="../index.html">目次へ</a></div>
+            <div class="pagination-fd"><a href="environment.html">次のページへ</a></div>
+        </div>
+    
+    
+        <div class="column" title="目次">
+            
+            <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Primitive%E3%81%A8%E3%81%AF"><span class="toc-text">Primitiveとは</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%80%E8%88%AC%E7%9A%84%E3%81%AAprimitive"><span class="toc-text">一般的なprimitive</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#RIP%E5%88%B6%E5%BE%A1"><span class="toc-text">RIP制御</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E3%82%A2%E3%83%89%E3%83%AC%E3%82%B9%E3%83%AA%E3%83%BC%E3%82%AF"><span class="toc-text">アドレスリーク</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#addrof"><span class="toc-text">addrof</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#fakeobj"><span class="toc-text">fakeobj</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#AAR"><span class="toc-text">AAR</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#AAW"><span class="toc-text">AAW</span></a></li></ol></li></ol>
+        </div>
     
 </div>
 
     <div class="post-content">
     <p>Binary Exploitationにおいて最も重要となるのがprimitiveと呼ばれるものです。本章では、primitiveの種類と重要性について説明します。</p>
-<div class="column" title="目次">
-<!-- toc -->
-<ul>
-<li><a href="#primitive--">Primitiveとは</a></li>
-<li><a href="#----primitive">一般的なprimitive</a>
-<ul>
-<li><a href="#rip--">RIP制御</a></li>
-<li><a href="#-------">アドレスリーク</a></li>
-<li><a href="#addrof">addrof</a></li>
-<li><a href="#fakeobj">fakeobj</a></li>
-<li><a href="#aar">AAR</a></li>
-<li><a href="#aaw">AAW</a></li>
-</ul>
-</li>
-</ul>
-<!-- tocstop -->
-<br>
-</div>
 <h2 id="Primitiveとは">Primitiveとは</h2>
 <p>Binary Exploitationとは、脆弱性を利用して目的を達成する作業です。<br>
 例えば「整数オーバーフローで値が負になる」という脆弱性から「任意コード実行する」という目的に向けてexploitを記述します。この過程で重要になってくるのが<strong>primitive</strong>（プリミティブ：原理）です。Primitiveとは、あらゆるexploitにおいて役に立つ基本的な処理のことです。いわば、脆弱性と目的を橋渡しする中間にあるプロセスを指します。<br>
@@ -172,7 +170,7 @@ p.spoiler {
 <h3 id="RIP制御">RIP制御</h3>
 <p>Exploitにおいて最も重要となるprimitiveがRIP制御です。リターンアドレスや関数ポインタを書き換えて任意のアドレスにジャンプすることを指します。<br>
 もちろんコマンドインジェクションなどの脆弱性の場合は不要ですが、多くのexploitでは必要となります。多くのRIP制御は1回だけ使いますが、<a href="../stack/rop.html">ROP</a>の章でも説明するように何度もRIP制御を使う特殊なパターンも存在します。</p>
-<h3 id="アドレスリーク-2">アドレスリーク</h3>
+<h3 id="アドレスリーク">アドレスリーク</h3>
 <p>近年の多くのアーキテクチャではASLRが有効です。ASLRを安定して回避するためにはライブラリやプログラム、ヒープなどのアドレスをリークする必要になります。何かしらの方法でアドレスをリークするprimitiveを<strong>アドレスリーク</strong>と呼びます。未初期化のメモリを使ったり、Type Confusionでポインタと整数値を混同させたり、アドレスリークの手法は脆弱性によって様々です。</p>
 <div class="balloon_l">
   <div class="faceicon"><img src="../img/piyo.jpg" alt="ひよこ先生" ></div>
@@ -216,6 +214,12 @@ AAR primitiveを持っていると、例えばlibcからスタックのアドレ
 <div style="margin-top: 1em">
     <div class="h-line-primary"></div>
     
+        <div class="pagination">
+            <div class="pagination-bk"><a href="security.html">前のページへ</a></div>
+            <div class="pagination-index"><a href="../index.html">目次へ</a></div>
+            <div class="pagination-fd"><a href="environment.html">次のページへ</a></div>
+        </div>
+    
 </div>
 
 <script>
@@ -231,7 +235,7 @@ AAR primitiveを持っていると、例えばlibcからスタックのアドレ
     <div class="flex-container">
         <div class="footer-text">
             
-                © 2022 ptr-yudai 🐈
+                © 2023 ptr-yudai 🐈
                 <br>
             
             

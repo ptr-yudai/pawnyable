@@ -18,7 +18,13 @@
     <meta name="author" content="ptr-yudai">
 
 
+    <meta name="subtitle" content="pawnyable">
 
+
+    <meta name="description" content="Let's learn pwnable with cute animals.">
+
+
+    <meta name="keywords" content="linux,windows,kernel,browser,vm,exploit,exploitation,binary exploit,pwn,pwnable">
 
 
 
@@ -133,10 +139,8 @@ p.spoiler {
     <div class="post-info">
         <div class="post-title">
             
-            
                 Holstein v3: Use-after-Freeの悪用
-            
-            
+                        
         </div>
     </div>
     <div class="h-line-primary"></div>
@@ -147,22 +151,17 @@ p.spoiler {
             <div class="pagination-fd"><a href="race_condition.html">次のページへ</a></div>
         </div>
     
+    
+        <div class="column" title="目次">
+            
+            <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E3%83%91%E3%83%83%E3%83%81%E3%81%AE%E8%A7%A3%E6%9E%90%E3%81%A8%E8%84%86%E5%BC%B1%E6%80%A7%E3%81%AE%E8%AA%BF%E6%9F%BB"><span class="toc-text">パッチの解析と脆弱性の調査</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#KASLR%E3%81%AE%E5%9B%9E%E9%81%BF"><span class="toc-text">KASLRの回避</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#kROP%E3%81%AE%E5%AE%9F%E7%8F%BE"><span class="toc-text">kROPの実現</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E3%81%8A%E3%81%BE%E3%81%91%EF%BC%9ARIP%E5%88%B6%E5%BE%A1%E3%81%A8SMEP%E3%81%AE%E5%9B%9E%E9%81%BF"><span class="toc-text">おまけ：RIP制御とSMEPの回避</span></a></li></ol>
+        </div>
+    
 </div>
 
     <div class="post-content">
     <p>前章ではHolsteinモジュールのHeap Overflowを悪用して権限昇格をしました。またもやHolsteinモジュールの開発者は脆弱性を修正し、Holstein v3を公開しました。本章では、改善されたHolsteinモジュールv3をexploitしていきます。</p>
-<div class="column" title="目次">
-<!-- toc -->
-<ul>
-<li><a href="#-------------">パッチの解析と脆弱性の調査</a></li>
-<li><a href="#kaslr---">KASLRの回避</a></li>
-<li><a href="#krop---">kROPの実現</a></li>
-<li><a href="#----rip---smep---">おまけ：RIP制御とSMEPの回避</a></li>
-</ul>
-<!-- tocstop -->
-<br>
-</div>
-<h2 id="パッチの解析と脆弱性の調査-2">パッチの解析と脆弱性の調査</h2>
+<h2 id="パッチの解析と脆弱性の調査">パッチの解析と脆弱性の調査</h2>
 <p>まずは<a href="distfiles/LK01-3.tar.gz">Holstein v3</a>をダウンロードしてください。<br>
 v2との差分は主に2点あります。まず、<code>open</code>でのバッファ確保時に<code>kzalloc</code>が使われています。</p>
 <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">g_buf = kzalloc(BUFFER_SIZE, GFP_KERNEL);</span><br><span class="line"><span class="keyword">if</span> (!g_buf) &#123;</span><br><span class="line">  printk(KERN_INFO <span class="string">&quot;kmalloc failed&quot;</span>);</span><br><span class="line">  <span class="keyword">return</span> -ENOMEM;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
@@ -185,7 +184,7 @@ v2との差分は主に2点あります。まず、<code>open</code>でのバッ
     本当にそれだけで十分かは次の章で調べるよ。
   </p>
 </div>
-<h2 id="KASLRの回避-3">KASLRの回避</h2>
+<h2 id="KASLRの回避">KASLRの回避</h2>
 <p>手始めにカーネルのベースアドレスと<code>g_buf</code>のアドレスをリークしてみましょう。<br>
 脆弱性がUse-after-Freeになっただけで、今回もバッファサイズが0x400なので<code>tty_struct</code>が使えます。</p>
 <h2 id="kROPの実現">kROPの実現</h2>
@@ -238,7 +237,7 @@ v2との差分は主に2点あります。まず、<code>open</code>でのバッ
     <div class="flex-container">
         <div class="footer-text">
             
-                © 2022 ptr-yudai 🐈
+                © 2023 ptr-yudai 🐈
                 <br>
             
             

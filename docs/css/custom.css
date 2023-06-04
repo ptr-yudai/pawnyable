@@ -94,3 +94,13 @@
   width: 33.33333%;
   text-align: right;
 }
+/* 目次 */
+ol.toc {
+  list-style: disc;
+}
+ol.toc-child {
+  list-style: circle;
+}
+li.toc-item {
+  margin: 0.5em;
+}

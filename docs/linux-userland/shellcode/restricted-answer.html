@@ -18,7 +18,13 @@
     <meta name="author" content="ptr-yudai">
 
 
+    <meta name="subtitle" content="pawnyable">
 
+
+    <meta name="description" content="Let's learn pwnable with cute animals.">
+
+
+    <meta name="keywords" content="linux,windows,kernel,browser,vm,exploit,exploitation,binary exploit,pwn,pwnable">
 
 
 
@@ -133,20 +139,24 @@ p.spoiler {
     <div class="post-info">
         <div class="post-title">
             
-            
                 例題の解答 - シェルコードの書き方
-            
-            
+                        
         </div>
     </div>
     <div class="h-line-primary"></div>
     
+    
+        <div class="column" title="目次">
+            
+            <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BE%8B%E9%A1%8C%EF%BC%91"><span class="toc-text">例題１</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BE%8B%E9%A1%8C%EF%BC%92"><span class="toc-text">例題２</span></a></li></ol>
+        </div>
+    
 </div>
 
     <div class="post-content">
-    <h2 id="例題１-2">例題１</h2>
+    <h2 id="例題１">例題１</h2>
 <p>【問題】<br>
-すべての汎用レジスタが0xdeadbeefcafebabeの状態から<code>/bin/sh</code>を起動するシェルコードを24バイト以内で書け。（汎用レジスタはRSPやRBPも含む。）</p>
+すべての汎用レジスタが0xdeadbeefcafebabeの状態から<code>/bin/sh</code>を起動するシェルコードを24バイト以内で書け。ただし、シェルコード領域は書き換え不可能とする。（汎用レジスタはRSPやRBPも含む。）</p>
 <p>【解答】<br>
 シェルを起動するためには</p>
 <ul>
@@ -173,7 +183,7 @@ xorにより最初にeaxが0になるので、これを利用して<code>cdq</co
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">syscall</span><br><span class="line">xor eax, eax</span><br><span class="line">cdq</span><br><span class="line">mov esi, eax</span><br><span class="line">lea rdi, [rcx+13]</span><br><span class="line">mov al, 59</span><br><span class="line">syscall</span><br><span class="line">db &quot;/bin/sh&quot;,0</span><br></pre></td></tr></table></figure>
 <p>このシェルコードは<a href="src/smalsh.S">ここ</a>からダウンロードできます。<br>
 同じ条件でもっと短いシェルコードを書けたよ〜という方はご一報ください。</p>
-<h2 id="例題２-2">例題２</h2>
+<h2 id="例題２">例題２</h2>
 <p>【問題】<br>
 0x00から0x7Fまでのバイト列のみを使って「ls -lha」を実行するシェルコードを書け。ただし、シェルコード領域は書き込み不能とする。また、RSPは正常なスタックポインタを指しているが、それ以外のレジスタやスタック上のデータの初期状態はランダムと仮定する。</p>
 <p>【解答】<br>
@@ -221,7 +231,7 @@ xorにより最初にeaxが0になるので、これを利用して<code>cdq</co
     <div class="flex-container">
         <div class="footer-text">
             
-                © 2022 ptr-yudai 🐈
+                © 2023 ptr-yudai 🐈
                 <br>
             
             

