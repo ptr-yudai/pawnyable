@@ -6,6 +6,10 @@ tags:
     - [Userland]
     - [shellcode]
 lang: ja
+
+pagination: true
+bk: how2write.html
+fd: seccomp.html
 ---
 CTFではしばしば制約付きシェルコード問題が出題されます。さまざまな制約がありますが、ここでは実世界のExploitでも役に立ちそうなものだけ解説します。
 
@@ -62,7 +66,7 @@ rep movsb
 ```
 
 <div class="balloon_l">
-  <div class="faceicon"><img src="../img/piyo.jpg" alt="ひよこ先生" ></div>
+  <div class="faceicon"><img src="../img/piyo_jito.png" alt="ひよこ先生" ></div>
   <p class="says">
     このシェルコードはフラグレジスタのディレクションフラグ（ストリング操作命令実行後にrsi,rdiをインクリメントするかデクリメントするかを決めるフラグ）が0であると仮定しているため、厳密には正しくないよ。長さに余裕があるときな必ずループの前に`cld`命令を置くように心がけてね。
   </p>
@@ -103,9 +107,9 @@ mystrcpy:
 たったの7バイトになりました。`cld`命令を入れても8バイトです。コンパイラは事前に与えられた規則にしたがってしか最適化できないので、状況に応じて自分でシェルコードを書くと短いコードが書けます。
 
 <div class="balloon_l">
-  <div class="faceicon"><img src="../img/piyo.jpg" alt="ひよこ先生" ></div>
+  <div class="faceicon"><img src="../img/piyo_born.png" alt="ひよこ先生" ></div>
   <p class="says">
-    GCC恐るるに足らず
+    GCC恐るるに足らず。
   </p>
 </div>
 

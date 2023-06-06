@@ -7,12 +7,12 @@ tags:
     - [shellcode]
     - [seccomp]
 lang: ja
+
+pagination: true
+bk: restricted.html
+fd: egg_hunter.html
 ---
 Linuxではseccompと呼ばれるサンドボックス機構が提供されています。seccompは正しく使えば非常に強力ですが、フィルタの設定を誤ると簡単に回避できてしまいます。この章ではseccompの様々な回避手法について紹介します。
-
-<div class="column" title="目次">
-<!-- toc --><br>
-</div>
 
 ## seccomp
 seccompの回避方法について勉強する前に、seccompの仕組みについて知っておきましょう。

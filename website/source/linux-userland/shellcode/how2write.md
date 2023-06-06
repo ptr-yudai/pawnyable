@@ -6,6 +6,10 @@ tags:
     - [Userland]
     - [shellcode]
 lang: ja
+
+pagination: true
+bk: ../introduction/environment.html
+fd: restricted.html
 ---
 Binary Exploitを勉強する際に最初に登場するシェルコードですが、CTFの場合ほとんどの問題では使いません。そのためシェルコードについて深く勉強できる資料は少ないですが、実際にはとても重要です。シェルコードの書き方をひよこ先生に教えてもらいましょう。
 
@@ -55,7 +59,7 @@ x -= 12780815
 eaxを60にしてシステムコールを呼び出す機械語になってしまいました。このように、JITが存在する場合は例えその領域が書き込み不能でも、中のコードで使われる定数をある程度制御できる場合、シェルコードやROP gadgetを攻撃者が用意できます。
 
 <div class="balloon_l">
-  <div class="faceicon"><img src="../img/piyo.jpg" alt="ひよこ先生" ></div>
+  <div class="faceicon"><img src="../img/piyo_jito.png" alt="ひよこ先生" ></div>
   <p class="says">
     このような手法を<strong>Bring Your Own Gadget</strong>などと呼ぶよ。
     対策として、定数を参照やエンコードした状態に置き換えて機械語中に登場させないConstant Blindingという手法があるよ。
@@ -76,7 +80,7 @@ eaxを60にしてシステムコールを呼び出す機械語になってしま
 また、検索で出てくるシェルコードは「`/bin/sh`を起動する」であったり「リバースシェルを取る」であったり、一般的な状況で使えるように設計された典型的な処理が多いです。しかし、実際に要求されるのは状況に応じた複雑な処理ですし、そもそも典型的な処理すらすぐにアセンブリで書けないようではpawnyableの世界で生きていけません。（複雑なシェルコードは後の章で実践します。）
 
 <div class="balloon_l">
-  <div class="faceicon"><img src="../img/piyo.jpg" alt="ひよこ先生" ></div>
+  <div class="faceicon"><img src="../img/piyo_yaba.png" alt="ひよこ先生" ></div>
   <p class="says">
     自然界は厳しいのでコマンドを呼び出すシェルコードも手書きできないようでは生きていけない。
   </p>
@@ -153,7 +157,7 @@ s_arg0: db "/bin/sh", 0
 ```
 
 <div class="balloon_l">
-  <div class="faceicon"><img src="../img/piyo.jpg" alt="ひよこ先生" ></div>
+  <div class="faceicon"><img src="../img/piyo_born.png" alt="ひよこ先生" ></div>
   <p class="says">
     x86-64では32-bitのレジスタに結果を代入すると自動的に64-bitに符号拡張されるよ。
     だから「xor eax,eax」で確実にraxを0にできるんだね。

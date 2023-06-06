@@ -140,7 +140,7 @@ PIEはELFファイル中の`e_type`が`ET_DYN`であると有効として認識�
 PIEが有効なプログラムは、ASLRが有効なときロードアドレスがランダム化されます。
 
 <div class="balloon_l">
-  <div class="faceicon"><img src="../img/XXX.png" alt="ヒヨコ先生" ></div>
+  <div class="faceicon"><img src="../img/piyo_born.png" alt="ヒヨコ先生" ></div>
   <p class="says">
     PIEが有効な場合、初期値としてポインタを持つ変数はリロケーションという仕組みで実行ファイル起動時にロードアドレスが加算され、正しいポインタに修正されるのです。
   </p>

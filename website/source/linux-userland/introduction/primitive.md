@@ -30,7 +30,7 @@ Exploitにおいて最も重要となるprimitiveがRIP制御です。リター�
 近年の多くのアーキテクチャではASLRが有効です。ASLRを安定して回避するためにはライブラリやプログラム、ヒープなどのアドレスをリークする必要になります。何かしらの方法でアドレスをリークするprimitiveを**アドレスリーク**と呼びます。未初期化のメモリを使ったり、Type Confusionでポインタと整数値を混同させたり、アドレスリークの手法は脆弱性によって様々です。
 
 <div class="balloon_l">
-  <div class="faceicon"><img src="../img/piyo.jpg" alt="ひよこ先生" ></div>
+  <div class="faceicon"><img src="../img/piyo_yaba.png" alt="ひよこ先生" ></div>
   <p class="says">
     アドレスリークと似た言葉に<b>メモリリーク</b>という言葉があるよ。メモリの内容がリークしそうな言葉だけど、メモリリークは確保したメモリを解放(free)し忘れてメモリを消費し続けるバグを指しているから注意してね。
   </p>
