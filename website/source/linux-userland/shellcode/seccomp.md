@@ -10,7 +10,7 @@ lang: ja
 
 pagination: true
 bk: restricted.html
-fd: egg_hunter.html
+fd: egg-hunter.html
 ---
 Linuxではseccompと呼ばれるサンドボックス機構が提供されています。seccompは正しく使えば非常に強力ですが、フィルタの設定を誤ると簡単に回避できてしまいます。この章ではseccompの様々な回避手法について紹介します。
 
