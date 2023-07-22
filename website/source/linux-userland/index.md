@@ -12,7 +12,7 @@ hide_toc: true
   - [シェルコードの書き方](shellcode/how2write.html)
   - [制約付きシェルコード](shellcode/restricted.html)
   - [seccompの回避](shellcode/seccomp.html)
-  - [Egg Hunter（工事中）](shellcode/egg-hunter.html)
+  - [Egg Hunter](shellcode/egg-hunter.html)
   - [Bring Your Own Gadget（工事中）](shellcode/byog.html)
 - スタック
   - [Stack Buffer Overflow](stack/bof.html)

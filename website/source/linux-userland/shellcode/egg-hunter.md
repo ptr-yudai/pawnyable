@@ -5,6 +5,7 @@ tags:
     - [Linux]
     - [Userland]
     - [shellcode]
+    - [Egg Hunter]
 lang: ja
 
 pagination: true
@@ -12,9 +13,7 @@ bk: seccomp.html
 fd: byog.html
 ---
 
-TODO
-
-この章の[演習ファイル](TODO)をダウンロードしてください。
+この章（LU-egghunt）の[演習ファイル](TODO)をダウンロードしてください。
 
 ## Egg Hunter
 [制約付きシェルコード](restrected.html)の章では、シェルコードの長さに制約がある状況について考えました。
@@ -82,13 +81,13 @@ arg0:
 シェルコードを探索するには、まず起点となるアドレスが必要です。シェルコードが呼び出されたとき、レジスタの状態は次のようになっています。
 
 <center>
-  <img src="img/egg_state.png" alt="Egg Hunter呼び出し時のレジスタの状態" style="width:320px;">
+  <img src="img/egg_state.png" alt="Egg Hunter呼び出し時のレジスタの状態" style="width:520px;">
 </center>
 
 R9レジスタにヒープのアドレスが入っていることがわかります。ここを起点に本体のシェルコードを探索できそうです。大抵の場合は今回のように、レジスタやスタックに探索したいアドレスがあるので、そこを起点にマジックナンバーを探せば良いです。
 
 Egg Hunterのシェルコードは次のようになります。
-```
+```nasm
 _start:
   mov r15, r9                   ; heap address
   mov r14, 0xdeadbeefcafebabe   ; magic
@@ -107,28 +106,13 @@ found:
   call memcpy
   jmp main
 
-;; memcpy copies data from source to destination
-;;   rdi: destination address
-;;   rsi: source address
-;;   rdx: size to copy
+;; memcpy sourceからdestinationにデータをコピーする。
+;;   rdi: destinationのアドレス
+;;   rsi: sourceのアドレス
+;;   rdx: コピーするサイズ
 memcpy:
   mov rcx, rdx
   repnz movsb
-  ret
-
-;; is_mmaped checks if given address is mapped
-;;   rdi: address
-;;   returns: 1 if mapped, 0 otherwise
-is_mapped:
-  ; write(1, address, 1)
-  mov edx, 1
-  mov rsi, rdi
-  mov edi, edx
-  mov eax, edx
-  syscall
-  test eax, eax
-  setns al
-  movzx eax, al
   ret
 
 main:
@@ -137,7 +121,7 @@ main:
 <div class="balloon_l">
   <div class="faceicon"><img src="../img/piyo_born.png" alt="ひよこ先生" ></div>
   <p class="says">
-    見つけたシェルコードを`mprotect`で実行可能にしてもよいですが、ブラウザのようにseccompでシステムコールを制限していることがあるから、コピーの方が一般的です。
+    見つけたシェルコードを<code>mprotect</code>で実行可能にしてもよいですが、ブラウザのようにseccompでシステムコールを制限していることがあるから、コピーの方が一般的です。
   </p>
 </div>
 
@@ -158,9 +142,9 @@ sock.sh()
 
 時としてヒープ（本体のシェルコードが置かれている領域）のアドレスが分からないときがあります。アドレスに関する情報がない場合は、どうすれば良いでしょうか。
 
-最初に考えられる方法として、`/proc/self/maps`からメモリマップを読む方法や`mmap`を使って特定の領域がマップされているかを調べる方法があります。しかし、さきほどひよこ先生が言っていたように、ここではシステムコールが制限されている状況を考えます。
+最初に考えられる方法として、`/proc/self/maps`からメモリマップを読む方法や`mmap`を使って特定の領域がマップされているかを調べる方法があります。しかし、ひよこ先生が言っていたように、ここではシステムコールが制限されている状況を考えます。
 
-Linuxで特定のアドレスがマップされているかを調べるシステムコールは提供されていませんが、方法はあります。マップされているアドレスを探索して、
+Linuxで特定のアドレスがマップされているかを調べるシステムコールは提供されていませんが、方法はあります。
 
 ### 安全なシステムコールの利用
 
@@ -170,6 +154,23 @@ Linuxで特定のアドレスがマップされているかを調べるシステ
 
 `mmap`と違って探索は線形にしかできませんが、ヒープのサイズは大きいことが期待されるため、ある程度大きいサイズをスキップしながら読み込み可能な領域を見つけられます。
 
+```
+;; is_mapped 与えられたアドレスが読み込み可能かを調べる。
+;;   arg1 (rdi): 調べるアドレス
+;;   returns: 読み込み可能なら1を、そうでなければ0
+is_mapped:
+  ; write(1, address, 1)
+  mov edx, 1
+  mov rsi, rdi
+  mov edi, edx
+  mov eax, edx
+  syscall
+  test rax, rax
+  setns al
+  movzx eax, al
+  ret
+```
+
 ### TSXの利用
 
 IntelのHaswellプロセッサあたりから、 **TSX (Transactional Synchronization Extensions)** と呼ばれる機能が登場しました。TSXは、命令列をアトミックに実行するための機能で、並列プログラミングで役立ちます。
@@ -178,14 +179,26 @@ IntelのHaswellプロセッサあたりから、 **TSX (Transactional Synchroniz
 トランザクションの実行中に不正なアドレスの読み書きや、実行できない領域へのジャンプが発生した場合、SIGSEGVが発生する代わりにトランザクションの中止が起きます。つまり、不正なアドレスを読もうとしても、プログラムはクラッシュせず、`xbegin`に渡したアドレスにジャンプします。
 
 ```
-; rdiのアドレスが読み込み可能か調べる
-  xbegin unmapped
+;; is_mapped 与えられたアドレスが読み込み可能かを調べる。
+;;   arg1 (rdi): 調べるアドレス
+;;   returns: 読み込み可能なら1を、そうでなければ0を返す。
+is_mapped:
+  xbegin .abort
   mov rax, [rdi]
   xend
-mapped:
-  ...
-unmapped:
-  ...
+  mov eax, 1
+  ret
+.abort:
+  xor eax, eax
+  ret
 ```
 
-この方法はCPU依存の上、過去にセキュリティ上の問題が見つかったこともあり、カーネルによる使用が制限されている可能性もあります。しかし、システムコールによるテストよりも高速なため、アドレス情報が必要な際は試してみる価値があるでしょう。
+CPUやカーネル依存ですが、システムコールによるテストよりも高速なため、アドレス情報が必要な際は試してみる価値があるでしょう。
+
+----
+
+<div class="column" title="例題">
+  <code>write</code>システムコールを使ったテストでヒープのベースアドレスを取得するよう、<code>runner</code>を対象としたEgg Hunterを書き直してください。
+</div>
+
+[☞ 例題の解答](egg-hunter-answer.html)
