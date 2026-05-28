@@ -254,7 +254,7 @@ int angus_encrypt() {
 }
 int angus_decrypt() {
   request_t req = { NULL };
-  return ioctl(fd, CMD_ENCRYPT, &req);
+  return ioctl(fd, CMD_DECRYPT, &req);
 }
 ```
 例として、"Hello, World!"を"ABC123"という鍵で暗号化・復号してみましょう。
